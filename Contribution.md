@@ -46,8 +46,8 @@ Integrated and tested the Staff Registration → OTP Email → OTP Verification 
 Identified and fixed frontend-backend integration issues encountered during development.
 Tested the connectivity and functionality of the major integrated RailPulse modules.
  
-7.Integrated the frontend with backend APIs, ensuring smooth data flow between the interfaces and server.
-8.Connected API responses, authentication, and application functionality across the RailPulse platform. 
+7. Integrated frontend components with backend APIs to enable seamless data exchange and reliable functionality.
+8. Connected API responses, authentication, and core features to ensure smooth end-to-end functionality across the RailPulse platform. 
 
 Piyush
 Backend + FRONTEND (FULLSTACK) Development
