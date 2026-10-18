@@ -17,36 +17,13 @@ import pandas as pd
 from training.config import (
     CLEAN_DATA_PATH,
     PROCESSED_DIR,
-    RAW_DATA_PATH,
     RECONCILIATION_PATH,
     SIGNIFICANT_DELAY_MINUTES,
     delay_band,
 )
+from training.dataset_config import DatasetConfig
 
 logger = logging.getLogger(__name__)
-
-COLUMN_RENAMES = {
-    "Train_id": "record_id",
-    "Train_name": "train_name",
-    "Train_no": "train_number",
-    "Source": "source",
-    "Destitnation": "destination",      # typo in the source file
-    "Date": "journey_date",
-    "Distance(Km)": "distance_km",
-    "Sc_arr__time": "scheduled_arrival_raw",
-    "Act_arr_time": "actual_arrival_raw",
-    "Dealy_min": "delay_raw",           # typo in the source file; HH:MM:SS duration
-    "Season": "season",
-    "Run_frequency": "run_frequency",
-}
-
-RUN_FREQUENCY_MAP = {
-    "daliy": "DAILY",      # typo in the source file
-    "daily": "DAILY",
-    "weekly": "WEEKLY",
-    "tri-weekly": "TRI_WEEKLY",
-    "triweekly": "TRI_WEEKLY",
-}
 
 TIME_PATTERN = re.compile(r"^\d{1,2}:\d{2}(:\d{2})?$")
 MINUTES_PER_DAY = 1440
@@ -124,8 +101,9 @@ def _strip_text(value: object) -> object:
 class RawDataCleaner:
     """Turns the raw delay CSV into a validated, typed journey table."""
 
-    def __init__(self, raw_path: str = RAW_DATA_PATH) -> None:
-        self.raw_path = raw_path
+    def __init__(self, config: DatasetConfig | None = None, raw_path: str | None = None) -> None:
+        self.config = config or DatasetConfig()
+        self.raw_path = raw_path or self.config.raw_path
         self.report = CleaningReport()
 
     def clean(self) -> tuple[pd.DataFrame, CleaningReport]:
@@ -147,13 +125,18 @@ class RawDataCleaner:
         return frame, self.report
 
     def _rename_columns(self, frame: pd.DataFrame) -> pd.DataFrame:
-        missing = [c for c in COLUMN_RENAMES if c not in frame.columns]
+        column_map = self.config.column_map
+        present = {raw: canonical for raw, canonical in column_map.items() if raw in frame.columns}
+        renamed = frame.rename(columns=present)
+        missing = [c for c in self.config.required_columns if c not in renamed.columns]
         if missing:
-            raise ValueError(f"Raw file is missing expected columns: {missing}")
-        renamed = frame.rename(columns=COLUMN_RENAMES)
+            raise ValueError(
+                f"Dataset '{self.config.name}' is missing required columns after mapping: {missing}. "
+                "Update column_map in the dataset config."
+            )
         self.report.add(
-            CleaningStep("rename_typo_columns", len(frame), len(renamed), len(COLUMN_RENAMES),
-                         "Destitnation->destination, Dealy_min->delay_raw")
+            CleaningStep("rename_columns", len(frame), len(renamed), len(present),
+                         f"{len(present)}/{len(column_map)} configured columns mapped")
         )
         return renamed
 
@@ -170,28 +153,40 @@ class RawDataCleaner:
         return frame
 
     def _normalise_categories(self, frame: pd.DataFrame) -> pd.DataFrame:
-        before = frame["run_frequency"].copy()
-        frame["run_frequency"] = (
-            frame["run_frequency"].astype(str).str.lower().map(RUN_FREQUENCY_MAP).fillna("UNKNOWN")
-        )
-        changed = int((before.astype(str) != frame["run_frequency"].astype(str)).sum())
-        frame["season"] = frame["season"].astype(str).str.upper()
+        changed = 0
+        details = []
+        for column, aliases in self.config.category_aliases.items():
+            if column not in frame.columns:
+                continue
+            before = frame[column].astype(str).copy()
+            frame[column] = before.str.lower().map(aliases).fillna(before.str.upper())
+            changed += int((before != frame[column].astype(str)).sum())
+            details.append(column)
+        for column in self.config.uppercase_columns:
+            if column in frame.columns:
+                frame[column] = frame[column].astype(str).str.upper()
         frame["train_number"] = frame["train_number"].astype(str).str.strip()
         self.report.add(
             CleaningStep("normalise_categories", len(frame), len(frame), changed,
-                         "run_frequency 'Daliy'->DAILY, NBSP 'Tri-Weekly'->TRI_WEEKLY")
+                         f"alias-mapped columns: {details or 'none'}")
         )
         return frame
 
     def _parse_times(self, frame: pd.DataFrame) -> pd.DataFrame:
-        corrupt = int(
-            frame["scheduled_arrival_raw"].astype(str).str.contains("1900").sum()
-            + frame["actual_arrival_raw"].astype(str).str.contains("1900").sum()
-            + frame["delay_raw"].astype(str).str.contains("1900").sum()
+        config = self.config
+        corrupt = sum(
+            int(frame[column].astype(str).str.contains("1900").sum())
+            for column in config.clock_columns if column in frame.columns
         )
-        frame["scheduled_arrival_minutes"] = frame["scheduled_arrival_raw"].map(parse_clock_minutes)
-        frame["actual_arrival_minutes"] = frame["actual_arrival_raw"].map(parse_clock_minutes)
-        frame["delay_minutes_stated"] = frame["delay_raw"].map(parse_clock_minutes)
+        frame["scheduled_arrival_minutes"] = frame[config.scheduled_arrival_column].map(parse_clock_minutes)
+        if config.actual_arrival_column and config.actual_arrival_column in frame.columns:
+            frame["actual_arrival_minutes"] = frame[config.actual_arrival_column].map(parse_clock_minutes)
+        else:
+            frame["actual_arrival_minutes"] = np.nan
+        if config.delay_is_duration:
+            frame["delay_minutes_stated"] = frame[config.delay_column].map(parse_clock_minutes)
+        else:
+            frame["delay_minutes_stated"] = pd.to_numeric(frame[config.delay_column], errors="coerce")
         self.report.add(
             CleaningStep("parse_times", len(frame), len(frame), corrupt,
                          f"{corrupt} Excel 1900-epoch cells recovered to time-of-day")
@@ -199,7 +194,9 @@ class RawDataCleaner:
         return frame
 
     def _parse_dates(self, frame: pd.DataFrame) -> pd.DataFrame:
-        frame["journey_date"] = pd.to_datetime(frame["journey_date"], dayfirst=True, errors="coerce")
+        frame[self.config.date_column] = pd.to_datetime(
+            frame[self.config.date_column], dayfirst=self.config.date_dayfirst, errors="coerce"
+        )
         unparsed = int(frame["journey_date"].isna().sum())
         self.report.add(
             CleaningStep("parse_dates", len(frame), len(frame), 0, f"{unparsed} unparseable dates (dayfirst)")
@@ -236,7 +233,8 @@ class RawDataCleaner:
         rows_in = len(frame)
         required = ["journey_date", "delay_minutes", "scheduled_arrival_minutes", "distance_km", "train_number"]
         kept = frame.dropna(subset=required)
-        kept = kept[kept["delay_minutes"] >= 0]
+        if not self.config.allow_negative_delay:
+            kept = kept[kept["delay_minutes"] >= 0]
         kept = kept[kept["distance_km"] > 0]
         self.report.add(
             CleaningStep("drop_invalid", rows_in, len(kept), 0,
@@ -246,7 +244,8 @@ class RawDataCleaner:
 
     def _drop_duplicates(self, frame: pd.DataFrame) -> pd.DataFrame:
         rows_in = len(frame)
-        kept = frame.drop_duplicates(subset=["train_number", "journey_date", "scheduled_arrival_minutes"])
+        subset = [c for c in self.config.drop_duplicate_subset if c in frame.columns]
+        kept = frame.drop_duplicates(subset=subset or None)
         self.report.add(
             CleaningStep("drop_duplicates", rows_in, len(kept), 0, "same train on the same date and schedule")
         )
@@ -264,6 +263,9 @@ class RawDataCleaner:
             "delay_minutes", "delay_minutes_stated", "delay_minutes_computed",
             "delay_reconciled", "delay_band", "is_significant_delay",
         ]
+        for column in columns:
+            if column not in frame.columns:
+                frame[column] = None
         frame = frame.loc[:, columns]
         self.report.add(CleaningStep("finalise", len(frame), len(frame), 0, f"{len(columns)} canonical columns"))
         return frame

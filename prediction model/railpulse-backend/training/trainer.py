@@ -1,145 +1,220 @@
+"""Trains, evaluates and registers the delay prediction bundle.
+
+Per the Gate 2 decision the shipped point estimate is the P50 quantile model.
+The global-mean baseline is fitted and registered alongside it as a reference,
+and every metric is recorded as measured - including the fact that the model
+does not beat that baseline on this dataset.
+"""
+
 from __future__ import annotations
 
-import os
+import logging
+import warnings
 from datetime import datetime, timezone
 from typing import Any
 
-import joblib
 import numpy as np
 import pandas as pd
+from sklearn.base import clone
 
-from app.ml.features import CATEGORICAL_FEATURES, FEATURE_COLUMNS, NUMERIC_FEATURES
-from training.data_loader import TrainingDataLoader
-from training.evaluation import CALIBRATION_LEVEL, MetricsCalculator, UncertaintyCalibrator
-from training.pipeline import RANDOM_STATE, PipelineFactory
-from training.splitter import ChronologicalTripGroupSplitter
+from app.ml.feature_builder import (
+    UNSUPPORTED_REQUEST_FIELDS,
+    JourneyFeatureBuilder,
+    RouteReference,
+)
+from training.config import (
+    DELAY_BANDS, MODEL_VERSION, QUANTILES, RANDOM_SEED, SIGNIFICANT_DELAY_MINUTES,
+)
+from training.dataset_config import DatasetConfig
+from training.download_data import DatasetFetcher
+from training.evaluation import (
+    ClassificationEvaluator, ConformalCalibrator, RegressionEvaluator, SegmentEvaluator,
+)
+from training.models import ModelZoo
+from training.probabilistic import (
+    BAND_LABELS, CalibratedDelayClassifier, QuantileRegressorSet, RiskPolicy, merge_bands,
+)
+from training.registry import ModelRegistryWriter, git_commit
+from training.selection import ModelSelector
+from training.splitter import ChronologicalDateSplitter
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA_PATH = os.path.join(BASE_DIR, "data", "indian_railway_delay_data_.csv")
-MODEL_PATH = os.path.join(BASE_DIR, "models", "railpulse_eta_model.pkl")
-MODEL_VERSION = "eta-v2"
+logger = logging.getLogger(__name__)
 
 
-class ETAModelTrainer:
-    """Trains, evaluates, calibrates and persists the ETA/delay model bundle."""
+class DelayModelTrainer:
+    """End-to-end training for the delay bundle."""
 
     def __init__(
         self,
-        data_path: str = DATA_PATH,
-        model_path: str = MODEL_PATH,
-        splitter: ChronologicalTripGroupSplitter | None = None,
-        pipeline_factory: PipelineFactory | None = None,
-        metrics: MetricsCalculator | None = None,
-        calibrator: UncertaintyCalibrator | None = None,
+        config: DatasetConfig | None = None,
+        seed: int = RANDOM_SEED,
+        quick: bool = False,
     ) -> None:
-        self.data_path = data_path
-        self.model_path = model_path
-        self.loader = TrainingDataLoader(data_path)
-        self.splitter = splitter or ChronologicalTripGroupSplitter()
-        self.pipelines = pipeline_factory or PipelineFactory(random_state=RANDOM_STATE)
-        self.metrics = metrics or MetricsCalculator()
-        self.calibrator = calibrator or UncertaintyCalibrator(level=CALIBRATION_LEVEL)
+        self.config = config or DatasetConfig()
+        self.seed = seed
+        self.quick = quick
+        self.builder = JourneyFeatureBuilder.from_config(self.config)
+        self.splitter = ChronologicalDateSplitter()
+        self.zoo = ModelZoo(seed, self.config.numeric_features, self.config.categorical_features)
+        self.risk_policy = RiskPolicy()
 
-    def run(self) -> tuple[dict[str, Any], dict[str, Any]]:
-        """Train on the chronological split, save the bundle and return metrics."""
-        data = self.loader.load()
+    def run(self, data: pd.DataFrame) -> tuple[dict[str, Any], dict[str, Any]]:
+        """Train on the clean frame and return (bundle, metadata)."""
+        warnings.simplefilter("ignore")
         train, validation, test = self.splitter.split(data)
+        development = pd.concat([train, validation], ignore_index=True)
+        logger.info("split rows train=%d validation=%d test=%d", len(train), len(validation), len(test))
 
-        train_features = train.loc[:, FEATURE_COLUMNS]
-        validation_features = validation.loc[:, FEATURE_COLUMNS]
-        test_features = test.loc[:, FEATURE_COLUMNS]
+        selection = self._select(development)
+        Xdev, ydev = self._xy(development)
+        Xte, yte = self._xy(test)
 
-        eta_validation_pipeline = self.pipelines.build()
-        delay_validation_pipeline = self.pipelines.build()
-        eta_validation_pipeline.fit(train_features, train["target_eta_minutes"])
-        delay_validation_pipeline.fit(train_features, train["target_delay_minutes"])
+        quantiles = QuantileRegressorSet(QUANTILES, selection["encoder"], self.seed).fit(Xdev, ydev)
+        quantile_test = quantiles.predict(Xte)
+        point_test = quantile_test[0.5]
 
-        eta_validation_predictions = eta_validation_pipeline.predict(validation_features)
-        delay_validation_predictions = delay_validation_pipeline.predict(validation_features)
-        eta_uncertainty, eta_coverage = self.calibrator.calibrate(
-            validation["target_eta_minutes"], eta_validation_predictions
+        point_model = clone(selection["estimator"]).fit(Xdev, ydev)
+        baseline_model = clone(self.zoo.baselines()["baseline_global_mean"]).fit(Xdev, ydev)
+
+        binary = CalibratedDelayClassifier("binary", selection["encoder"], self.seed).fit(
+            Xdev, development["is_significant_delay"].to_numpy()
         )
-        delay_uncertainty, delay_coverage = self.calibrator.calibrate(
-            validation["target_delay_minutes"], delay_validation_predictions
+        probability_test = self._positive_probability(binary, Xte)
+
+        conformal = self._fit_conformal(train, validation, selection)
+        metrics = self._evaluate(
+            test, yte, point_test, quantile_test, probability_test,
+            point_model.predict(Xte), baseline_model.predict(Xte),
         )
-
-        final_train = pd.concat([train, validation], ignore_index=True)
-        eta_pipeline = self.pipelines.build().fit(
-            final_train.loc[:, FEATURE_COLUMNS], final_train["target_eta_minutes"]
-        )
-        delay_pipeline = self.pipelines.build().fit(
-            final_train.loc[:, FEATURE_COLUMNS], final_train["target_delay_minutes"]
-        )
-        eta_predictions = eta_pipeline.predict(test_features)
-        delay_predictions = delay_pipeline.predict(test_features)
-
-        baseline_delay = float(final_train["target_delay_minutes"].mean())
-        baseline_eta_predictions = test["scheduled_travel_time_minutes"].to_numpy() + baseline_delay
-        baseline_delay_predictions = np.full(len(test), baseline_delay)
-
-        regression_metrics = self.metrics.regression_metrics
-        metrics = {
-            "validation": {
-                "eta_ml": regression_metrics(validation["target_eta_minutes"], eta_validation_predictions),
-                "delay_ml": regression_metrics(validation["target_delay_minutes"], delay_validation_predictions),
-            },
-            "test": {
-                "eta_baseline": regression_metrics(test["target_eta_minutes"], baseline_eta_predictions),
-                "eta_ml": regression_metrics(test["target_eta_minutes"], eta_predictions),
-                "delay_baseline": regression_metrics(test["target_delay_minutes"], baseline_delay_predictions),
-                "delay_ml": regression_metrics(test["target_delay_minutes"], delay_predictions),
-            },
-        }
-
-        split_metadata = self._split_metadata(train, validation, test)
-        metadata = {
-            "version": MODEL_VERSION,
-            "trained_at": datetime.now(timezone.utc).isoformat(),
-            "features": FEATURE_COLUMNS,
-            "numeric_features": NUMERIC_FEATURES,
-            "categorical_features": CATEGORICAL_FEATURES,
-            "targets": ["target_eta_minutes", "target_delay_minutes"],
-            "split": split_metadata,
-            "baseline": {"delay_mean_minutes": baseline_delay},
-            "uncertainty": {
-                "method": "validation_absolute_error_quantile",
-                "calibration_level": self.calibrator.level,
-                "eta_interval_minutes": eta_uncertainty,
-                "eta_calibration_coverage": eta_coverage,
-                "delay_interval_minutes": delay_uncertainty,
-                "delay_calibration_coverage": delay_coverage,
-            },
-            "metrics": metrics,
-        }
 
         bundle = {
-            "eta_pipeline": eta_pipeline,
-            "delay_pipeline": delay_pipeline,
-            "metadata": metadata,
+            "quantile_models": quantiles,
+            "point_model": point_model,
+            "baseline_model": baseline_model,
+            "binary_classifier": binary,
+            "conformal": conformal,
+            "route_reference": RouteReference.from_frame(data),
+            "feature_columns": self.builder.feature_columns,
+            "risk_policy": self.risk_policy,
         }
-        self.save(bundle)
-        return bundle, metrics
+        metadata = self._metadata(data, train, validation, test, selection, metrics)
+        bundle["metadata"] = metadata
+        return bundle, metadata
+
+    def register(self, bundle: dict[str, Any], metadata: dict[str, Any]) -> dict[str, Any]:
+        """Write the bundle to the registry and repoint `latest`."""
+        return ModelRegistryWriter().register(bundle, metadata)
+
+    def _select(self, development: pd.DataFrame) -> dict[str, Any]:
+        selector = ModelSelector(self.seed, quick=self.quick)
+        selector.builder = self.builder
+        selector.zoo = self.zoo
+        table, results = selector.comparison_table(development)
+        candidates = [r for r in results if not r.name.startswith("baseline")]
+        best = min(candidates, key=lambda r: r.cv_mae_mean)
+        logger.info("selected model=%s encoder=%s cv_mae=%.3f", best.name, best.encoder, best.cv_mae_mean)
+        return {
+            "name": best.name, "encoder": best.encoder, "estimator": best.estimator,
+            "params": best.best_params, "cv_mae": best.cv_mae_mean, "cv_std": best.cv_mae_std,
+            "cv_table": table.to_dict(orient="records"),
+        }
+
+    def _fit_conformal(self, train, validation, selection) -> ConformalCalibrator:
+        """Calibrate interval width on the validation window, never on test."""
+        Xtr, ytr = self._xy(train)
+        Xva, yva = self._xy(validation)
+        model = clone(selection["estimator"]).fit(Xtr, ytr)
+        return ConformalCalibrator(coverage=0.8).fit(yva, model.predict(Xva))
+
+    def _evaluate(self, test, yte, point_test, quantile_test, probability_test,
+                  selected_point, baseline_point) -> dict[str, Any]:
+        regression = RegressionEvaluator
+        band_from_p50 = pd.Series(point_test).map(self._band)
+        metrics = {
+            "test_point_p50": regression.metrics(yte, point_test),
+            "test_point_selected_regressor": regression.metrics(yte, selected_point),
+            "test_baseline_global_mean": regression.metrics(yte, baseline_point),
+            "test_intervals": {
+                "nominal_coverage": 0.8,
+                **regression.interval_coverage(yte, quantile_test[0.1], quantile_test[0.9]),
+                "pinball": {f"q{q}": regression.pinball_loss(yte, quantile_test[q], q) for q in QUANTILES},
+            },
+            "test_binary_classifier": ClassificationEvaluator.binary_metrics(
+                test["is_significant_delay"].to_numpy(), probability_test
+            ),
+            "test_binary_calibration": ClassificationEvaluator.calibration_curve(
+                test["is_significant_delay"].to_numpy(), probability_test, bins=4
+            ),
+            "test_band_from_p50_accuracy": float(
+                (band_from_p50.to_numpy() == test["delay_band"].to_numpy()).mean()
+            ),
+        }
+        segment = test.copy()
+        segment["prediction"] = point_test
+        metrics["test_error_by_segment"] = {
+            column: SegmentEvaluator.by_segment(segment, "delay_minutes", "prediction", column)
+            .reset_index().to_dict(orient="records")
+            for column in ("train_number", "run_frequency")
+            if column in segment.columns
+        }
+        metrics["beats_baseline"] = bool(
+            metrics["test_point_p50"]["mae_minutes"] < metrics["test_baseline_global_mean"]["mae_minutes"]
+        )
+        return metrics
+
+    def _metadata(self, data, train, validation, test, selection, metrics) -> dict[str, Any]:
+        provenance = DatasetFetcher(self.config).describe()
+        return {
+            "version": ModelRegistryWriter().version_name(MODEL_VERSION),
+            "model_version": MODEL_VERSION,
+            "trained_at": datetime.now(timezone.utc).isoformat(),
+            "git_commit": git_commit(),
+            "seed": self.seed,
+            "dataset": {
+                **provenance,
+                "rows": int(len(data)),
+                "date_range": [str(data["journey_date"].min().date()), str(data["journey_date"].max().date())],
+                "distinct_trains": int(data["train_number"].nunique()),
+            },
+            "split": {
+                "strategy": "chronological_by_journey_date",
+                "train_rows": len(train), "validation_rows": len(validation), "test_rows": len(test),
+                "train_end": str(train["journey_date"].max().date()),
+                "test_start": str(test["journey_date"].min().date()),
+            },
+            "features": self.builder.feature_columns,
+            "numeric_features": self.config.numeric_features,
+            "categorical_features": self.config.categorical_features,
+            "excluded_features": self.config.excluded_features,
+            "unsupported_request_fields": list(UNSUPPORTED_REQUEST_FIELDS),
+            "selection": {
+                "point_model_for_serving": "quantile_p50",
+                "selected_regressor": selection["name"],
+                "encoder": selection["encoder"],
+                "params": selection["params"],
+                "cv_mae_minutes": selection["cv_mae"],
+                "cv_mae_std": selection["cv_std"],
+                "cv_table": selection["cv_table"],
+            },
+            "quantiles": list(QUANTILES),
+            "delay_bands": [[low, high if high != float("inf") else None, name] for low, high, name in DELAY_BANDS],
+            "significant_delay_minutes": SIGNIFICANT_DELAY_MINUTES,
+            "band_labels": BAND_LABELS,
+            "risk_policy": self.risk_policy.describe(),
+            "metrics": metrics,
+            "beats_baseline": metrics["beats_baseline"],
+        }
 
     @staticmethod
-    def _split_metadata(
-        train: pd.DataFrame, validation: pd.DataFrame, test: pd.DataFrame
-    ) -> dict[str, Any]:
-        """Return the split description stored alongside the model."""
-        return {
-            "strategy": "chronological_trip_group_split",
-            "group_column": "trip_group",
-            "train_rows": len(train),
-            "validation_rows": len(validation),
-            "test_rows": len(test),
-            "train_date_max": train["event_date"].max().date().isoformat(),
-            "validation_date_range": [
-                validation["event_date"].min().date().isoformat(),
-                validation["event_date"].max().date().isoformat(),
-            ],
-            "test_date_min": test["event_date"].min().date().isoformat(),
-        }
+    def _band(delay_minutes: float) -> str:
+        from training.config import delay_band
 
-    def save(self, bundle: dict[str, Any]) -> None:
-        """Persist the bundle to the configured artifact path."""
-        os.makedirs(os.path.dirname(self.model_path), exist_ok=True)
-        joblib.dump(bundle, self.model_path)
+        return delay_band(float(delay_minutes))
+
+    @staticmethod
+    def _positive_probability(classifier: CalibratedDelayClassifier, X: pd.DataFrame) -> np.ndarray:
+        index = list(classifier.classes_).index("1") if "1" in classifier.classes_ else 1
+        return classifier.predict_proba(X)[:, index]
+
+    def _xy(self, frame: pd.DataFrame) -> tuple[pd.DataFrame, np.ndarray]:
+        return self.builder.frame_from_training(frame), frame["delay_minutes"].to_numpy(dtype=float)

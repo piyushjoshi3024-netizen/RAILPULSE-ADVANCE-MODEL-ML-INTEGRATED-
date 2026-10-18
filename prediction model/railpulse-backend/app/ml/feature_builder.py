@@ -14,31 +14,25 @@ from typing import Any, Mapping
 
 import pandas as pd
 
-NUMERIC_FEATURES = [
-    "distance_km",
-    "scheduled_arrival_hour",
-    "scheduled_arrival_minute",
-    "scheduled_arrival_sin",
-    "scheduled_arrival_cos",
-    "day_of_week",
-    "day_of_month",
-    "is_weekend",
-]
-CATEGORICAL_FEATURES = [
-    "train_number",
-    "source",
-    "destination",
-    "run_frequency",
-]
+from training.dataset_config import (
+    AVAILABLE_CATEGORICAL_FEATURES,
+    AVAILABLE_NUMERIC_FEATURES,
+    DatasetConfig,
+)
+
+_DEFAULT_CONFIG = DatasetConfig()
+
+# The default contract. A pipeline run overrides these from its dataset config
+# and persists the resulting list in the model artifact, so inference always
+# uses exactly the columns the model was fitted on.
+NUMERIC_FEATURES = list(_DEFAULT_CONFIG.numeric_features)
+CATEGORICAL_FEATURES = list(_DEFAULT_CONFIG.categorical_features)
 FEATURE_COLUMNS = NUMERIC_FEATURES + CATEGORICAL_FEATURES
 
 # Columns deliberately kept out of the model, with the reason. Surfaced in the
 # model card and the /health payload so the exclusion is visible, not implicit.
 EXCLUDED_FEATURES: dict[str, str] = {
-    "season": "constant ('WINTER') in the whole dataset - zero variance",
-    "month": "constant (January) in the whole dataset - zero variance",
-    "year": "test period lies entirely outside the training year range; a trend term would be pure extrapolation",
-    "train_name": "redundant with train_number (1:1 mapping)",
+    **_DEFAULT_CONFIG.excluded_features,
     "actual_arrival_minutes": "observed only after arrival - leakage",
     "delay_minutes_computed": "derived from the target - leakage",
     "current_delay_minutes": "not present in the training data; see UNSUPPORTED_REQUEST_FIELDS",
@@ -105,11 +99,33 @@ class RouteReference:
 
 
 class JourneyFeatureBuilder:
-    """Builds the model feature row for a scheduled journey."""
+    """Builds the model feature row for a scheduled journey.
 
-    numeric_features = NUMERIC_FEATURES
-    categorical_features = CATEGORICAL_FEATURES
-    feature_columns = FEATURE_COLUMNS
+    The derived-feature catalogue is fixed in code; *which* of those features a
+    model uses comes from the dataset config (or, at inference time, from the
+    feature list stored in the model artifact).
+    """
+
+    def __init__(
+        self,
+        numeric_features: list[str] | None = None,
+        categorical_features: list[str] | None = None,
+    ) -> None:
+        self.numeric_features = list(numeric_features or NUMERIC_FEATURES)
+        self.categorical_features = list(categorical_features or CATEGORICAL_FEATURES)
+        self.feature_columns = self.numeric_features + self.categorical_features
+
+    @classmethod
+    def from_config(cls, config: DatasetConfig) -> "JourneyFeatureBuilder":
+        """Build from a dataset config."""
+        return cls(config.numeric_features, config.categorical_features)
+
+    @classmethod
+    def from_feature_list(cls, feature_columns: list[str]) -> "JourneyFeatureBuilder":
+        """Rebuild from the ordered feature list stored in a model artifact."""
+        numeric = [c for c in feature_columns if c in AVAILABLE_NUMERIC_FEATURES]
+        categorical = [c for c in feature_columns if c in AVAILABLE_CATEGORICAL_FEATURES]
+        return cls(numeric, categorical)
 
     def from_training_row(self, row: Mapping[str, Any]) -> dict:
         """Build features from a cleaned training record."""
@@ -123,6 +139,8 @@ class JourneyFeatureBuilder:
             source=str(row["source"]),
             destination=str(row["destination"]),
             run_frequency=str(row["run_frequency"]),
+            season=row.get("season"),
+            train_type=row.get("train_type"),
         )
 
     def from_request(self, request, reference: RouteReference | None = None) -> dict:
@@ -155,6 +173,8 @@ class JourneyFeatureBuilder:
             source=str(source),
             destination=str(destination),
             run_frequency=self._normalise_frequency(run_frequency),
+            season=getattr(request, "season", None),
+            train_type=getattr(request, "train_type", None),
         )
 
     @staticmethod
@@ -173,11 +193,13 @@ class JourneyFeatureBuilder:
         source: str,
         destination: str,
         run_frequency: str,
+        season: str | None = None,
+        train_type: str | None = None,
     ) -> dict:
-        """Assemble one ordered feature mapping."""
+        """Assemble one ordered feature mapping, limited to the configured columns."""
         angle = 2 * math.pi * (scheduled_minutes / 1440.0)
         moment = pd.Timestamp(moment)
-        return {
+        catalogue = {
             "distance_km": float(distance_km),
             "scheduled_arrival_hour": int(scheduled_minutes // 60),
             "scheduled_arrival_minute": int(scheduled_minutes % 60),
@@ -185,21 +207,28 @@ class JourneyFeatureBuilder:
             "scheduled_arrival_cos": math.cos(angle),
             "day_of_week": int(moment.dayofweek),
             "day_of_month": int(moment.day),
+            "day_of_year": int(moment.dayofyear),
+            "month": int(moment.month),
             "is_weekend": int(moment.dayofweek >= 5),
             "train_number": str(train_number),
             "source": str(source).strip(),
             "destination": str(destination).strip(),
             "run_frequency": str(run_frequency),
+            "season": str(season or "UNKNOWN").upper(),
+            "train_type": str(train_type or "UNKNOWN"),
         }
+        return {column: catalogue[column] for column in self.feature_columns}
 
     def frame_from_training(self, frame: pd.DataFrame) -> pd.DataFrame:
         """Return the ordered feature matrix for a clean training frame."""
         rows = [self.from_training_row(row) for _, row in frame.iterrows()]
-        return pd.DataFrame(rows).loc[:, FEATURE_COLUMNS]
+        return pd.DataFrame(rows).loc[:, self.feature_columns]
 
     def frame_from_mapping(self, features: Mapping[str, Any]) -> pd.DataFrame:
         """Return a single-row ordered feature matrix for inference."""
-        missing = [c for c in FEATURE_COLUMNS if c not in features]
+        missing = [c for c in self.feature_columns if c not in features]
         if missing:
             raise ValueError(f"Inference feature mismatch: missing={missing}")
-        return pd.DataFrame([[features[c] for c in FEATURE_COLUMNS]], columns=FEATURE_COLUMNS)
+        return pd.DataFrame(
+            [[features[c] for c in self.feature_columns]], columns=self.feature_columns
+        )

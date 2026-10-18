@@ -13,11 +13,15 @@ from sklearn.linear_model import Ridge
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler, TargetEncoder
 
-from app.ml.feature_builder import CATEGORICAL_FEATURES, NUMERIC_FEATURES
 from training.config import RANDOM_SEED
+from training.dataset_config import DatasetConfig
 
-HIGH_CARDINALITY_FEATURES = ["train_number", "source", "destination"]
-LOW_CARDINALITY_FEATURES = [c for c in CATEGORICAL_FEATURES if c not in HIGH_CARDINALITY_FEATURES]
+_DEFAULTS = DatasetConfig()
+NUMERIC_FEATURES = _DEFAULTS.numeric_features
+CATEGORICAL_FEATURES = _DEFAULTS.categorical_features
+
+# Columns treated as high cardinality (target-encoded rather than one-hot).
+HIGH_CARDINALITY_CANDIDATES = ["train_number", "source", "destination", "train_name"]
 
 
 class GlobalMeanBaseline(BaseEstimator, RegressorMixin):
@@ -73,54 +77,65 @@ class PreprocessorFactory:
     """Builds the ColumnTransformer shared by every candidate model."""
 
     def __init__(self, encoder: str = "onehot", seed: int = RANDOM_SEED,
-                 target_type: str = "continuous") -> None:
+                 target_type: str = "continuous",
+                 numeric_features: list[str] | None = None,
+                 categorical_features: list[str] | None = None) -> None:
         if encoder not in {"onehot", "target"}:
             raise ValueError(f"Unknown encoder: {encoder}")
         self.encoder = encoder
         self.seed = seed
         self.target_type = target_type
+        self.numeric_features = list(numeric_features or NUMERIC_FEATURES)
+        self.categorical_features = list(categorical_features or CATEGORICAL_FEATURES)
+        self.high_cardinality = [c for c in self.categorical_features if c in HIGH_CARDINALITY_CANDIDATES]
+        self.low_cardinality = [c for c in self.categorical_features if c not in self.high_cardinality]
 
     def build(self) -> ColumnTransformer:
         """Return the fitted-on-demand preprocessing transformer."""
-        if self.encoder == "onehot":
+        if self.encoder == "onehot" or not self.high_cardinality:
             categorical = [(
                 "categorical",
                 OneHotEncoder(handle_unknown="ignore", sparse_output=False),
-                CATEGORICAL_FEATURES,
-            )]
+                self.categorical_features,
+            )] if self.categorical_features else []
         else:
-            categorical = [
-                (
-                    "target_encoded",
-                    TargetEncoder(target_type=self.target_type, random_state=self.seed),
-                    HIGH_CARDINALITY_FEATURES,
-                ),
-                (
+            categorical = [(
+                "target_encoded",
+                TargetEncoder(target_type=self.target_type, random_state=self.seed),
+                self.high_cardinality,
+            )]
+            if self.low_cardinality:
+                categorical.append((
                     "one_hot",
                     OneHotEncoder(handle_unknown="ignore", sparse_output=False),
-                    LOW_CARDINALITY_FEATURES,
-                ),
-            ]
-        return ColumnTransformer(
-            transformers=[("numeric", StandardScaler(), NUMERIC_FEATURES), *categorical]
-        )
+                    self.low_cardinality,
+                ))
+        numeric = [("numeric", StandardScaler(), self.numeric_features)] if self.numeric_features else []
+        return ColumnTransformer(transformers=[*numeric, *categorical])
 
 
 class ModelZoo:
     """Named baselines and candidate pipelines with their search spaces."""
 
-    def __init__(self, seed: int = RANDOM_SEED) -> None:
+    def __init__(self, seed: int = RANDOM_SEED, numeric_features: list[str] | None = None,
+                 categorical_features: list[str] | None = None) -> None:
         self.seed = seed
+        self.numeric_features = list(numeric_features or NUMERIC_FEATURES)
+        self.categorical_features = list(categorical_features or CATEGORICAL_FEATURES)
 
     def baselines(self) -> dict[str, BaseEstimator]:
         """Return the reference predictors every candidate must beat."""
-        return {
+        available = set(self.categorical_features)
+        baselines: dict[str, BaseEstimator] = {
             "baseline_global_mean": GlobalMeanBaseline(),
             "baseline_global_median": GlobalMedianBaseline(),
-            "baseline_per_train_mean": GroupStatisticBaseline(["train_number"], "mean"),
-            "baseline_per_train_median": GroupStatisticBaseline(["train_number"], "median"),
-            "baseline_per_route_median": GroupStatisticBaseline(["source", "destination"], "median"),
         }
+        if "train_number" in available:
+            baselines["baseline_per_train_mean"] = GroupStatisticBaseline(["train_number"], "mean")
+            baselines["baseline_per_train_median"] = GroupStatisticBaseline(["train_number"], "median")
+        if {"source", "destination"} <= available:
+            baselines["baseline_per_route_median"] = GroupStatisticBaseline(["source", "destination"], "median")
+        return baselines
 
     def candidates(self) -> dict[str, dict[str, Any]]:
         """Return candidate estimators with bounded parameter grids."""
@@ -187,9 +202,7 @@ class ModelZoo:
         ``continuous`` while the classifiers need ``auto`` so string labels
         are encoded correctly.
         """
-        return Pipeline(
-            [
-                ("preprocessor", PreprocessorFactory(encoder, self.seed, target_type).build()),
-                ("model", estimator),
-            ]
+        factory = PreprocessorFactory(
+            encoder, self.seed, target_type, self.numeric_features, self.categorical_features
         )
+        return Pipeline([("preprocessor", factory.build()), ("model", estimator)])

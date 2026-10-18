@@ -1,102 +1,119 @@
+"""Loads the registered delay model bundle for the API.
+
+Nothing is loaded at import time; the first call resolves the ``latest``
+pointer. A missing or invalid artifact degrades the service to an explicit
+"not ready" state rather than raising at startup.
+"""
+
+from __future__ import annotations
+
 import logging
-import os
+from typing import Any
 
-import joblib
-
-from app.core.config import Settings, get_settings
-from app.ml.features import FEATURE_COLUMNS
+from training.registry import ModelRegistryReader
 
 logger = logging.getLogger(__name__)
 
+REQUIRED_BUNDLE_KEYS = ("quantile_models", "binary_classifier", "route_reference", "feature_columns")
+
 
 class ModelRegistry:
-    """Loads, validates and caches the persisted ETA/delay model bundle.
+    """Caches the loaded bundle and exposes its parts to the service layer."""
 
-    The bundle is held as instance state and loaded on first use, so importing
-    this module never touches the filesystem.
-    """
+    def __init__(self, reader: ModelRegistryReader | None = None) -> None:
+        self._reader = reader or ModelRegistryReader()
+        self._bundle: dict[str, Any] | None = None
+        self._load_error: str | None = None
 
-    def __init__(self, settings: Settings | None = None) -> None:
-        self._settings = settings
-        self._bundle: dict | None = None
-
-    @property
-    def settings(self) -> Settings:
-        """Resolve settings lazily so configuration is read at call time."""
-        return self._settings if self._settings is not None else get_settings()
-
-    def load(self) -> dict:
-        """Load and validate the bundle once; an invalid artifact yields {}."""
+    def load(self) -> dict[str, Any]:
+        """Load and validate the bundle once; returns {} when unavailable."""
         if self._bundle is None:
-            settings = self.settings
             try:
-                if not os.path.exists(settings.MODEL_PATH):
-                    raise FileNotFoundError(settings.MODEL_PATH)
-                logger.info("Loading ML models from %s", settings.MODEL_PATH)
-                bundle = joblib.load(settings.MODEL_PATH)
-                self._validate(bundle, settings)
+                bundle, _ = self._reader.load()
+                if bundle is None:
+                    raise FileNotFoundError("no model is registered (models/latest.json missing or stale)")
+                self._validate(bundle)
                 self._bundle = bundle
-            except Exception:
-                logger.exception("Unable to load a valid model artifact from %s", settings.MODEL_PATH)
+                self._load_error = None
+                logger.info("loaded model version=%s", bundle.get("metadata", {}).get("version"))
+            except Exception as exc:
+                self._load_error = str(exc)
+                logger.warning("model unavailable: %s", exc)
                 self._bundle = {}
         return self._bundle
 
     @staticmethod
-    def _validate(bundle: dict, settings: Settings) -> None:
-        """Raise when the bundle does not satisfy the inference contract."""
+    def _validate(bundle: dict[str, Any]) -> None:
+        """Raise when the bundle does not satisfy the serving contract."""
+        missing = [key for key in REQUIRED_BUNDLE_KEYS if bundle.get(key) is None]
+        if missing:
+            raise ValueError(f"Model bundle is missing required components: {missing}")
         metadata = bundle.get("metadata", {})
-        if not all(bundle.get(name) is not None for name in ("eta_pipeline", "delay_pipeline")):
-            raise ValueError("Model bundle is missing required pipelines")
-        if metadata.get("features") != FEATURE_COLUMNS:
-            raise ValueError("Model feature metadata does not match the inference contract")
-        if metadata.get("version") != settings.MODEL_VERSION:
-            raise ValueError("Model artifact version does not match MODEL_VERSION")
+        if metadata.get("features") != bundle.get("feature_columns"):
+            raise ValueError("Model feature metadata does not match the stored feature contract")
+
+    def reload(self) -> dict[str, Any]:
+        """Drop the cache and load again (used after a retrain)."""
+        self._bundle = None
+        return self.load()
 
     @property
-    def eta_pipeline(self):
-        """Return the fitted ETA regression pipeline, or None."""
-        return self.load().get("eta_pipeline")
+    def quantile_models(self):
+        return self.load().get("quantile_models")
 
     @property
-    def delay_pipeline(self):
-        """Return the fitted delay regression pipeline, or None."""
-        return self.load().get("delay_pipeline")
+    def binary_classifier(self):
+        return self.load().get("binary_classifier")
 
-    def metadata(self) -> dict:
-        """Return the bundle metadata, or an empty mapping."""
+    @property
+    def baseline_model(self):
+        return self.load().get("baseline_model")
+
+    @property
+    def route_reference(self):
+        return self.load().get("route_reference")
+
+    @property
+    def risk_policy(self):
+        return self.load().get("risk_policy")
+
+    def feature_columns(self) -> list[str]:
+        return list(self.load().get("feature_columns") or [])
+
+    def metadata(self) -> dict[str, Any]:
         return self.load().get("metadata", {})
 
-    def uncertainty_metadata(self) -> dict:
-        """Return the saved uncertainty calibration metadata."""
-        return self.metadata().get("uncertainty", {})
+    def dataset_info(self) -> dict[str, Any]:
+        """Return the dataset provenance recorded at training time."""
+        return self.metadata().get("dataset", {})
+
+    def beats_baseline(self) -> bool:
+        """Return whether the shipped model beat its baseline on the test set."""
+        return bool(self.metadata().get("beats_baseline", False))
+
+    def model_version(self) -> str:
+        return str(self.metadata().get("version", "unknown"))
 
     def is_ready(self) -> bool:
-        """Return True when both pipelines and the metadata are available."""
+        """Return True when a validated bundle is loaded."""
         bundle = self.load()
-        return bool(bundle.get("eta_pipeline") and bundle.get("delay_pipeline") and bundle.get("metadata"))
+        return bool(bundle) and all(bundle.get(key) is not None for key in REQUIRED_BUNDLE_KEYS)
+
+    def load_error(self) -> str | None:
+        """Return the reason the model could not be loaded, if any."""
+        self.load()
+        return self._load_error
 
 
 model_registry = ModelRegistry()
 
 
-def load_models():
-    return model_registry.load()
+def get_model_registry() -> ModelRegistry:
+    return model_registry
 
 
-def get_eta_pipeline():
-    return model_registry.eta_pipeline
-
-
-def get_delay_pipeline():
-    return model_registry.delay_pipeline
-
-
-def get_model_metadata():
+def get_model_metadata() -> dict[str, Any]:
     return model_registry.metadata()
-
-
-def get_uncertainty_metadata():
-    return model_registry.uncertainty_metadata()
 
 
 def is_model_ready() -> bool:

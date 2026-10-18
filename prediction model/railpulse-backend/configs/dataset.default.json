@@ -1,0 +1,77 @@
+{
+  "actual_arrival_column": "actual_arrival_raw",
+  "allow_negative_delay": false,
+  "categorical_features": [
+    "train_number",
+    "source",
+    "destination",
+    "run_frequency"
+  ],
+  "category_aliases": {
+    "run_frequency": {
+      "daily": "DAILY",
+      "daliy": "DAILY",
+      "tri-weekly": "TRI_WEEKLY",
+      "triweekly": "TRI_WEEKLY",
+      "weekly": "WEEKLY"
+    }
+  },
+  "clock_columns": [
+    "scheduled_arrival_raw",
+    "actual_arrival_raw",
+    "delay_raw"
+  ],
+  "column_map": {
+    "Act_arr_time": "actual_arrival_raw",
+    "Date": "journey_date",
+    "Dealy_min": "delay_raw",
+    "Destitnation": "destination",
+    "Distance(Km)": "distance_km",
+    "Run_frequency": "run_frequency",
+    "Sc_arr__time": "scheduled_arrival_raw",
+    "Season": "season",
+    "Source": "source",
+    "Train_id": "record_id",
+    "Train_name": "train_name",
+    "Train_no": "train_number"
+  },
+  "date_column": "journey_date",
+  "date_dayfirst": true,
+  "delay_column": "delay_raw",
+  "delay_is_duration": true,
+  "drop_duplicate_subset": [
+    "train_number",
+    "journey_date",
+    "scheduled_arrival_minutes"
+  ],
+  "excluded_features": {
+    "month": "constant (January) in this dataset - zero variance",
+    "season": "constant ('WINTER') in this dataset - zero variance",
+    "train_name": "redundant with train_number (1:1 mapping)",
+    "year": "test period lies outside the training year range; a trend term would be extrapolation"
+  },
+  "expected_sha256": null,
+  "name": "indian_railway_delay_data_",
+  "numeric_features": [
+    "distance_km",
+    "scheduled_arrival_hour",
+    "scheduled_arrival_minute",
+    "scheduled_arrival_sin",
+    "scheduled_arrival_cos",
+    "day_of_week",
+    "day_of_month",
+    "is_weekend"
+  ],
+  "raw_path": "/home/ritik/Desktop/RAILPULSE-ADVANCE-MODEL-ML-INTEGRATED-/prediction model/railpulse-backend/data/indian_railway_delay_data_.csv",
+  "required_columns": [
+    "train_number",
+    "journey_date",
+    "distance_km",
+    "scheduled_arrival_raw",
+    "delay_raw"
+  ],
+  "scheduled_arrival_column": "scheduled_arrival_raw",
+  "uppercase_columns": [
+    "season"
+  ]
+}
