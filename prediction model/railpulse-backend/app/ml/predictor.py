@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import math
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import numpy as np
@@ -104,7 +104,7 @@ class DelayPredictor:
             eta_lower=anchor + timedelta(minutes=p10),
             eta_upper=anchor + timedelta(minutes=p90),
             predicted_remaining_minutes=max(
-                0.0, (predicted_eta - request.current_timestamp).total_seconds() / 60.0
+                0.0, (predicted_eta - self._as_utc(request.current_timestamp)).total_seconds() / 60.0
             ),
             delay_category=delay_band(p50),
             risk_level=risk_level,
@@ -131,10 +131,21 @@ class DelayPredictor:
                 populated.append(name)
         return populated
 
+    @classmethod
+    def _anchor(cls, request) -> datetime:
+        """Return the UTC datetime the delay is measured against.
+
+        MongoDB hands back naive datetimes, so a stored state would otherwise
+        produce a naive ETA that a browser reads as local time.
+        """
+        return cls._as_utc(getattr(request, "scheduled_arrival", None) or request.current_timestamp)
+
     @staticmethod
-    def _anchor(request) -> datetime:
-        """Return the datetime the delay is measured against."""
-        return getattr(request, "scheduled_arrival", None) or request.current_timestamp
+    def _as_utc(moment: datetime) -> datetime:
+        """Attach UTC to a naive datetime, leaving aware values untouched."""
+        if moment.tzinfo is None:
+            return moment.replace(tzinfo=timezone.utc)
+        return moment.astimezone(timezone.utc)
 
     @staticmethod
     def _data_source(request) -> str:

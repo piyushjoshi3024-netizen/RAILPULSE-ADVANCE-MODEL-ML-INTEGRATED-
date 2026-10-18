@@ -4,7 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.api.dependencies import (
     get_current_user,
+    get_eta_service,
     get_prediction_repository,
+    get_reference_service,
     get_train_repository,
     require_roles,
 )
@@ -13,20 +15,27 @@ from app.db.repositories.train_repository import TrainRepository
 from app.schemas.capabilities import (
     PredictionHistoryResponse,
     LiveStateUpdateResponse,
+    UpcomingStationETA,
     UpcomingStationETAResponse,
 )
+from app.services.eta_service import ETAService
+from app.services.reference_service import ReferenceDataService
 from app.schemas.train import TrainListResponse, TrainStateRequest
 
 router = APIRouter()
 
 
-@router.get("")
+@router.get("", summary="List live train states")
 async def list_trains(
     trains: Annotated[TrainRepository, Depends(get_train_repository)],
+    limit: int = Query(default=1000, ge=1, le=1000, description="maximum rows to return"),
+    skip: int = Query(default=0, ge=0, description="rows to skip"),
     current_user: dict = Depends(get_current_user),
 ):
-    items = await trains.list_live_states(limit=1000)
-    return TrainListResponse(count=len(items), trains=items)
+    """Return the stored live train states, newest schedule first."""
+    items = await trains.list_live_states(limit=limit + skip)
+    page = items[skip: skip + limit]
+    return TrainListResponse(count=len(page), trains=page)
 
 
 @router.get("/{train_number}/state")
@@ -86,17 +95,61 @@ async def update_live_train_state(
     )
 
 
-@router.get("/{train_number}/upcoming-stations", response_model=UpcomingStationETAResponse)
+@router.get("/{train_number}/upcoming-stations", response_model=UpcomingStationETAResponse,
+            summary="Station ETAs for a train")
 async def get_upcoming_station_etas(
     train_number: str,
+    trains: Annotated[TrainRepository, Depends(get_train_repository)],
+    reference: Annotated[ReferenceDataService, Depends(get_reference_service)],
+    eta: Annotated[ETAService, Depends(get_eta_service)],
     current_user: dict = Depends(get_current_user),
 ):
+    """Return the destination ETA from the model.
+
+    The dataset records arrival at the destination only, so exactly one stop is
+    returned. Intermediate station sequences are not in the data and are not
+    invented; the limitation field says so.
+    """
+    route = await reference.route_for(train_number)
+    state = await trains.get_live_state(train_number)
+    if route is None or state is None:
+        return UpcomingStationETAResponse(
+            train_number=train_number,
+            status="future_data_required",
+            data_source="route_schedule_and_live_network_feed_required",
+            limitation=(
+                "No reference route or live state is stored for this train. "
+                "Seed demo data or load the reference catalogue first."
+            ),
+        )
+
+    try:
+        prediction = await eta.calculate(TrainStateRequest(**_state_to_request(state)))
+    except Exception:
+        return UpcomingStationETAResponse(
+            train_number=train_number,
+            status="future_data_required",
+            data_source="model_unavailable",
+            limitation="The prediction model is not available; no station ETA is fabricated.",
+        )
+
     return UpcomingStationETAResponse(
         train_number=train_number,
-        status="future_data_required",
-        data_source="route_schedule_and_live_network_feed_required",
+        status="available",
+        data_source="training_dataset_route_plus_model",
+        upcoming_stations=[UpcomingStationETA(
+            station_name=route["destination"],
+            predicted_eta=prediction.predicted_eta,
+            confidence=prediction.confidence,
+        )],
         limitation=(
-            "Station sequence and station-level observations are not present in the current dataset; "
-            "no station ETA is fabricated."
+            "Only the destination arrival is modelled: the dataset contains no intermediate "
+            "station sequence, so no en-route stops are inferred."
         ),
     )
+
+
+def _state_to_request(state: dict) -> dict:
+    """Keep only the fields TrainStateRequest accepts."""
+    allowed = set(TrainStateRequest.model_fields)
+    return {key: value for key, value in state.items() if key in allowed}

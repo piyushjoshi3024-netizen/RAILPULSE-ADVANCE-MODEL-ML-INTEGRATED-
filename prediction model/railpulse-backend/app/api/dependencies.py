@@ -16,12 +16,15 @@ from app.db.repositories.prediction_repository import (
     PredictionRepository,
     prediction_repository,
 )
+from app.db.repositories.reference_repository import ReferenceRepository, reference_repository
 from app.db.repositories.train_repository import TrainRepository, train_repository
 from app.db.repositories.user_repository import UserRepository, user_repository
 from app.ml.model_registry import ModelRegistry, model_registry
 from app.services.capability_service import CapabilityService, capability_service
 from app.services.demo_data_service import DemoDataService, demo_data_service
 from app.services.eta_service import ETAService, default_eta_service
+from app.services.explanation_service import ExplanationService, explanation_service
+from app.services.reference_service import ReferenceDataService, reference_data_service
 from app.services.feature_service import FeatureService, feature_service
 
 
@@ -91,6 +94,21 @@ def get_capability_service() -> CapabilityService:
 def get_demo_data_service() -> DemoDataService:
     """Provide the demo dataset service."""
     return demo_data_service
+
+
+def get_reference_repository() -> ReferenceRepository:
+    """Provide the train/route reference repository."""
+    return reference_repository
+
+
+def get_reference_service() -> ReferenceDataService:
+    """Provide the train/route reference catalogue service."""
+    return reference_data_service
+
+
+def get_explanation_service() -> ExplanationService:
+    """Provide the optional plain-language explanation layer."""
+    return explanation_service
 
 
 async def get_current_user(

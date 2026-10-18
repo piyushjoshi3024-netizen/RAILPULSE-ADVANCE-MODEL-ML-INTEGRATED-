@@ -8,6 +8,7 @@ from app.api.routes import (
     health,
     network,
     predictions,
+    reference,
     simulation,
     trains,
 )
@@ -20,6 +21,7 @@ __all__ = [
     "health",
     "network",
     "predictions",
+    "reference",
     "simulation",
     "trains",
 ]
