@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from app.db.mongodb import db
+from app.db.repositories.train_repository import TrainRepository, train_repository
 from app.schemas.train import TrainStateRequest
 
 DEMO_TRAIN_SPECS: dict[str, dict[str, Any]] = {
@@ -120,144 +120,190 @@ DEMO_TRAIN_SPECS: dict[str, dict[str, Any]] = {
 }
 
 
-def _demo_timestamp(offset_minutes: int = 0, base_time: datetime | None = None) -> datetime:
-    base = base_time or datetime.now(timezone.utc)
-    return base + timedelta(minutes=offset_minutes)
+class DemoDataService:
+    """Generates, seeds and clears the demo live-train dataset."""
+
+    specs: dict[str, dict[str, Any]] = DEMO_TRAIN_SPECS
+
+    def __init__(self, repository: TrainRepository | None = None) -> None:
+        self._repository = repository if repository is not None else train_repository
+
+    @property
+    def collection(self):
+        """Return the live train state collection used for demo documents."""
+        return self._repository.collection
+
+    @staticmethod
+    def timestamp(offset_minutes: int = 0, base_time: datetime | None = None) -> datetime:
+        """Return a demo timestamp offset from the supplied base time."""
+        base = base_time or datetime.now(timezone.utc)
+        return base + timedelta(minutes=offset_minutes)
+
+    def build_state(
+        self, train_number: str, base_time: datetime | None = None, delay_shift: int = 0
+    ) -> dict[str, Any]:
+        """Return the demo live-state document for one train."""
+        spec = self.specs[train_number]
+        current_ts = base_time or datetime.now(timezone.utc)
+        scheduled_arrival = current_ts + timedelta(minutes=int(spec["scheduled_travel_time_minutes"] - spec["elapsed_travel_time_minutes"]))
+        reduced_delay = max(0.0, float(spec["current_delay_minutes"]) + float(delay_shift))
+        return {
+            "train_number": train_number,
+            "train_type": spec["train_type"],
+            "train_priority": 3,
+            "current_timestamp": current_ts,
+            "current_station": spec["current_station"],
+            "current_section": spec["current_section"],
+            "destination": spec["destination"],
+            "distance_remaining_km": float(spec["distance_remaining_km"]),
+            "current_speed_kmph": float(spec["current_speed_kmph"]),
+            "current_delay_minutes": reduced_delay,
+            "scheduled_arrival": scheduled_arrival,
+            "scheduled_travel_time_minutes": float(spec["scheduled_travel_time_minutes"]),
+            "elapsed_travel_time_minutes": float(spec["elapsed_travel_time_minutes"]),
+            "historical_route_delay_minutes": float(spec["historical_route_delay_minutes"]),
+            "historical_station_delay_minutes": float(spec["historical_station_delay_minutes"]),
+            "historical_section_time_minutes": float(spec["historical_section_time_minutes"]),
+            "dwell_time_minutes": float(spec["dwell_time_minutes"]),
+            "track_occupancy": float(spec["track_occupancy"]),
+            "junction_congestion": float(spec["junction_congestion"]),
+            "platform_availability": float(spec["platform_availability"]),
+            "trains_in_section": int(spec["trains_in_section"]),
+            "source": spec["source"],
+            "season": spec["season"],
+            "run_frequency": spec["run_frequency"],
+            "data_source": "DEMO",
+            "state_source": "live",
+            "updated_at": current_ts,
+        }
+
+    def generate_train_state(
+        self, train_number: str, current_timestamp: datetime | None = None, delay_shift: int = 0
+    ) -> TrainStateRequest:
+        """Return one demo train as a validated train-state request."""
+        payload = self.build_state(train_number, current_timestamp, delay_shift)
+        return TrainStateRequest(**payload)
+
+    def generate_trains(self, current_timestamp: datetime | None = None) -> list[TrainStateRequest]:
+        """Return every demo train as a validated train-state request."""
+        base = current_timestamp or datetime.now(timezone.utc)
+        return [
+            self.generate_train_state(train_number, base, delay_shift=(index * 2))
+            for index, train_number in enumerate(self.specs.keys())
+        ]
+
+    async def seed(self, current_timestamp: datetime | None = None) -> dict[str, Any]:
+        """Upsert every demo train and report created/updated counts."""
+        base = current_timestamp or datetime.now(timezone.utc)
+        collection = self.collection
+        created_count = 0
+        updated_count = 0
+        trains: list[str] = []
+
+        for train_number in self.specs:
+            existing = await collection.find_one({"train_number": train_number})
+            payload = self.build_state(train_number, base)
+            document = {**payload, "train_number": train_number}
+            await collection.update_one({"train_number": train_number}, {"$set": document}, upsert=True)
+            trains.append(train_number)
+            if existing:
+                updated_count += 1
+            else:
+                created_count += 1
+
+        total_count = len(trains)
+        return {
+            "success": True,
+            "created_count": created_count,
+            "updated_count": updated_count,
+            "seeded_count": total_count,
+            "total_count": total_count,
+            "trains": trains,
+            "message": "Demo live train data seeded successfully",
+        }
+
+    async def refresh(self, current_timestamp: datetime | None = None) -> dict[str, Any]:
+        """Advance the stored demo trains that are already seeded."""
+        base = current_timestamp or datetime.now(timezone.utc)
+        collection = self.collection
+        refreshed: list[str] = []
+
+        for index, train_number in enumerate(self.specs):
+            existing = await collection.find_one({"train_number": train_number, "data_source": "DEMO"})
+            if not existing:
+                continue
+            payload = self.build_state(train_number, base, delay_shift=(index + 2) * 3)
+            await collection.update_one({"train_number": train_number}, {"$set": {**payload, "train_number": train_number}}, upsert=True)
+            refreshed.append(train_number)
+
+        return {
+            "success": True,
+            "updated_count": len(refreshed),
+            "trains": refreshed,
+            "message": "Demo live train data refreshed successfully",
+        }
+
+    async def reset(self) -> dict[str, Any]:
+        """Delete every demo-sourced live train document."""
+        collection = self.collection
+        result = await collection.delete_many({"data_source": "DEMO"})
+        deleted_count = getattr(result, "deleted_count", 0) or 0
+        return {
+            "success": True,
+            "deleted_count": deleted_count,
+            "message": "Demo data cleared successfully",
+        }
+
+    async def list_live(self, limit: int = 1000) -> list[dict[str, Any]]:
+        """Return stored live trains, skipping documents without a train number."""
+        collection = self.collection
+        documents = await collection.find({}).sort("train_number", 1).to_list(length=limit)
+        results: list[dict[str, Any]] = []
+        for document in documents:
+            item = dict(document)
+            item.pop("_id", None)
+            if not item.get("train_number"):
+                continue
+            sanitized = {
+                "train_number": item.get("train_number"),
+                "train_type": item.get("train_type"),
+                "source": item.get("source"),
+                "destination": item.get("destination"),
+                "current_station": item.get("current_station"),
+                "current_section": item.get("current_section"),
+                "current_delay_minutes": item.get("current_delay_minutes", 0),
+                "current_speed_kmph": item.get("current_speed_kmph", 0),
+                "distance_remaining_km": item.get("distance_remaining_km"),
+                "scheduled_arrival": item.get("scheduled_arrival"),
+                "data_source": item.get("data_source", "LIVE"),
+                "updated_at": item.get("updated_at"),
+            }
+            results.append(sanitized)
+        return results
 
 
-def _build_demo_state(train_number: str, base_time: datetime | None = None, delay_shift: int = 0) -> dict[str, Any]:
-    spec = DEMO_TRAIN_SPECS[train_number]
-    current_ts = base_time or datetime.now(timezone.utc)
-    scheduled_arrival = current_ts + timedelta(minutes=int(spec["scheduled_travel_time_minutes"] - spec["elapsed_travel_time_minutes"]))
-    reduced_delay = max(0.0, float(spec["current_delay_minutes"]) + float(delay_shift))
-    return {
-        "train_number": train_number,
-        "train_type": spec["train_type"],
-        "train_priority": 3,
-        "current_timestamp": current_ts,
-        "current_station": spec["current_station"],
-        "current_section": spec["current_section"],
-        "destination": spec["destination"],
-        "distance_remaining_km": float(spec["distance_remaining_km"]),
-        "current_speed_kmph": float(spec["current_speed_kmph"]),
-        "current_delay_minutes": reduced_delay,
-        "scheduled_arrival": scheduled_arrival,
-        "scheduled_travel_time_minutes": float(spec["scheduled_travel_time_minutes"]),
-        "elapsed_travel_time_minutes": float(spec["elapsed_travel_time_minutes"]),
-        "historical_route_delay_minutes": float(spec["historical_route_delay_minutes"]),
-        "historical_station_delay_minutes": float(spec["historical_station_delay_minutes"]),
-        "historical_section_time_minutes": float(spec["historical_section_time_minutes"]),
-        "dwell_time_minutes": float(spec["dwell_time_minutes"]),
-        "track_occupancy": float(spec["track_occupancy"]),
-        "junction_congestion": float(spec["junction_congestion"]),
-        "platform_availability": float(spec["platform_availability"]),
-        "trains_in_section": int(spec["trains_in_section"]),
-        "source": spec["source"],
-        "season": spec["season"],
-        "run_frequency": spec["run_frequency"],
-        "data_source": "DEMO",
-        "state_source": "live",
-        "updated_at": current_ts,
-    }
+demo_data_service = DemoDataService()
 
 
 def generate_demo_train_state(train_number: str, current_timestamp: datetime | None = None, delay_shift: int = 0) -> TrainStateRequest:
-    payload = _build_demo_state(train_number, current_timestamp, delay_shift)
-    return TrainStateRequest(**payload)
+    return demo_data_service.generate_train_state(train_number, current_timestamp, delay_shift)
 
 
 def generate_demo_trains(current_timestamp: datetime | None = None) -> list[TrainStateRequest]:
-    base = current_timestamp or datetime.now(timezone.utc)
-    return [
-        generate_demo_train_state(train_number, base, delay_shift=(index * 2))
-        for index, train_number in enumerate(DEMO_TRAIN_SPECS.keys())
-    ]
+    return demo_data_service.generate_trains(current_timestamp)
 
 
 async def seed_demo_trains(current_timestamp: datetime | None = None) -> dict[str, Any]:
-    base = current_timestamp or datetime.now(timezone.utc)
-    collection = db.db["live_train_state"]
-    created_count = 0
-    updated_count = 0
-    trains: list[str] = []
-
-    for train_number in DEMO_TRAIN_SPECS:
-        existing = await collection.find_one({"train_number": train_number})
-        payload = _build_demo_state(train_number, base)
-        document = {**payload, "train_number": train_number}
-        await collection.update_one({"train_number": train_number}, {"$set": document}, upsert=True)
-        trains.append(train_number)
-        if existing:
-            updated_count += 1
-        else:
-            created_count += 1
-
-    total_count = len(trains)
-    return {
-        "success": True,
-        "created_count": created_count,
-        "updated_count": updated_count,
-        "seeded_count": total_count,
-        "total_count": total_count,
-        "trains": trains,
-        "message": "Demo live train data seeded successfully",
-    }
+    return await demo_data_service.seed(current_timestamp)
 
 
 async def refresh_demo_trains(current_timestamp: datetime | None = None) -> dict[str, Any]:
-    base = current_timestamp or datetime.now(timezone.utc)
-    collection = db.db["live_train_state"]
-    refreshed: list[str] = []
-
-    for index, train_number in enumerate(DEMO_TRAIN_SPECS):
-        existing = await collection.find_one({"train_number": train_number, "data_source": "DEMO"})
-        if not existing:
-            continue
-        payload = _build_demo_state(train_number, base, delay_shift=(index + 2) * 3)
-        await collection.update_one({"train_number": train_number}, {"$set": {**payload, "train_number": train_number}}, upsert=True)
-        refreshed.append(train_number)
-
-    return {
-        "success": True,
-        "updated_count": len(refreshed),
-        "trains": refreshed,
-        "message": "Demo live train data refreshed successfully",
-    }
+    return await demo_data_service.refresh(current_timestamp)
 
 
 async def reset_demo_trains() -> dict[str, Any]:
-    collection = db.db["live_train_state"]
-    result = await collection.delete_many({"data_source": "DEMO"})
-    deleted_count = getattr(result, "deleted_count", 0) or 0
-    return {
-        "success": True,
-        "deleted_count": deleted_count,
-        "message": "Demo data cleared successfully",
-    }
+    return await demo_data_service.reset()
 
 
 async def list_live_trains(limit: int = 1000) -> list[dict[str, Any]]:
-    collection = db.db["live_train_state"]
-    documents = await collection.find({}).sort("train_number", 1).to_list(length=limit)
-    results: list[dict[str, Any]] = []
-    for document in documents:
-        item = dict(document)
-        item.pop("_id", None)
-        if not item.get("train_number"):
-            continue
-        sanitized = {
-            "train_number": item.get("train_number"),
-            "train_type": item.get("train_type"),
-            "source": item.get("source"),
-            "destination": item.get("destination"),
-            "current_station": item.get("current_station"),
-            "current_section": item.get("current_section"),
-            "current_delay_minutes": item.get("current_delay_minutes", 0),
-            "current_speed_kmph": item.get("current_speed_kmph", 0),
-            "distance_remaining_km": item.get("distance_remaining_km"),
-            "scheduled_arrival": item.get("scheduled_arrival"),
-            "data_source": item.get("data_source", "LIVE"),
-            "updated_at": item.get("updated_at"),
-        }
-        results.append(sanitized)
-    return results
+    return await demo_data_service.list_live(limit)

@@ -93,3 +93,33 @@ def build_inference_features(request) -> dict:
 def feature_frame(rows: list[Mapping[str, object]]) -> pd.DataFrame:
     frame = pd.DataFrame([engineer_features(row) for row in rows])
     return frame.loc[:, FEATURE_COLUMNS]
+
+
+class FeatureEngineer:
+    """Object wrapper over the feature contract used for training and inference."""
+
+    numeric_features = NUMERIC_FEATURES
+    categorical_features = CATEGORICAL_FEATURES
+    feature_columns = FEATURE_COLUMNS
+
+    @staticmethod
+    def parse_time_minutes(value: object) -> float:
+        """Return a clock string as minutes past midnight."""
+        return parse_time_minutes(value)
+
+    @staticmethod
+    def parse_datetime(value: object) -> datetime:
+        """Return a parsed datetime, falling back to a fixed sentinel date."""
+        return parse_datetime(value)
+
+    def engineer(self, row: Mapping[str, object]) -> dict:
+        """Return the engineered feature mapping for one raw row."""
+        return engineer_features(row)
+
+    def build_inference_features(self, request) -> dict:
+        """Return the engineered feature mapping for an API request."""
+        return build_inference_features(request)
+
+    def frame(self, rows: list[Mapping[str, object]]) -> pd.DataFrame:
+        """Return engineered rows as a DataFrame ordered by the feature contract."""
+        return feature_frame(rows)

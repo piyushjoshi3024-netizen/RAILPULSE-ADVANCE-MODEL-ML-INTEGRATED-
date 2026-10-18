@@ -1,26 +1,33 @@
-from fastapi import APIRouter
-from app.db.mongodb import db
-from app.ml.loader import get_model_metadata, is_model_ready
-from app.core.config import get_settings
 import os
+from typing import Annotated
+
+from fastapi import APIRouter, Depends
+
+from app.api.dependencies import get_app_settings, get_database, get_model_registry
+from app.core.config import Settings
+from app.db.mongodb import MongoDatabase
+from app.ml.model_registry import ModelRegistry
 
 router = APIRouter()
 
 @router.get("/")
-async def health_check():
+async def health_check(
+    database: Annotated[MongoDatabase, Depends(get_database)],
+    registry: Annotated[ModelRegistry, Depends(get_model_registry)],
+    settings: Annotated[Settings, Depends(get_app_settings)],
+):
     # Check Mongo
     mongo_status = "ok"
     try:
-        await db.db.command("ping")
+        await database.db.command("ping")
     except Exception:
         mongo_status = "error"
-        
+
     # Check Model
-    settings = get_settings()
-    metadata = get_model_metadata()
+    metadata = registry.metadata()
     artifact_exists = os.path.exists(settings.MODEL_PATH)
-    model_status = "ok" if metadata and artifact_exists and is_model_ready() else "error"
-    
+    model_status = "ok" if metadata and artifact_exists and registry.is_ready() else "error"
+
     return {
         "status": "ok" if mongo_status == "ok" and model_status == "ok" else "degraded",
         "mongodb": mongo_status,

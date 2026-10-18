@@ -1,8 +1,10 @@
+from typing import Annotated
+
 from fastapi import APIRouter, Depends
 
-from app.api.dependencies import require_roles
+from app.api.dependencies import get_capability_service, require_roles
 from app.schemas.capabilities import DelayPropagationResponse, OperationalRiskResponse
-from app.services.capability_service import unavailable_capability
+from app.services.capability_service import CapabilityService
 
 router = APIRouter()
 
@@ -13,9 +15,10 @@ router = APIRouter()
 )
 async def get_delay_propagation(
     train_number: str,
+    capabilities: Annotated[CapabilityService, Depends(get_capability_service)],
     current_user: dict = Depends(require_roles("STAFF", "ADMIN")),
 ):
-    return DelayPropagationResponse(**unavailable_capability("Delay propagation", train_number))
+    return DelayPropagationResponse(**capabilities.unavailable_capability("Delay propagation", train_number))
 
 
 @router.get(
@@ -24,6 +27,7 @@ async def get_delay_propagation(
 )
 async def get_operational_risk(
     train_number: str,
+    capabilities: Annotated[CapabilityService, Depends(get_capability_service)],
     current_user: dict = Depends(require_roles("STAFF", "ADMIN")),
 ):
-    return OperationalRiskResponse(**unavailable_capability("Operational risk analysis", train_number))
+    return OperationalRiskResponse(**capabilities.unavailable_capability("Operational risk analysis", train_number))
