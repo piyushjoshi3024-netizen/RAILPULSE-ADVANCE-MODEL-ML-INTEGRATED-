@@ -113,11 +113,25 @@ STAFF_PASSWORD=<choose-a-local-staff-password>
 JWT_SECRET_KEY=<random-secret-at-least-32-characters>
 ```
 
-The model `.pkl` file is not tracked by Git. If it is missing, generate it from the included training CSV before starting the app:
+Model artifacts are not tracked by Git. If none is registered, train one from the included CSV before starting the app:
 
 ```bash
-python training/train.py
+python -m training.pipeline
 ```
+
+This runs the whole pipeline — verify, clean, profile, train, evaluate, register — and writes a versioned artifact to `models/registry/<version>/` with a `models/latest.json` pointer. `python training/train.py` still works as a thin wrapper. Useful flags: `--quick` (reduced search), `--seed N`, `--data PATH`, `--config PATH`, `--no-profile`.
+
+### Retraining on a different dataset
+
+Swapping in a larger dataset is a configuration change, not a code change:
+
+```bash
+cp configs/dataset.default.json configs/dataset.mydata.json
+# edit name, raw_path, column_map, clock/date columns, category aliases and the feature lists
+python -m training.pipeline --config configs/dataset.mydata.json
+```
+
+The config controls the raw path and expected checksum, the raw-to-canonical column map, date and time parsing, cleaning aliases, de-duplication keys and which derived features the model uses. See [railpulse-backend/docs/MODEL_CARD.md](railpulse-backend/docs/MODEL_CARD.md#how-to-retrain-on-a-new-dataset) for the full procedure and the one case that still needs code.
 
 Start FastAPI **from the `railpulse-backend` directory** so Python can import the `app` package:
 
@@ -159,7 +173,7 @@ The named Docker volume preserves database data between container stops.
 - **`ModuleNotFoundError: No module named 'app'`:** change into `railpulse-backend`, activate its `.venv`, and run Uvicorn there, not from the repository root.
 - **Frontend says `FastAPI offline`:** open `http://localhost:8000/api/v1/health/`. If healthy, open the frontend at `http://localhost:3000`, ensure `CORS_ORIGINS=http://localhost:3000`, and restart FastAPI after editing `.env`.
 - **Browser reports a CORS error:** CORS must match the frontend origin exactly, including hostname and port. `localhost` and `127.0.0.1` are different origins.
-- **Model unavailable:** verify `railpulse-backend/models/railpulse_eta_model.pkl` exists. If missing, activate the backend virtual environment and run `python training/train.py` from `railpulse-backend`.
+- **Model unavailable:** verify `railpulse-backend/models/latest.json` exists and points at a readable artifact. If missing, run `python -m training.pipeline` from `railpulse-backend`. The API starts and reports `model: error` on `/health` rather than refusing to boot.
 - **Port already in use:** stop the process using it, or choose another port and update both `CORS_ORIGINS` and the URL opened in the browser.
 
 ## Roles and permissions
@@ -189,9 +203,21 @@ See the backend README and `/docs` for request/response schemas and the complete
 
 ## Data and capability boundaries
 
-The historical CSV and seeded demo records support train-level state and ETA/delay prediction. They do not constitute a live railway telemetry feed. Station sequence predictions, network delay propagation, operational risk, and automatic alert generation need additional real source data; the backend reports those limitations explicitly. Simulation state is stored separately from live train state and does not silently become live state.
+### Model status
 
-Demo data is for development and demonstration. It must not be presented as authoritative real-time railway information.
+The delay model is a **prototype trained on a 100-row dataset** covering 10 trains, all on January dates between 2016 and 2025. On the held-out chronological test set it **does not beat a constant mean-delay baseline** (MAE 28.72 vs 25.46 minutes), and every R² is negative. This is reported honestly rather than hidden: `/health` and every prediction response carry the dataset name, row count and `beats_baseline: false`, and the UI shows a short "Prototype model, trained on a 100-row dataset" note.
+
+What the model does provide: per-journey delay quantiles (P10/P50/P90), a calibrated probability of a delay over 15 minutes (test ROC-AUC 0.897), and a P10–P90 interval with measured 76% coverage against a nominal 80%. Full numbers and caveats are in [railpulse-backend/docs/MODEL_CARD.md](railpulse-backend/docs/MODEL_CARD.md) and [railpulse-backend/reports/model_comparison.md](railpulse-backend/reports/model_comparison.md).
+
+The dataset's provenance and licence are **not documented** — see [railpulse-backend/docs/DATA_SOURCES.md](railpulse-backend/docs/DATA_SOURCES.md).
+
+### Capability boundaries
+
+The historical CSV and seeded demo records support train-level state, destination ETA and delay prediction. They do not constitute a live railway telemetry feed. The dataset contains no intermediate station sequence, so only the destination arrival is modelled; network delay propagation, operational risk and automatic alert generation need additional real source data and keep an explicit `future_data_required` envelope. Simulation state is stored separately from live train state and does not silently become live state.
+
+The API accepts 13 request fields (current delay, speed, congestion, dwell time and similar) that the training data cannot support. They are accepted, ignored, and echoed back in `unsupported_fields_ignored` so callers can see they had no effect.
+
+Demo data is derived from real records in the training dataset, is marked `data_source: "DEMO"`, and must not be presented as authoritative real-time railway information.
 
 ## Tests
 
@@ -203,7 +229,15 @@ source .venv/bin/activate
 pytest tests/
 ```
 
-Some tests use fake database adapters. A running MongoDB is needed for operations that explicitly exercise the live database.
+Some tests use fake database adapters. A running MongoDB is needed for operations that explicitly exercise the live database. Model-dependent tests skip themselves when no artifact is registered.
+
+The suite covers the cleaning reconciliation, the shared feature contract, chronological split leakage, the predictor's serving contract, the API routes, and a **contract test** that parses every `api.*` call out of `railpulse-frontend/js/*.js` and asserts the path and method exist in `/openapi.json`.
+
+To exercise every route the frontend uses against a running server:
+
+```bash
+python scripts/e2e_check.py
+```
 
 ## Deployment
 

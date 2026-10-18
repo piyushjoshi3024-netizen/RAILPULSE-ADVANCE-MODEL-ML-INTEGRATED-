@@ -1,3 +1,4 @@
+import re
 from copy import deepcopy
 from datetime import datetime, timezone
 
@@ -28,22 +29,40 @@ class FakeCursor:
         return deepcopy(self.documents[:length])
 
 
+def matches(document, query):
+    """Minimal query matcher supporting equality, $or and $regex."""
+    for key, condition in query.items():
+        if key == "$or":
+            if not any(matches(document, clause) for clause in condition):
+                return False
+            continue
+        value = document.get(key)
+        if isinstance(condition, dict) and "$regex" in condition:
+            flags = re.IGNORECASE if "i" in condition.get("$options", "") else 0
+            if value is None or not re.search(condition["$regex"], str(value), flags):
+                return False
+            continue
+        if value != condition:
+            return False
+    return True
+
+
 class FakeCollection:
     def __init__(self):
         self.documents = []
 
     async def find_one(self, query, sort=None):
-        matches = [document for document in self.documents if all(document.get(k) == v for k, v in query.items())]
-        if sort and matches:
+        found = [document for document in self.documents if matches(document, query)]
+        if sort and found:
             field, direction = sort[0]
-            matches.sort(key=lambda item: item.get(field, datetime.min), reverse=direction < 0)
-        return deepcopy(matches[0]) if matches else None
+            found.sort(key=lambda item: item.get(field, datetime.min), reverse=direction < 0)
+        return deepcopy(found[0]) if found else None
 
     async def insert_one(self, document):
         self.documents.append(deepcopy(document))
 
     async def update_one(self, query, update, upsert=False):
-        existing = next((document for document in self.documents if all(document.get(k) == v for k, v in query.items())), None)
+        existing = next((document for document in self.documents if matches(document, query)), None)
         if existing is None:
             if upsert:
                 self.documents.append({**query, **deepcopy(update["$set"])})
@@ -51,12 +70,10 @@ class FakeCollection:
             existing.update(deepcopy(update["$set"]))
 
     def find(self, query):
-        return FakeCursor([
-            document for document in self.documents if all(document.get(k) == v for k, v in query.items())
-        ])
+        return FakeCursor([document for document in self.documents if matches(document, query)])
 
     async def count_documents(self, query):
-        return len([document for document in self.documents if all(document.get(k) == v for k, v in query.items())])
+        return len([document for document in self.documents if matches(document, query)])
 
     async def create_index(self, *args, **kwargs):
         return "index"
@@ -65,7 +82,8 @@ class FakeCollection:
 class FakeDatabase:
     def __init__(self):
         self.collections = {name: FakeCollection() for name in (
-            "users", "live_train_state", "simulation_states", "predictions", "alerts"
+            "users", "live_train_state", "simulation_states", "predictions", "alerts",
+            "reference_trains",
         )}
 
     def __getitem__(self, name):
@@ -97,8 +115,12 @@ def test_phase3_documented_and_future_capabilities(monkeypatch):
 
     catalog = client.get("/api/v1/docs/capabilities")
     assert catalog.status_code == 200
-    assert "upcoming_station_eta" in catalog.json()["future_data_required"]
+    payload = catalog.json()
+    # Destination ETA is now served by the model; only intermediate stops remain blocked.
+    assert "intermediate_station_eta" in payload["future_data_required"]
+    assert "destination_station_eta" in payload["available"]
 
+    # With no reference route or live state stored, the honest envelope still applies.
     station_etas = client.get("/api/v1/trains/12345/upcoming-stations", headers=headers)
     assert station_etas.status_code == 200
     assert station_etas.json()["status"] == "future_data_required"
