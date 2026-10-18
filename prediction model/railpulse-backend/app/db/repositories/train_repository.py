@@ -68,6 +68,7 @@ class TrainRepository(BaseRepository):
             item.pop("_id", None)
             trains.append({
                 "train_number": item.get("train_number"),
+                "train_name": item.get("train_name"),
                 "train_type": item.get("train_type"),
                 "source": item.get("source"),
                 "destination": item.get("destination"),

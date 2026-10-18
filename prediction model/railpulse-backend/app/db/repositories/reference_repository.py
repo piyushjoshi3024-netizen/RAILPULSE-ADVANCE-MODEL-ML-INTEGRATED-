@@ -45,16 +45,19 @@ class ReferenceRepository(BaseRepository):
         return document
 
     async def search(self, query: str, limit: int = 10) -> list[dict[str, Any]]:
-        """Return trains matching a number or name fragment."""
+        """Return trains matching a number or name fragment.
+
+        An empty query lists the first ``limit`` trains, so an autocomplete
+        control can show suggestions before the user types anything.
+        """
         pattern = re.escape(query.strip())
-        if not pattern:
-            return []
-        cursor = self.collection.find({
+        criteria = {} if not pattern else {
             "$or": [
                 {"train_number": {"$regex": f"^{pattern}", "$options": "i"}},
                 {"train_name": {"$regex": pattern, "$options": "i"}},
             ]
-        }).limit(limit)
+        }
+        cursor = self.collection.find(criteria).sort("train_number", 1).limit(limit)
         results = await cursor.to_list(length=limit)
         for item in results:
             item.pop("_id", None)

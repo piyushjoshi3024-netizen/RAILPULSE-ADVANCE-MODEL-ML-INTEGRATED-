@@ -37,6 +37,7 @@ async function request(path, options = {}) {
                 403: 'You do not have permission to perform this operation.',
                 404: 'Train is not currently available in the live feed.',
                 422: 'Some train information is invalid. Please try again.',
+                503: 'The prediction model is not available yet. Train it with: python -m training.pipeline',
                 500: 'RailPulse could not complete the request. Please check the backend service.',
             };
             const fallback = mapped[response.status] || `Request failed (${response.status}).`;
