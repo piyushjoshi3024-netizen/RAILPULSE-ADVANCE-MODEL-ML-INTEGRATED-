@@ -1,6 +1,6 @@
 """End-to-end training pipeline.
 
-    python -m training.pipeline [--data PATH] [--config PATH] [--quick] [--seed N]
+    python3 -m training.pipeline [--data PATH] [--config PATH] [--quick] [--seed N]
 
 Stages: verify -> clean -> profile -> features -> train -> evaluate -> register.
 Each stage logs structured progress; the dataset is streamed through parquet
@@ -103,7 +103,7 @@ class TrainingPipeline:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="python -m training.pipeline",
+        prog="python3 -m training.pipeline",
         description="Clean, train, evaluate and register the RailPulse delay model.",
     )
     parser.add_argument("--data", default=None, help="path to a raw dataset file (overrides the config)")

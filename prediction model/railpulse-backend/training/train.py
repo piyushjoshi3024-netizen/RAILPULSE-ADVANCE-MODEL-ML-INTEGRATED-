@@ -1,6 +1,6 @@
 """Thin wrapper kept so `python training/train.py` keeps working.
 
-The real entry point is `python -m training.pipeline`; this module forwards to
+The real entry point is `python3 -m training.pipeline`; this module forwards to
 it with the same flags.
 """
 

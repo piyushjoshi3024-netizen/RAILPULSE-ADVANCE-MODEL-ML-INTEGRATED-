@@ -224,19 +224,25 @@ Demo data is derived from real records in the training dataset, is marked `data_
 Run backend tests from the backend directory with its virtual environment active:
 
 ```bash
-cd railpulse-backend
-source .venv/bin/activate
-pytest tests/
+cd railpulse-backend && source .venv/bin/activate && pytest -q
 ```
 
 Some tests use fake database adapters. A running MongoDB is needed for operations that explicitly exercise the live database. Model-dependent tests skip themselves when no artifact is registered.
 
-The suite covers the cleaning reconciliation, the shared feature contract, chronological split leakage, the predictor's serving contract, the API routes, and a **contract test** that parses every `api.*` call out of `railpulse-frontend/js/*.js` and asserts the path and method exist in `/openapi.json`.
+The suite covers the cleaning reconciliation, the shared feature contract, chronological split leakage, the predictor's serving contract, degraded mode (no model, no database, bad input), the API routes, and a **contract test** that parses every `api.*` call out of `railpulse-frontend/js/*.js` and asserts the path and method exist in `/openapi.json`.
 
-To exercise every route the frontend uses against a running server:
+### Verification scripts
+
+Exercise every route the frontend uses, as the correct roles, against a running server:
 
 ```bash
-python3 scripts/e2e_check.py
+cd railpulse-backend && .venv/bin/python3 scripts/e2e_check.py
+```
+
+Headless UI smoke test (login, select train, predict, check the range/probability/badge, save a screenshot to `reports/figures/ui_smoke.png`):
+
+```bash
+cd railpulse-backend && .venv/bin/python3 -m pip install -r requirements-dev.txt && .venv/bin/python3 -m playwright install chromium && .venv/bin/python3 scripts/ui_smoke.py
 ```
 
 ## Deployment

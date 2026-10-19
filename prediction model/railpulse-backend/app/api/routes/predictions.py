@@ -40,7 +40,7 @@ async def predict_eta(
         response = await eta.calculate(request)
     except ModelNotReadyError as exc:
         raise ModelUnavailableError(
-            f"No usable model is registered: {exc}. Run `python -m training.pipeline`."
+            f"No usable model is registered: {exc}. Run `python3 -m training.pipeline`."
         ) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

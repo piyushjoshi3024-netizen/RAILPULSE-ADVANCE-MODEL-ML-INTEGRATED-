@@ -58,5 +58,5 @@ async def load_reference(
     except FileNotFoundError as exc:
         raise HTTPException(
             status_code=503,
-            detail="Cleaned dataset is not available; run `python -m training.pipeline` first",
+            detail="Cleaned dataset is not available; run `python3 -m training.pipeline` first",
         ) from exc

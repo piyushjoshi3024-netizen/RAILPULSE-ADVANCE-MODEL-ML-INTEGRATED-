@@ -1,0 +1,6 @@
+# Optional tooling for the verification scripts. Not needed to run the API.
+# Install with:  python3 -m pip install -r requirements-dev.txt
+-r requirements.txt
+
+# Headless browser smoke test: python3 scripts/ui_smoke.py
+playwright
