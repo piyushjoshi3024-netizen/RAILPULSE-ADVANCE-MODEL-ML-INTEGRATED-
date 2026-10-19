@@ -26,10 +26,10 @@ pip install -r requirements.txt
 The provided `indian_railway_delay_data_.csv` holds 100 historical train-level arrival records for 10 trains. The pipeline cleans it deterministically, splits chronologically by journey date, selects a model by expanding-window cross-validation and registers a versioned artifact.
 
 ```bash
-python -m training.pipeline
+python3 -m training.pipeline
 ```
 
-This writes `models/registry/<version>/model.joblib` plus `metadata.json`, and repoints `models/latest.json`. `python training/train.py` remains as a thin wrapper. Flags: `--data`, `--config`, `--seed`, `--quick`, `--no-profile`.
+This writes `models/registry/<version>/model.joblib` plus `metadata.json`, and repoints `models/latest.json`. `python3 training/train.py` remains as a thin wrapper. Flags: `--data`, `--config`, `--seed`, `--quick`, `--no-profile`.
 
 **Measured result on this dataset:** the model does not beat a constant mean-delay baseline on the held-out test set (MAE 28.72 vs 25.46 minutes). See `docs/MODEL_CARD.md` and `reports/model_comparison.md`; `/health` reports `beats_baseline: false`.
 
@@ -86,7 +86,7 @@ Covers cleaning reconciliation, the shared feature contract, split leakage, the 
 
 End-to-end check against a running server and MongoDB:
 ```bash
-python scripts/e2e_check.py
+python3 scripts/e2e_check.py
 ```
 
 ### Production configuration

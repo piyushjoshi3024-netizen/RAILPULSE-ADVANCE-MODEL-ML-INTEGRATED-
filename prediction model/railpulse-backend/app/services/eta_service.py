@@ -22,8 +22,11 @@ class ETAService:
         registry: ModelRegistry | None = None,
         explanations: ExplanationService | None = None,
     ) -> None:
-        self._predictor = predictor if predictor is not None else DelayPredictor()
         self._registry = registry if registry is not None else model_registry
+        # The predictor must read the same registry as the service, otherwise an
+        # injected (or degraded) registry would be reported in model_quality
+        # while predictions still came from the global one.
+        self._predictor = predictor if predictor is not None else DelayPredictor(self._registry)
         self._explanations = explanations if explanations is not None else explanation_service
 
     async def calculate(self, request: TrainStateRequest) -> PredictionResponse:

@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import GridSearchCV
 
-from app.ml.feature_builder import JourneyFeatureBuilder
+from training.feature_contract import JourneyFeatureBuilder
 from training.config import RANDOM_SEED
 from training.evaluation import RegressionEvaluator
 from training.models import ModelZoo

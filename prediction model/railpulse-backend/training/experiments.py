@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 from sklearn.base import clone
 
-from app.ml.feature_builder import JourneyFeatureBuilder
+from training.feature_contract import JourneyFeatureBuilder
 from training.config import QUANTILES, REPORTS_DIR
 from training.evaluation import (
     ClassificationEvaluator, ConformalCalibrator, RegressionEvaluator, SegmentEvaluator,

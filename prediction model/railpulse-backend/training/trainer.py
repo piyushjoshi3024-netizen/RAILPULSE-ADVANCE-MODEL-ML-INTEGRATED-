@@ -17,7 +17,7 @@ import numpy as np
 import pandas as pd
 from sklearn.base import clone
 
-from app.ml.feature_builder import (
+from training.feature_contract import (
     UNSUPPORTED_REQUEST_FIELDS,
     JourneyFeatureBuilder,
     RouteReference,

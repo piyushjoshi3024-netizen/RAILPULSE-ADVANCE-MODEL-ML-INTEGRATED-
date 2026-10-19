@@ -123,13 +123,13 @@ a dataset config and point the pipeline at it:
 cp configs/dataset.default.json configs/dataset.mydata.json
 # edit: name, raw_path, column_map, date/clock columns, category aliases,
 #       numeric_features, categorical_features, excluded_features
-python -m training.pipeline --config configs/dataset.mydata.json
+python3 -m training.pipeline --config configs/dataset.mydata.json
 ```
 
 Or override just the file path:
 
 ```bash
-python -m training.pipeline --data /path/to/bigger_dataset.csv
+python3 -m training.pipeline --data /path/to/bigger_dataset.csv
 ```
 
 The config controls the raw path and checksum, the raw→canonical column map,

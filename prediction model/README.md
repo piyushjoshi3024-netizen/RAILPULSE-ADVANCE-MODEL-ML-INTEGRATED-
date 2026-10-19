@@ -96,8 +96,8 @@ In **Terminal 2**, install the backend dependencies and configure the local envi
 cd railpulse-backend
 python3 -m venv .venv
 source .venv/bin/activate  # Windows PowerShell: .venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
+python3 -m pip install --upgrade pip
+python3 -m pip install -r requirements.txt
 cp .env.example .env
 ```
 
@@ -116,10 +116,10 @@ JWT_SECRET_KEY=<random-secret-at-least-32-characters>
 Model artifacts are not tracked by Git. If none is registered, train one from the included CSV before starting the app:
 
 ```bash
-python -m training.pipeline
+python3 -m training.pipeline
 ```
 
-This runs the whole pipeline — verify, clean, profile, train, evaluate, register — and writes a versioned artifact to `models/registry/<version>/` with a `models/latest.json` pointer. `python training/train.py` still works as a thin wrapper. Useful flags: `--quick` (reduced search), `--seed N`, `--data PATH`, `--config PATH`, `--no-profile`.
+This runs the whole pipeline — verify, clean, profile, train, evaluate, register — and writes a versioned artifact to `models/registry/<version>/` with a `models/latest.json` pointer. `python3 training/train.py` still works as a thin wrapper. Useful flags: `--quick` (reduced search), `--seed N`, `--data PATH`, `--config PATH`, `--no-profile`.
 
 ### Retraining on a different dataset
 
@@ -128,7 +128,7 @@ Swapping in a larger dataset is a configuration change, not a code change:
 ```bash
 cp configs/dataset.default.json configs/dataset.mydata.json
 # edit name, raw_path, column_map, clock/date columns, category aliases and the feature lists
-python -m training.pipeline --config configs/dataset.mydata.json
+python3 -m training.pipeline --config configs/dataset.mydata.json
 ```
 
 The config controls the raw path and expected checksum, the raw-to-canonical column map, date and time parsing, cleaning aliases, de-duplication keys and which derived features the model uses. See [railpulse-backend/docs/MODEL_CARD.md](railpulse-backend/docs/MODEL_CARD.md#how-to-retrain-on-a-new-dataset) for the full procedure and the one case that still needs code.
@@ -136,7 +136,7 @@ The config controls the raw path and expected checksum, the raw-to-canonical col
 Start FastAPI **from the `railpulse-backend` directory** so Python can import the `app` package:
 
 ```bash
-python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+python3 -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
 Wait for `Application startup complete`. The health endpoint should return `"status":"ok"`, `"mongodb":"ok"`, and `"model":"ok"` at `http://localhost:8000/api/v1/health/`. Interactive API documentation is at `http://localhost:8000/docs`; the OpenAPI schema is at `http://localhost:8000/openapi.json`.
@@ -173,7 +173,7 @@ The named Docker volume preserves database data between container stops.
 - **`ModuleNotFoundError: No module named 'app'`:** change into `railpulse-backend`, activate its `.venv`, and run Uvicorn there, not from the repository root.
 - **Frontend says `FastAPI offline`:** open `http://localhost:8000/api/v1/health/`. If healthy, open the frontend at `http://localhost:3000`, ensure `CORS_ORIGINS=http://localhost:3000`, and restart FastAPI after editing `.env`.
 - **Browser reports a CORS error:** CORS must match the frontend origin exactly, including hostname and port. `localhost` and `127.0.0.1` are different origins.
-- **Model unavailable:** verify `railpulse-backend/models/latest.json` exists and points at a readable artifact. If missing, run `python -m training.pipeline` from `railpulse-backend`. The API starts and reports `model: error` on `/health` rather than refusing to boot.
+- **Model unavailable:** verify `railpulse-backend/models/latest.json` exists and points at a readable artifact. If missing, run `python3 -m training.pipeline` from `railpulse-backend`. The API starts and reports `model: error` on `/health` rather than refusing to boot.
 - **Port already in use:** stop the process using it, or choose another port and update both `CORS_ORIGINS` and the URL opened in the browser.
 
 ## Roles and permissions
@@ -236,7 +236,7 @@ The suite covers the cleaning reconciliation, the shared feature contract, chron
 To exercise every route the frontend uses against a running server:
 
 ```bash
-python scripts/e2e_check.py
+python3 scripts/e2e_check.py
 ```
 
 ## Deployment
