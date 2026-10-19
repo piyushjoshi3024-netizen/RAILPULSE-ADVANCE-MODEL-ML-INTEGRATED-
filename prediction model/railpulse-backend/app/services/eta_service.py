@@ -69,15 +69,27 @@ class ETAService:
         dataset = self._registry.dataset_info()
         metrics = metadata.get("metrics", {})
         rows = int(dataset.get("rows", 0))
+        provenance = self._registry.data_provenance()
         return ModelQuality(
             dataset_name=str(dataset.get("name", "unknown")),
             dataset_rows=rows,
+            data_provenance=provenance,
             beats_baseline=bool(metadata.get("beats_baseline", False)),
             test_mae_minutes=metrics.get("test_point_p50", {}).get("mae_minutes"),
             baseline_mae_minutes=metrics.get("test_baseline_global_mean", {}).get("mae_minutes"),
             interval_coverage=metrics.get("test_intervals", {}).get("coverage"),
-            notice=f"Prototype model, trained on a {rows}-row dataset" if rows else "No model registered",
+            notice=self._notice(rows, provenance),
         )
+
+    @staticmethod
+    def _notice(rows: int, provenance: str) -> str:
+        """One short, honest line about what the model was trained on."""
+        if not rows:
+            return "No model registered"
+        if provenance.lower() == "synthetic":
+            return (f"Prototype model, trained on {rows} rows of SYNTHETIC data - "
+                    "metrics demonstrate the pipeline, not real-world accuracy")
+        return f"Prototype model, trained on a {rows}-row dataset"
 
 
 default_eta_service = ETAService()

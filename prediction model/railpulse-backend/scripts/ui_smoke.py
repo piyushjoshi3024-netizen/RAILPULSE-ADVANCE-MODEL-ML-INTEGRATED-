@@ -20,14 +20,17 @@ if BASE_DIR not in sys.path:
 from training.config import FIGURES_DIR  # noqa: E402
 
 DEFAULT_FRONTEND = "http://127.0.0.1:3000"
+DEFAULT_API = "http://127.0.0.1:8000/api/v1"
 CREDENTIALS = {"admin": ("admin", "change-me-admin"), "staff": ("staff", "change-me-staff")}
 
 
 class UiSmokeTest:
     """Drives the real UI in a headless browser and checks what it renders."""
 
-    def __init__(self, frontend: str = DEFAULT_FRONTEND, role: str = "admin") -> None:
+    def __init__(self, frontend: str = DEFAULT_FRONTEND, role: str = "admin",
+                 api: str = DEFAULT_API) -> None:
         self.frontend = frontend.rstrip("/")
+        self.api = api.rstrip("/")
         self.role = role
         self.username, self.password = CREDENTIALS[role]
         self.failures: list[str] = []
@@ -39,8 +42,23 @@ class UiSmokeTest:
         if not condition:
             self.failures.append(description)
 
+    def model_quality(self) -> dict:
+        """Read what the API says about the model, so assertions follow the data."""
+        import httpx
+
+        try:
+            return httpx.get(f"{self.api}/health/", timeout=15.0).json().get("model_quality", {})
+        except Exception as exc:  # the UI assertions below handle the empty case
+            print(f"  (could not read {self.api}/health/: {exc})")
+            return {}
+
     def run(self) -> int:
         from playwright.sync_api import sync_playwright
+
+        quality = self.model_quality()
+        provenance = str(quality.get("data_provenance", "unknown")).lower()
+        beats_baseline = quality.get("beats_baseline")
+        print(f"\n0. Model under test: provenance={provenance}, beats_baseline={beats_baseline}")
 
         os.makedirs(FIGURES_DIR, exist_ok=True)
         screenshot = os.path.join(FIGURES_DIR, "ui_smoke.png")
@@ -75,10 +93,20 @@ class UiSmokeTest:
 
             self.check("Likely delay range" in panel, "P10-P90 delay range is shown")
             self.check("Chance of >15 min delay" in panel, "P(delay > 15 min) is shown")
-            self.check("Prototype model, trained on a 100-row dataset" in panel, "prototype badge is shown")
-            self.check("does not beat its mean-delay baseline" in panel, "baseline honesty note is shown")
+            self.check("Prototype model, trained on" in panel, "prototype notice is shown")
             self.check("ETA window" in panel, "ETA window is shown")
             self.check("delay-v3" in panel, "model version is shown")
+
+            # Provenance and baseline claims must match what the API reports.
+            if provenance == "synthetic":
+                self.check("SYNTHETIC" in panel.upper(), "synthetic-data notice is shown")
+                self.check("TRAINED ON SYNTHETIC DATA" in panel.upper(), "synthetic badge chip is shown")
+            if beats_baseline is False:
+                self.check("does not beat its mean-delay baseline" in panel,
+                           "baseline honesty note is shown (model does not beat baseline)")
+            elif beats_baseline is True:
+                self.check("does not beat its mean-delay baseline" not in panel,
+                           "no false baseline claim (model does beat baseline)")
 
             # Scroll the panel into view so the screenshot shows what was asserted.
             page.locator("#prediction-result").scroll_into_view_if_needed()
@@ -103,8 +131,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--frontend", default=DEFAULT_FRONTEND)
     parser.add_argument("--role", default="admin", choices=sorted(CREDENTIALS))
+    parser.add_argument("--api", default=DEFAULT_API)
     arguments = parser.parse_args()
-    return UiSmokeTest(arguments.frontend, arguments.role).run()
+    return UiSmokeTest(arguments.frontend, arguments.role, arguments.api).run()
 
 
 if __name__ == "__main__":

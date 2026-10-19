@@ -47,6 +47,11 @@ class DatasetConfig:
     raw_path: str = RAW_DATA_PATH
     expected_sha256: str | None = None
 
+    # Where the data came from. "synthetic" marks a generated dataset, whose
+    # metrics demonstrate the pipeline and say nothing about real-world
+    # accuracy. Carried into the artifact, /health and the UI.
+    data_provenance: str = "unknown"
+
     # Raw column name -> canonical name used by the rest of the pipeline.
     column_map: dict[str, str] = field(default_factory=lambda: {
         "Train_id": "record_id",

@@ -170,8 +170,10 @@ class DelayModelTrainer:
             "trained_at": datetime.now(timezone.utc).isoformat(),
             "git_commit": git_commit(),
             "seed": self.seed,
+            "data_provenance": self.config.data_provenance,
             "dataset": {
                 **provenance,
+                "provenance": self.config.data_provenance,
                 "rows": int(len(data)),
                 "date_range": [str(data["journey_date"].min().date()), str(data["journey_date"].max().date())],
                 "distinct_trains": int(data["train_number"].nunique()),

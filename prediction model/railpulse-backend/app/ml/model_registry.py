@@ -87,6 +87,14 @@ class ModelRegistry:
         """Return the dataset provenance recorded at training time."""
         return self.metadata().get("dataset", {})
 
+    def data_provenance(self) -> str:
+        """Return how the training data was obtained ('synthetic', 'unknown', ...)."""
+        return str(self.metadata().get("data_provenance", "unknown"))
+
+    def is_synthetic(self) -> bool:
+        """Return True when the model was trained on generated data."""
+        return self.data_provenance().lower() == "synthetic"
+
     def beats_baseline(self) -> bool:
         """Return whether the shipped model beat its baseline on the test set."""
         return bool(self.metadata().get("beats_baseline", False))

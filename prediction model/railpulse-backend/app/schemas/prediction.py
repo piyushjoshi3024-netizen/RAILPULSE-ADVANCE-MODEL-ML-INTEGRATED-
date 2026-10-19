@@ -53,6 +53,11 @@ class ModelQuality(BaseModel):
 
     dataset_name: str
     dataset_rows: int
+    data_provenance: str = Field(
+        default="unknown",
+        description="How the training data was obtained; 'synthetic' means generated, "
+                    "so metrics demonstrate the pipeline and not real-world accuracy",
+    )
     beats_baseline: bool = Field(
         description="Whether the shipped model beat its baseline on the held-out test set"
     )

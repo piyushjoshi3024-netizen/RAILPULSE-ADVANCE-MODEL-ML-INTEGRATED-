@@ -3,10 +3,18 @@
 ## Intended use
 
 Predicts the **arrival delay in minutes at a train's destination** for a scheduled
-journey, and derives an ETA as `scheduled_arrival + predicted_delay`. It is a
-prototype built on a very small historical sample. It is suitable for
-demonstrating the pipeline and the API contract. **It is not suitable for
-operational decisions or passenger-facing guarantees.**
+journey, and derives an ETA as `scheduled_arrival + predicted_delay`.
+
+> **Data provenance: SYNTHETIC.** The model currently in the registry was trained
+> on `indian_railway_delay_synthetic_552.csv`, a **generated** file (fog, monsoon,
+> festival and weekday effects programmed per train). Its metrics demonstrate that
+> the pipeline works end to end. **They say nothing about real-world accuracy.**
+> `data_provenance: "synthetic"` is carried in the artifact metadata, in `/health`,
+> in every prediction response and as a visible notice in the UI.
+
+It is a prototype. It is suitable for demonstrating the pipeline and the API
+contract. **It is not suitable for operational decisions or passenger-facing
+guarantees.**
 
 ## What it predicts
 
@@ -24,6 +32,46 @@ place of a model output.
 
 Business band definitions (minutes): `ON_TIME ≤5`, `MINOR ≤15`, `MODERATE ≤60`,
 `MAJOR ≤120`, `SEVERE >120`. "Significant delay" means `> 15 min`.
+
+## Before / after: 100-row original vs 552-row synthetic
+
+Both runs used the same code, the same chronological splitting and the same
+selection procedure. The only differences are the dataset and the features the
+config enables.
+
+| | **Before** (original, 100 rows) | **After** (synthetic, 552 rows) |
+|---|---|---|
+| Config | `configs/dataset.default.json` | `configs/dataset.synthetic552.json` |
+| Provenance | unknown / undocumented | **synthetic (generated)** |
+| Rows / trains | 100 / 10 | 552 / 12 (46 trips each) |
+| Date range | 2016-2025, **January only** | 2023-2026, **all 12 months** |
+| Seasons | 1 (constant `WINTER`) | 4 |
+| Features used | 12 | **15** (`month`, `day_of_year`, `season` added) |
+| Split (train/val/test) | 59 / 20 / 21 | 337 / 104 / 111 |
+| Selected by CV | HistGB + target enc | RandomForest + target enc |
+| **Shipped P50 test MAE** | **28.72** | **21.82** |
+| Best baseline test MAE | 25.46 (global mean) | 22.01 (per-train median) |
+| `baseline_global_mean` MAE | 25.46 | 24.74 |
+| **`beats_baseline`** | **false** | **true** |
+| Test R² (shipped) | −0.146 | **+0.075** |
+| P10-P90 coverage (nominal 0.80) | 0.762 | 0.703 |
+| P10-P90 width | 53.3 min | 56.9 min |
+| `p_delay_gt_15` ROC-AUC | 0.897 | 0.688 |
+| 4-band macro-F1 (diagnostic) | 0.20 | 0.16 |
+
+Reading this honestly:
+
+- The MAE improvement (28.72 → 21.82) and the first positive R² come from the
+  richer dataset, not from tuning: no hyperparameter was changed by hand.
+- `beats_baseline` flipping to true is **a property of generated data in which
+  month and season effects were deliberately programmed**. It is evidence the
+  pipeline can learn a signal that exists, not evidence about real trains.
+- Two metrics got *worse*: interval coverage (0.762 → 0.703, further below the
+  0.80 nominal) and the delay-probability ROC-AUC (0.897 → 0.688). The earlier
+  classifier number was flattered by a test set that was 81% delayed; the
+  synthetic test set is 65% delayed, which is a harder and more informative
+  problem.
+- The 4-band head remains unusable (macro-F1 0.16) and is still not shipped.
 
 ## Training data
 

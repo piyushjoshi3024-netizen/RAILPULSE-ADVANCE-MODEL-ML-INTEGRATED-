@@ -12,6 +12,16 @@ from app.ml.model_registry import ModelRegistry
 router = APIRouter()
 
 
+def _quality_notice(ready: bool, rows: int, provenance: str) -> str:
+    """One short, honest line about what the model was trained on."""
+    if not ready:
+        return "No model registered"
+    if provenance.lower() == "synthetic":
+        return (f"Prototype model, trained on {rows} rows of SYNTHETIC data - "
+                "metrics demonstrate the pipeline, not real-world accuracy")
+    return f"Prototype model, trained on a {rows}-row dataset"
+
+
 @router.get("/", summary="Service, database and model health")
 async def health_check(
     database: Annotated[MongoDatabase, Depends(get_database)],
@@ -52,6 +62,7 @@ async def health_check(
         },
         "dataset": {
             "name": dataset.get("name", "unknown"),
+            "data_provenance": registry.data_provenance(),
             "rows": dataset.get("rows", 0),
             "distinct_trains": dataset.get("distinct_trains", 0),
             "date_range": dataset.get("date_range", []),
@@ -62,10 +73,8 @@ async def health_check(
             "test_mae_minutes": metrics.get("test_point_p50", {}).get("mae_minutes"),
             "baseline_mae_minutes": metrics.get("test_baseline_global_mean", {}).get("mae_minutes"),
             "interval_coverage": metrics.get("test_intervals", {}).get("coverage"),
-            "notice": (
-                f"Prototype model, trained on a {dataset.get('rows', 0)}-row dataset"
-                if ready else "No model registered"
-            ),
+            "data_provenance": registry.data_provenance(),
+            "notice": _quality_notice(ready, int(dataset.get("rows", 0) or 0), registry.data_provenance()),
         },
         "environment": settings.ENVIRONMENT,
     }

@@ -1,6 +1,6 @@
 # Data sources
 
-## Current dataset (in use)
+## Original dataset (retained for comparison, not currently trained on)
 
 | Field | Value |
 |---|---|
@@ -42,6 +42,68 @@
 - No early arrivals: delay is floored at 0 across all 100 rows.
 - Leading/trailing spaces and a non-breaking space appear in station and
   frequency values.
+
+## Synthetic dataset (currently trained on)
+
+**This file is generated, not measured.** Any metric produced from it demonstrates
+that the pipeline works end to end. It says nothing about real-world accuracy, and
+a model trained on it must never be presented as a production model.
+
+| Field | Value |
+|---|---|
+| Name | `indian_railway_delay_synthetic_552` |
+| Path | `data/indian_railway_delay_synthetic_552.csv` |
+| SHA-256 | `dcf3a30e59f8199a1769ba5a186bb26bb9d14a5b6f3cfe08ffc6376b901bdd99` |
+| Size | 63,791 bytes |
+| Rows | 552 (12 columns) |
+| Trains | 12, **46 trips each** |
+| Date range | 2023-01-04 → 2026-09-29 (458 distinct dates, **all 12 months**) |
+| Seasons | Winter, Summer, Monsoon, Autumn |
+| **Provenance** | **SYNTHETIC** — supplied by the project owner, generated from a documented model (fog, monsoon, festival and weekday effects per train). Not observed data. |
+| Config | `configs/dataset.synthetic552.json` (`data_provenance: "synthetic"`) |
+
+### Columns
+
+Identical to the original file, including the same typos: `Destitnation`,
+`Dealy_min`, and `Daliy` in `Run_frequency`.
+
+### Deliberately reproduced quirks
+
+The generator copied the original file's defects so the cleaner is exercised:
+
+- **8 Excel 1900-epoch cells** (4 in `Sc_arr__time`, 2 in `Act_arr_time`, 2 in `Dealy_min`),
+  e.g. `01-01-1900 06:30`, `20-01-1900 01:54`.
+- **3 rows** where the stated delay disagrees with `actual − scheduled`
+  (trains 12229, 15906, 22832); flagged via `delay_reconciled`, never rewritten.
+- **Padded text**: 3 `Source`, 9 `Destitnation`, 6 `Run_frequency` cells carry
+  leading/trailing whitespace.
+- **`Daliy`** typo throughout `Run_frequency`.
+
+### Observed structure
+
+| Segment | Mean delay (min) |
+|---|---|
+| Winter | 46.3 |
+| Monsoon | 39.1 |
+| Autumn | 29.8 |
+| Summer | 22.2 |
+| January (worst month) | 54.2 |
+| May (best month) | 19.2 |
+| Per train | 10.7 (12002) → 56.5 (12625) |
+
+Target: mean 35.1 min, median 25.0, max 240, skew 2.22, **no negative delays**
+(no early arrivals), 20 exact zeros, P(delay > 15 min) = 0.654.
+
+### Known limits
+
+- **Generated, so the seasonal/monthly/per-train effects are the ones that were
+  programmed in.** A model recovering them demonstrates the pipeline learns a
+  signal that exists; it does not validate anything about Indian Railways.
+- Still no early arrivals, so the model cannot predict one.
+- Still no intermediate station sequence, so only destination ETA is modelled.
+- 46 trips per train is far below what a production model needs.
+- Held-out test is almost entirely 2026, a year absent from training, so `year`
+  stays excluded as a feature.
 
 ## Status of legal sourcing
 
