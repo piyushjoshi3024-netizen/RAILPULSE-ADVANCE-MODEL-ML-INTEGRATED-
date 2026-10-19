@@ -1,6 +1,7 @@
 const Train = require("../models/Train");
 const ETAPrediction = require("../models/ETAPrediction");
 const { getTrainState } = require("./liveState.service");
+const { predictWithMl } = require("./mlEta.service");
 
 const createError = (message, statusCode = 400) => {
   const error = new Error(message);
@@ -39,7 +40,13 @@ const parseScheduledEta = (value, referenceDate) => {
   return Number.isNaN(date.getTime()) ? null : date;
 };
 
-const calculateEta = async (trainId) => {
+/**
+ * Gather everything both the rule-based and the model path need.
+ *
+ * Throws the same errors the ETA endpoint has always thrown, so a train that
+ * could not be priced before still cannot be priced now.
+ */
+const buildEtaContext = async (trainId) => {
   const train = await Train.findById(trainId);
 
   if (!train) {
@@ -92,16 +99,6 @@ const calculateEta = async (trainId) => {
     ? new Date(liveState.timestamp)
     : new Date();
 
-  const travelTimeMinutes =
-    (remainingDistance / liveState.speed) * 60;
-
-  const predictedEta = new Date(
-    currentTime.getTime() +
-      (travelTimeMinutes + liveState.delayMinutes) *
-        60 *
-        1000
-  );
-
   const scheduledEta = parseScheduledEta(
     train.route[destinationIndex].scheduledArrival,
     currentTime
@@ -114,15 +111,35 @@ const calculateEta = async (trainId) => {
     );
   }
 
+  return {
+    train,
+    liveState,
+    currentTime,
+    scheduledEta,
+    remainingDistanceKm: remainingDistance,
+  };
+};
+
+/** The original rule-based estimate: remaining distance over current speed. */
+const calculateRuleBasedEta = (context) => {
+  const { liveState, currentTime, scheduledEta, remainingDistanceKm } = context;
+
+  const travelTimeMinutes =
+    (remainingDistanceKm / liveState.speed) * 60;
+
+  const predictedEta = new Date(
+    currentTime.getTime() +
+      (travelTimeMinutes + liveState.delayMinutes) *
+        60 *
+        1000
+  );
+
   const delayMinutes = Math.round(
     (predictedEta.getTime() - scheduledEta.getTime()) /
       60000
   );
 
-  return ETAPrediction.create({
-    trainId: train._id,
-    station: train.destination,
-    scheduledEta,
+  return {
     predictedEta,
     delayMinutes,
     confidenceMinutes: 10,
@@ -136,11 +153,74 @@ const calculateEta = async (trainId) => {
       liveState.delayMinutes > 0
         ? "Current delay"
         : "Normal operation",
-    predictionTimestamp: new Date(),
     modelVersion: "v1-rule-based",
-  });
+  };
+};
+
+/**
+ * Produce an ETA, preferring the model and falling back to the rule logic.
+ *
+ * Exactly one ETAPrediction document is written per call, whichever path ran.
+ */
+const calculateEta = async (trainId) => {
+  const context = await buildEtaContext(trainId);
+  const { train, scheduledEta } = context;
+
+  const ruleBased = calculateRuleBasedEta(context);
+  const mlResult = await predictWithMl(context);
+
+  const usingMl = mlResult.ok;
+  const prediction = usingMl ? mlResult.prediction : ruleBased;
+
+  const document = {
+    trainId: train._id,
+    station: train.destination,
+    scheduledEta,
+    predictedEta: prediction.predictedEta,
+    delayMinutes: prediction.delayMinutes,
+    confidenceMinutes:
+      prediction.confidenceMinutes ?? ruleBased.confidenceMinutes,
+    riskLevel: prediction.riskLevel,
+    mainCause: ruleBased.mainCause,
+    predictionTimestamp: new Date(),
+    modelVersion: prediction.modelVersion,
+    predictionSource: usingMl ? "ml" : "rule-based",
+    fallbackReason: usingMl ? null : mlResult.reason,
+  };
+
+  if (usingMl) {
+    Object.assign(document, {
+      delayCategory: prediction.delayCategory,
+      delayP10Minutes: prediction.delayP10Minutes,
+      delayP50Minutes: prediction.delayP50Minutes,
+      delayP90Minutes: prediction.delayP90Minutes,
+      probabilityDelayOver15: prediction.probabilityDelayOver15,
+      trainKnownToModel: prediction.trainKnownToModel,
+      dataProvenance: prediction.dataProvenance,
+      beatsBaseline: prediction.beatsBaseline,
+      modelNotice: prediction.modelNotice,
+    });
+  }
+
+  const saved = await ETAPrediction.create(document);
+
+  // modelStatus is returned but not persisted: it describes the service that
+  // answered this request, not the prediction itself.
+  return {
+    ...saved.toObject(),
+    modelStatus: usingMl
+      ? mlResult.modelStatus
+      : {
+          source: "rule-based",
+          reason: mlResult.reason,
+          modelVersion: ruleBased.modelVersion,
+        },
+  };
 };
 
 module.exports = {
   calculateEta,
+  buildEtaContext,
+  calculateRuleBasedEta,
+  parseScheduledEta,
 };

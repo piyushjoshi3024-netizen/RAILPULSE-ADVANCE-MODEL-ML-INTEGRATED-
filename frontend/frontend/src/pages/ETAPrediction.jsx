@@ -211,6 +211,8 @@ function ETAPrediction() {
         <p className="mt-2 text-slate-500">
           Predict train arrival times using current operational data.
         </p>
+
+        {etaData && <ModelStatusBadge eta={etaData} />}
       </div>
 
 
@@ -560,6 +562,43 @@ function ETAPrediction() {
               </div>
 
 
+              {etaData?.predictionSource === "ml" && (
+                <div className="mt-6 rounded-xl border border-slate-100 p-4">
+
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium text-slate-500">
+                      Model delay quantiles
+                    </p>
+                    <span className="text-xs text-slate-400">
+                      {etaData.modelVersion}
+                    </span>
+                  </div>
+
+                  <div className="mt-4 grid gap-4 sm:grid-cols-4">
+                    <QuantileCell label="P10" value={etaData.delayP10Minutes} />
+                    <QuantileCell label="P50" value={etaData.delayP50Minutes} highlight />
+                    <QuantileCell label="P90" value={etaData.delayP90Minutes} />
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                        Delay &gt; 15 min
+                      </p>
+                      <p className="mt-2 text-xl font-bold text-slate-900">
+                        {Number.isFinite(etaData.probabilityDelayOver15)
+                          ? `${Math.round(etaData.probabilityDelayOver15 * 100)}%`
+                          : "--"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <p className="mt-3 text-xs text-slate-400">
+                    Likely delay range {formatMinutes(etaData.delayP10Minutes)} to{" "}
+                    {formatMinutes(etaData.delayP90Minutes)} at {selectedTrain.destination}.
+                  </p>
+
+                </div>
+              )}
+
+
               {/* INFO BOX */}
 
               <div className="mt-6 rounded-xl border border-orange-100 bg-orange-50 p-4">
@@ -577,9 +616,16 @@ function ETAPrediction() {
                     </p>
 
                     <p className="mt-1 text-sm leading-6 text-slate-500">
-                      Current speed, accumulated delay and remaining route
-                      distance are being used to estimate the arrival time.
+                      {etaData?.predictionSource === "ml"
+                        ? "The delay model used the train, route, scheduled arrival and calendar features. Current speed and delay were sent but are not used by the model."
+                        : "Current speed, accumulated delay and remaining route distance are being used to estimate the arrival time."}
                     </p>
+
+                    {etaData?.predictionSource !== "ml" && etaData?.fallbackReason && (
+                      <p className="mt-2 text-xs text-slate-400">
+                        Model not used: {FALLBACK_REASONS[etaData.fallbackReason] || etaData.fallbackReason}
+                      </p>
+                    )}
 
                   </div>
 
@@ -604,28 +650,19 @@ function ETAPrediction() {
                   ±{etaData?.confidenceMinutes ?? "--"} min
                 </span>
 
-                <span className="mb-1 text-sm text-green-600">
-                  High
+                <span className="mb-1 text-sm text-slate-500">
+                  {etaData?.predictionSource === "ml"
+                    ? "half the P10–P90 range"
+                    : "fixed rule-based margin"}
                 </span>
 
               </div>
 
 
-              {/* CONFIDENCE BAR */}
-
-              <div className="mt-5 h-2 rounded-full bg-slate-100">
-                <div
-                  className="h-2 rounded-full bg-green-500"
-                  style={{
-                    width: "70%",
-                  }}
-                />
-              </div>
-
-
               <p className="mt-4 text-sm leading-6 text-slate-500">
-                Prediction confidence based on currently available
-                operational information.
+                {etaData?.predictionSource === "ml"
+                  ? "Interval produced by the model's P10 and P90 quantiles."
+                  : "Rule-based estimate: a fixed margin, not a measured interval."}
               </p>
 
 
@@ -798,6 +835,85 @@ function StatusBadge({ status }) {
 
     </span>
 
+  );
+}
+
+
+/* =========================================================
+   MODEL STATUS
+========================================================= */
+
+const FALLBACK_REASONS = {
+  disabled: "the ML bridge is switched off",
+  model_unavailable: "the model service has no model registered",
+  ml_timeout: "the model service did not answer in time",
+  ml_unreachable: "the model service could not be reached",
+  ml_auth_failed: "the model service rejected the service credentials",
+  ml_rejected_payload: "the model service rejected the request payload",
+};
+
+function formatMinutes(value) {
+  return Number.isFinite(value) ? `${Math.round(value)} min` : "--";
+}
+
+function QuantileCell({ label, value, highlight = false }) {
+  return (
+    <div>
+      <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+        {label}
+      </p>
+      <p
+        className={`mt-2 text-xl font-bold ${highlight ? "text-orange-500" : "text-slate-900"}`}
+      >
+        {formatMinutes(value)}
+      </p>
+    </div>
+  );
+}
+
+function ModelStatusBadge({ eta }) {
+  const usingMl = eta?.predictionSource === "ml";
+  const synthetic = (eta?.dataProvenance || "").toLowerCase() === "synthetic";
+
+  return (
+    <div className="mt-4 flex flex-wrap items-center gap-2">
+
+      <span
+        className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ${
+          usingMl ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
+        }`}
+      >
+        <span
+          className={`h-2 w-2 rounded-full ${usingMl ? "bg-green-500" : "bg-amber-500"}`}
+        />
+        {usingMl ? `ML model · ${eta.modelVersion}` : "Rule-based fallback"}
+      </span>
+
+      {usingMl && synthetic && (
+        <span className="inline-flex items-center rounded-full bg-amber-100 px-3 py-1.5 text-xs font-semibold text-amber-700">
+          Trained on synthetic data
+        </span>
+      )}
+
+      {usingMl && eta.trainKnownToModel === false && (
+        <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600">
+          Train not in training data
+        </span>
+      )}
+
+      {usingMl && eta.beatsBaseline === false && (
+        <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600">
+          Does not beat its baseline
+        </span>
+      )}
+
+      {!usingMl && eta?.fallbackReason && (
+        <span className="text-xs text-slate-500">
+          {FALLBACK_REASONS[eta.fallbackReason] || eta.fallbackReason}
+        </span>
+      )}
+
+    </div>
   );
 }
 
