@@ -105,6 +105,84 @@ Target: mean 35.1 min, median 25.0, max 240, skew 2.22, **no negative delays**
 - Held-out test is almost entirely 2026, a year absent from training, so `year`
   stays excluded as a feature.
 
+## Supported schema extensions (loaders ready, no dataset yet)
+
+The cleaner and config accept three things the bundled files do not contain.
+Each is configuration-driven, so supplying a file that has them needs no code
+change. **No model has been retrained on any of these.**
+
+### 1. Early arrivals (negative delays)
+
+Set `allow_negative_delay: true` and the cleaner keeps negative delays instead
+of dropping them. `Dealy_min` may be written signed, e.g. `-00:05:00` (five
+minutes early); the sign applies to the whole duration.
+
+A negative *actual minus scheduled* difference is ambiguous: the train either
+arrived early or crossed midnight. The rule is explicit:
+
+| `allow_negative_delay` | Difference | Read as |
+|---|---|---|
+| false (default) | any negative | midnight crossing, `+1440` |
+| true | negative but within `early_arrival_tolerance_minutes` (default 180) | **early arrival, kept negative** |
+| true | more negative than the tolerance | midnight crossing, `+1440` |
+
+So with the default tolerance, `23:40` scheduled and `00:20` actual is `+40`
+minutes, while `10:00` scheduled and `09:55` actual is `-5` minutes.
+
+Note: the business bands are unchanged, so a negative delay currently lands in
+`ON_TIME`. Adding a distinct `EARLY` band would change the published
+`delay_category` values and has not been done.
+
+### 2. `train_type`
+
+Map a type column in `column_map` (e.g. `"Train_type": "train_type"`) and it is
+normalised through `category_aliases["train_type"]` to one of **RAJDHANI,
+SHATABDI, MAIL, EXPRESS, SUPERFAST**. Add `train_type` to
+`categorical_features` to use it. The column is optional: datasets without it
+clean exactly as before, with `train_type` left null.
+
+At inference the type comes from the request (`TrainStateRequest.train_type`)
+and falls back to `UNKNOWN`, which the encoders already handle as an unseen
+category.
+
+### 3. Per-station running history
+
+`training/station_history.py` loads one row per train, date and station:
+
+| Canonical column | Meaning |
+|---|---|
+| `trip_id`, `train_number`, `journey_date` | trip identity |
+| `station`, `station_code`, `station_sequence` | stop identity and order |
+| `scheduled_arrival_minutes`, `actual_arrival_minutes` | arrival at the stop |
+| `scheduled_departure_minutes`, `actual_departure_minutes` | departure from the stop |
+| `arrival_delay_minutes`, `departure_delay_minutes` | derived, midnight-safe, early-arrival aware |
+| `scheduled_dwell_minutes`, `actual_dwell_minutes`, `dwell_overrun_minutes` | time standing at the stop |
+| `is_origin`, `is_destination` | first and last stop of the trip |
+
+Configure with `station_history_path` and `station_history_column_map`. The
+loader orders stops by a supplied `station_sequence`, or derives the order from
+the scheduled timeline when that column is absent. It drops stops with no
+observed time, empty station names and duplicate stops, and reports every drop
+in the same reconciliation table the trip-level cleaner uses.
+
+Usage:
+
+```python
+from training.dataset_config import DatasetConfig
+from training.station_history import StationHistoryLoader
+
+config = DatasetConfig(station_history_path="data/running_history.csv", allow_negative_delay=True)
+loader = StationHistoryLoader(config)
+frame, report = loader.load()
+print(report.to_frame())
+print(loader.stats(frame).as_dict())
+loader.write(frame, "data/processed/station_history.parquet")
+```
+
+**Not yet wired into the training pipeline.** Intermediate-station ETA and
+delay propagation remain `future_data_required` until a real running-history
+file exists and a model is trained on it.
+
 ## Status of legal sourcing
 
 Phase 1 (sourcing a larger, explicitly licensed Indian Railways delay corpus)

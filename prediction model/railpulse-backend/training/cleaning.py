@@ -25,7 +25,7 @@ from training.dataset_config import DatasetConfig
 
 logger = logging.getLogger(__name__)
 
-TIME_PATTERN = re.compile(r"^\d{1,2}:\d{2}(:\d{2})?$")
+TIME_PATTERN = re.compile(r"^[+-]?\d{1,2}:\d{2}(:\d{2})?$")
 MINUTES_PER_DAY = 1440
 
 
@@ -77,7 +77,9 @@ def parse_clock_minutes(value: object) -> float:
     """Parse a clock/duration cell into minutes.
 
     Tolerates the Excel 1900-epoch corruption present in the source file
-    (for example ``01-01-1900 17:20``) by keeping only the time component.
+    (for example ``01-01-1900 17:20``) by keeping only the time component, and
+    accepts a signed duration such as ``-00:05:00`` for an early arrival. The
+    sign applies to the whole duration, so ``-01:30:00`` is -90 minutes.
     """
     text = str(value).strip()
     if not text or text.lower() in {"nan", "nat", "none"}:
@@ -85,10 +87,12 @@ def parse_clock_minutes(value: object) -> float:
     token = text.split()[-1]
     if not TIME_PATTERN.match(token):
         return np.nan
+    sign = -1.0 if token.startswith("-") else 1.0
+    token = token.lstrip("+-")
     parts = token.split(":")
     hours, minutes = int(parts[0]), int(parts[1])
     seconds = int(parts[2]) if len(parts) == 3 else 0
-    return hours * 60 + minutes + seconds / 60.0
+    return sign * (hours * 60 + minutes + seconds / 60.0)
 
 
 def _strip_text(value: object) -> object:
@@ -205,11 +209,7 @@ class RawDataCleaner:
 
     def _build_targets(self, frame: pd.DataFrame) -> pd.DataFrame:
         raw_difference = frame["actual_arrival_minutes"] - frame["scheduled_arrival_minutes"]
-        # An actual arrival earlier on the clock than the schedule means the
-        # train crossed midnight, not that it arrived a day early.
-        frame["delay_minutes_computed"] = np.where(
-            raw_difference < 0, raw_difference + MINUTES_PER_DAY, raw_difference
-        )
+        frame["delay_minutes_computed"] = self._resolve_difference(raw_difference)
         frame["delay_reconciled"] = (
             (frame["delay_minutes_stated"] - frame["delay_minutes_computed"]).abs() < 1e-6
         )
@@ -223,11 +223,27 @@ class RawDataCleaner:
         frame["scheduled_arrival_at"] = frame["journey_date"] + pd.to_timedelta(
             frame["scheduled_arrival_minutes"], unit="m"
         )
-        self.report.add(
-            CleaningStep("build_targets", len(frame), len(frame), mismatches,
-                         f"{mismatches} rows where stated delay != actual-scheduled (flagged, kept)")
-        )
+        early = int((frame["delay_minutes"] < 0).sum())
+        detail = f"{mismatches} rows where stated delay != actual-scheduled (flagged, kept)"
+        if self.config.allow_negative_delay:
+            detail += f"; {early} early arrivals kept as negative delays"
+        self.report.add(CleaningStep("build_targets", len(frame), len(frame), mismatches, detail))
         return frame
+
+    def _resolve_difference(self, raw_difference: pd.Series) -> np.ndarray:
+        """Turn an actual-minus-scheduled clock difference into a delay.
+
+        A negative difference is ambiguous: the train either arrived early or
+        crossed midnight. With early arrivals disabled every negative value is
+        read as a midnight crossing. With them enabled, only a difference more
+        negative than ``early_arrival_tolerance_minutes`` is treated as a
+        crossing; anything smaller is a genuine early arrival.
+        """
+        values = raw_difference.to_numpy(dtype=float)
+        if not self.config.allow_negative_delay:
+            return np.where(values < 0, values + MINUTES_PER_DAY, values)
+        tolerance = -abs(float(self.config.early_arrival_tolerance_minutes))
+        return np.where(values < tolerance, values + MINUTES_PER_DAY, values)
 
     def _drop_invalid(self, frame: pd.DataFrame) -> pd.DataFrame:
         rows_in = len(frame)
@@ -259,7 +275,7 @@ class RawDataCleaner:
         columns = [
             "trip_id", "record_id", "train_number", "train_name", "source", "destination",
             "journey_date", "scheduled_arrival_at", "scheduled_arrival_minutes",
-            "actual_arrival_minutes", "distance_km", "season", "run_frequency",
+            "actual_arrival_minutes", "distance_km", "season", "run_frequency", "train_type",
             "delay_minutes", "delay_minutes_stated", "delay_minutes_computed",
             "delay_reconciled", "delay_band", "is_significant_delay",
         ]

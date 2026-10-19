@@ -74,6 +74,23 @@ class DatasetConfig:
         "scheduled_arrival_raw", "delay_raw",
     ])
 
+    # Optional per-station running history. Left unset for trip-level datasets.
+    station_history_path: str | None = None
+    station_history_column_map: dict[str, str] = field(default_factory=lambda: {
+        "Train_no": "train_number",
+        "Date": "journey_date",
+        "Station": "station",
+        "Station_code": "station_code",
+        "Seq": "station_sequence",
+        "Sch_arr": "scheduled_arrival_raw",
+        "Sch_dep": "scheduled_departure_raw",
+        "Act_arr": "actual_arrival_raw",
+        "Act_dep": "actual_departure_raw",
+    })
+    station_history_required_columns: list[str] = field(default_factory=lambda: [
+        "train_number", "journey_date", "station",
+    ])
+
     date_column: str = "journey_date"
     date_dayfirst: bool = True
     # Columns written as HH:MM:SS (or an Excel-corrupted variant of it).
@@ -92,8 +109,22 @@ class DatasetConfig:
             "weekly": "WEEKLY",
             "tri-weekly": "TRI_WEEKLY", "triweekly": "TRI_WEEKLY",
         },
+        # Applied only when a train_type column is present in the raw file.
+        "train_type": {
+            "rajdhani": "RAJDHANI", "rajdhani express": "RAJDHANI",
+            "shatabdi": "SHATABDI", "shatabdi express": "SHATABDI",
+            "mail": "MAIL", "mail express": "MAIL",
+            "express": "EXPRESS", "exp": "EXPRESS",
+            "superfast": "SUPERFAST", "super fast": "SUPERFAST", "sf": "SUPERFAST",
+        },
     })
     uppercase_columns: list[str] = field(default_factory=lambda: ["season"])
+
+    # Early arrivals. When False (the default) a negative actual-minus-scheduled
+    # difference is read as a midnight crossing. When True, a small negative
+    # difference is an early arrival and only a large one is a midnight
+    # crossing; `early_arrival_tolerance_minutes` is the boundary.
+    early_arrival_tolerance_minutes: float = 180.0
     drop_duplicate_subset: list[str] = field(default_factory=lambda: [
         "train_number", "journey_date", "scheduled_arrival_minutes",
     ])
