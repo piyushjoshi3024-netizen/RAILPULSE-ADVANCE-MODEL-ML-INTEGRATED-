@@ -183,6 +183,100 @@ loader.write(frame, "data/processed/station_history.parquet")
 delay propagation remain `future_data_required` until a real running-history
 file exists and a model is trained on it.
 
+## Licence checklist for real data
+
+**No real dataset may be trained on until it has passed this checklist and been
+recorded below.** The gate is enforced in code, not by convention: a config
+declaring `data_provenance: "real"` whose file is not in
+`docs/provenance_ledger.json` makes `python3 -m training.pipeline` fail with a
+`PermissionError` before any model is fitted.
+
+Run the gate with:
+
+```bash
+python3 -m training.acquire \
+  --name <short_identifier> \
+  --url  <official download URL>            # or: --file <path you were given> --source "supplied:<who>"
+  --licence <identifier, e.g. GODL-India> \
+  --licence-text-file <file containing the verbatim licence text> \
+  --attribution "<the attribution statement the licence requires>" \
+  --dry-run                                  # drop --dry-run to record it
+```
+
+### The nine checks
+
+| # | Check | Blocking |
+|---|---|---|
+| 1 | Source is recorded (download URL, or `supplied:<who>`) | yes |
+| 2 | Source is not a site whose terms forbid automated collection | yes |
+| 3 | Licence is identified by a known identifier (or an explicit `--accept-unlisted-licence`) | yes |
+| 4 | Licence permits model training and redistribution | yes |
+| 5 | Verbatim licence text is recorded (≥ 200 characters) | yes |
+| 6 | Required attribution statement is recorded | yes |
+| 7 | SHA-256 of the file is recorded | yes |
+| 8 | Retrieval date is recorded | yes |
+| 9 | Row count and columns are recorded | warning only |
+
+The checksum binds clearance to the *exact bytes*: editing the file after
+clearance invalidates it and the gate closes again.
+
+### Licences accepted
+
+`CC0-1.0`, `CC-BY-4.0`, `CC-BY-SA-4.0`, `ODbL-1.0`, `ODC-BY-1.0`, `PDDL-1.0`,
+`GODL-India`, `OGL-3.0`, `MIT`, `Apache-2.0`.
+
+### Licences refused
+
+`CC-BY-NC-*` (non-commercial clause), `CC-BY-ND-*` (no-derivatives clause),
+`proprietary`, `unknown`, `none`. Training a model that other people use is a
+derivative, commercial-capable use, so NC and ND terms do not permit it.
+**Absence of a licence is not permission.**
+
+Anything else is unlisted: the tool refuses it unless you pass
+`--accept-unlisted-licence`, which records that *you* read the terms and
+assert they permit this use.
+
+### Sources that must not be scraped
+
+`ntes.nic.in`, `enquiry.indianrail.gov.in`, `indianrail.gov.in`, `irctc.co.in`,
+`railyatri.in`, `ixigo.com`, `whereismytrain.in`, `trainman.in`,
+`confirmtkt.com`, `erail.in`, `indiarailinfo.com`, `trainspy.com`.
+
+Their terms forbid automated collection. The acquirer checks the host **before
+making any request**, so a prohibited source is never contacted. Use an
+official open-data download, a documented API with your own credentials, or a
+file supplied to you.
+
+### On data.gov.in and GODL-India
+
+data.gov.in publishes under the **Government Open Data License - India
+(GODL-India)**. Its central obligations, per the published licence, are an
+**attribution statement** naming the provider, source and licence together with
+the DOI/URL/URI of the data, and a **non-endorsement** requirement: the user
+must not suggest the provider endorses them or their use.
+(Verified against the GODL text republished at
+<https://jk.data.gov.in/godl>; <https://www.data.gov.in/government-open-data-license-india>
+refused automated fetching with HTTP 403 at the time of writing.)
+
+**The tooling deliberately does not ship the licence text.** Licence wording is
+versioned and can change, so the operator pastes the verbatim text from the
+source at acquisition time via `--licence-text-file`. A tool that guessed the
+terms would be the opposite of a licence check.
+
+The attribution format GODL-India specifies is:
+
+```text
+[Name of Data Provider], [Year of Publication], [Name of Data],
+[Name of Data Repository/Website], [Version Number and/or Date of Publication], [DOI]
+```
+
+## Cleared real datasets
+
+*None yet.* No real Indian Railways delay dataset has been acquired or cleared.
+The two datasets above are an undocumented 100-row file and a generated
+552-row file; neither is real observed data. Entries appear here automatically
+when `python3 -m training.acquire` clears a dataset.
+
 ## Status of legal sourcing
 
 Phase 1 (sourcing a larger, explicitly licensed Indian Railways delay corpus)

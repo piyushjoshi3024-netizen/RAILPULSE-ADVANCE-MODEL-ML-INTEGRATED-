@@ -47,9 +47,11 @@ class DatasetConfig:
     raw_path: str = RAW_DATA_PATH
     expected_sha256: str | None = None
 
-    # Where the data came from. "synthetic" marks a generated dataset, whose
-    # metrics demonstrate the pipeline and say nothing about real-world
-    # accuracy. Carried into the artifact, /health and the UI.
+    # Where the data came from. One of:
+    #   "real"      - observed data; requires a cleared provenance ledger entry
+    #   "synthetic" - generated; metrics demonstrate the pipeline only
+    #   "unknown"   - undocumented origin
+    # Carried into the artifact, /health and the UI.
     data_provenance: str = "unknown"
 
     # Raw column name -> canonical name used by the rest of the pipeline.

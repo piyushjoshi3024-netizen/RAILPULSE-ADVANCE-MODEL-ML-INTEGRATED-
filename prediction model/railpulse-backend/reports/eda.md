@@ -1,7 +1,7 @@
 # EDA — RailPulse Indian Railways delay dataset
 
 - Source file: `data/indian_railway_delay_data_.csv` (cleaned to `journeys_clean.parquet`)
-- Rows: **552** · Columns: **19**
+- Rows: **552** · Columns: **20**
 - Journey dates: **2023-01-04 → 2026-09-29**
 - Distinct journey dates: **458**, all in month(s) **[np.int32(1), np.int32(2), np.int32(3), np.int32(4), np.int32(5), np.int32(6), np.int32(7), np.int32(8), np.int32(9), np.int32(10), np.int32(11), np.int32(12)]**
 - Distinct trains: **12** · routes: **12**
@@ -23,6 +23,7 @@
 | distance_km               | int64          |         0 |         12 | 1318                |
 | season                    | str            |         0 |          4 | WINTER              |
 | run_frequency             | str            |         0 |          3 | TRI_WEEKLY          |
+| train_type                | object         |       552 |          0 |                     |
 | delay_minutes             | float64        |         0 |        113 | 90.0                |
 | delay_minutes_stated      | float64        |         0 |        113 | 90.0                |
 | delay_minutes_computed    | float64        |         0 |        113 | 90.0                |
@@ -100,25 +101,26 @@ The target is right-skewed (skew 2.22). There are **no negative delays**, i.e. t
 
 | column                    |   distinct |
 |:--------------------------|-----------:|
-| is_significant_delay      |          2 |
+| train_type                |          1 |
 | delay_reconciled          |          2 |
+| is_significant_delay      |          2 |
 | run_frequency             |          3 |
 | season                    |          4 |
 | delay_band                |          5 |
 | destination               |          7 |
 | scheduled_arrival_minutes |         10 |
 | distance_km               |         12 |
-| source                    |         12 |
 | train_name                |         12 |
+| source                    |         12 |
 | train_number              |         12 |
-| delay_minutes_stated      |        113 |
 | delay_minutes_computed    |        113 |
 | delay_minutes             |        113 |
+| delay_minutes_stated      |        113 |
 | actual_arrival_minutes    |        341 |
 | journey_date              |        458 |
 | scheduled_arrival_at      |        546 |
-| record_id                 |        552 |
 | trip_id                   |        552 |
+| record_id                 |        552 |
 
 ## Leakage audit
 
@@ -128,4 +130,4 @@ The target is right-skewed (skew 2.22). There are **no negative delays**, i.e. t
 | target-derived columns identified              | ['delay_minutes', 'delay_minutes_stated', 'delay_minutes_computed', 'delay_reconciled', 'delay_band', 'is_significant_delay'] all derive from the target and are excluded from features | PASS     |
 | trip_id is unique (no same trip in two splits) | 0 duplicated trip_id values                                                                                                                                                             | PASS     |
 | trip grouping is informative                   | 552 groups for 552 rows (ratio 1.00); a ratio of 1.00 means group-aware splitting is a no-op on this dataset                                                                            | FAIL     |
-| no zero-variance feature columns               | constant columns: []                                                                                                                                                                    | PASS     |
+| no zero-variance feature columns               | constant columns: ['train_type']                                                                                                                                                        | FAIL     |
