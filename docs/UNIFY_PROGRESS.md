@@ -217,3 +217,54 @@ Authenticated results (added to `docs/AUDIT_PHASE2.md`):
 
 Remaining verification gap: **A-09** (React fixed `w-64` sidebar at 360 px) still
 needs a *main-site* account, which the approval did not cover.
+
+---
+
+## Session 4 (2026-10-20): Phase 3 — approved audit fixes
+
+Eleven IDs fixed, one commit per ID or close group, on `feature/unified-auth-db`.
+No drive-by refactors. Deliberately **not** touched: A-20 (server side of the
+GET that writes), A-08/G6 (route protection), A-02/A-14/A-17 and everything the
+open gates or Phase 6 cover.
+
+| ID | Commit | What changed |
+|---|---|---|
+| A-06 | `2639199` | `middleware/auth.js` no longer logs secret presence, header presence or the decoded JWT; `server.js` drops the secret-loaded line; `otp.service.js` drops the sender/recipient logs |
+| A-03, A-04 | `0b68566` | `/` is now an `Entry` component redirecting by auth state; sidebar "Dashboard" → `/dashboard`; `RoleRoute` → `/dashboard`; a `*` route inside the shell |
+| A-05 | `57de353` | `getMe` reads the user from the database (`authService.getUserById`) instead of echoing the token payload |
+| A-07 | `4168601` | ML `renderPage` gates the generic fallbacks by role |
+| A-12 | `ddc24c3` | "View Map" navigates to `/map`; the `InsightCard` button with no destination is gone |
+| A-13 | `52df653` | `StaffOTP` handles a missing address and names the one it has |
+| A-21 | `0c7e90b` | Alerts reads `GET /api/alerts` instead of the generating per-train route; mock array deleted; loading and error states rendered |
+| A-23 | `f015648` | Command Center carries `trainId` through and the four operations panels follow the selection |
+| A-22 | `22ffc32` | Simulation loads real trains, adds a train picker, reports failures, disables the button when there is nothing to run |
+| A-01 | `7d37a4a` | Staff OTP calls point at `/api/staff-auth/*`; a shared helper checks the content type before parsing |
+
+### Verification, real output
+- React build — passed every time (last: 471 ms)
+- React lint — **11 problems (9 errors, 2 warnings)**, down from 13: the two
+  unused-variable errors in `Alerts.jsx` are gone. No new problems introduced.
+- Node `npm test` — 14/14; ML frontend `node --test` — 183/183;
+  `pytest -q` — 149 passed
+- Playwright, anonymous, React: `/` → `/login`, `/dashboard` → `/login`,
+  `/no-such-page` → `/login`, `/register`, `/register/staff` and
+  `/staff/verify-otp` render. **No page errors, no console errors.**
+- Playwright, signed in as the test passenger, ML app: `#/passenger/simulation`,
+  `#/passenger/capabilities` and `#/passenger/system` all render "This route has
+  not been laid yet"; dashboard, train, history and alerts unchanged. No page errors.
+
+### Not verified at runtime
+- **A-05 and A-06** are Node changes, and the running Node server (pid 239903,
+  started with `node`, no watcher) still has the old code. Syntax-checked and the
+  suite passes; the behaviour needs a server restart, which is the user's process.
+- **A-04's not-found page** and **A-03's signed-in half** sit behind a main-site
+  login, which this session still does not have.
+- **A-12, A-21, A-22, A-23** are all behind the same login. Build and lint pass.
+
+### New observations (not fixed, not approved)
+- `train.controller.js:31` and `trainEvent.controller.js:35` still `console.log`
+  whole request bodies. Not credentials, so outside A-06's scope.
+- `Alerts.jsx` "Resolve"/"Reopen" only changes local React state. There is no
+  endpoint to persist it, so the status resets on reload.
+- `services/alertService.js` is now unused — it was the only caller of the
+  writing route. Deleting a file needs approval.
