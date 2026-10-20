@@ -17,7 +17,7 @@ import {
 const navigation = [
   {
     name: "Dashboard",
-    path: "/",
+    path: "/dashboard",
     icon: LayoutDashboard,
   },
   {
