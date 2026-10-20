@@ -1,4 +1,8 @@
-const API_URL = "http://localhost:5000/api";
+import { API_BASE_URL } from "../config";
+
+// Retained for reference only: every endpoint below now answers 410 Gone, and
+// the two pages that used them no longer submit. See StaffRegister.jsx.
+const API_URL = API_BASE_URL;
 
 /**
  * POST a JSON body and return the parsed response.

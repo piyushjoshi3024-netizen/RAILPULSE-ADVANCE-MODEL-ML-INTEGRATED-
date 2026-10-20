@@ -7,7 +7,17 @@ import authApi, { authErrorMessage } from "../services/authApi";
 function Login() {
     const navigate = useNavigate();
     const location = useLocation();
-    const notice = location.state?.notice;
+
+    const params = new URLSearchParams(location.search);
+    const expired = params.get("expired") === "1";
+    const signedOut = params.get("signedout") === "1";
+
+    const notice = location.state?.notice
+        || (signedOut ? "Signed out of RailPulse and of the ML app." : "");
+
+    const warning = expired
+        ? "Your session ended. Please sign in again."
+        : "";
     const { login } = useAuth();
 
     const [username, setUsername] = useState("");
@@ -35,8 +45,15 @@ function Login() {
 
             navigate("/dashboard");
         } catch (error) {
+            const status = error.response?.status;
+
             setError(
-                authErrorMessage(error, "Invalid username or password")
+                status === 401
+                    // The accounts that existed before the move to a single
+                    // sign-in were not carried across, and saying only
+                    // "invalid" would send those people hunting for a typo.
+                    ? "Invalid username or password. If you had an account before RailPulse moved to a single sign-in, it was not carried over \u2014 please register again."
+                    : authErrorMessage(error, "Sign in failed. Please try again.")
             );
         } finally {
             setLoading(false);
@@ -237,6 +254,12 @@ function Login() {
 
                                         </div>
                                     </div>
+
+                                    {warning && !error && (
+                                        <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-xl text-sm">
+                                            {warning}
+                                        </div>
+                                    )}
 
                                     {notice && !error && (
                                         <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl text-sm">

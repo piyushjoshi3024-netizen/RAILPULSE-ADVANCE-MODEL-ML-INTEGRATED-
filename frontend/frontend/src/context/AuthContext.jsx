@@ -1,5 +1,12 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import authApi from "../services/authApi";
+import {
+    clearStoredSession,
+    consumeMlHandoff,
+    getToken,
+    mlLogoutUrl,
+    storeSession,
+} from "../services/session";
 
 const AuthContext = createContext(null);
 
@@ -8,7 +15,7 @@ export function AuthProvider({ children }) {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const token = localStorage.getItem("token");
+        const token = getToken();
 
         if (!token) {
             setLoading(false);
@@ -22,15 +29,11 @@ export function AuthProvider({ children }) {
                 const response = await authApi.get("/auth/me");
 
                 setUser(response.data);
-                localStorage.setItem(
-                    "user",
-                    JSON.stringify(response.data)
-                );
+                storeSession(token, response.data);
             } catch (error) {
                 console.error("Authentication verification failed");
 
-                localStorage.removeItem("token");
-                localStorage.removeItem("user");
+                clearStoredSession();
                 setUser(null);
             } finally {
                 setLoading(false);
@@ -41,15 +44,39 @@ export function AuthProvider({ children }) {
     }, []);
 
     const login = (token, userData) => {
-        localStorage.setItem("token", token);
-        localStorage.setItem("user", JSON.stringify(userData));
+        storeSession(token, userData);
         setUser(userData);
     };
 
+    /**
+     * End the session here, and in the ML app when one was handed to it.
+     *
+     * The two applications are different origins, so this page cannot reach
+     * the ML app's storage. The only reliable way to clear it is a real
+     * top-level visit to its sign-out route, which then returns here. That
+     * round trip is visible, so it is only made when this browser actually
+     * handed a session over; otherwise sign-out stays local and instant.
+     *
+     * Neither path revokes the token server-side. It stays valid until it
+     * expires, which is 60 minutes after it was issued.
+     *
+     * @returns {boolean} true when the caller should navigate itself, false
+     *   when a cross-app sign-out has taken over the page.
+     */
     const logout = () => {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
+        const handedToMl = consumeMlHandoff();
+
+        clearStoredSession();
         setUser(null);
+
+        if (handedToMl) {
+            window.location.assign(
+                mlLogoutUrl(`${window.location.origin}/login?signedout=1`)
+            );
+            return false;
+        }
+
+        return true;
     };
 
     const value = {

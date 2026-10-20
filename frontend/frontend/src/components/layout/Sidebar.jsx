@@ -1,5 +1,7 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { HEALTH_STYLES, useServiceHealth } from "../../hooks/useServiceHealth";
+import { getToken, markMlHandoff, mlHandoffUrl } from "../../services/session";
 
 import {
   LayoutDashboard,
@@ -12,6 +14,7 @@ import {
   TriangleAlert,
   Activity,
   LogOut,
+  X,
 } from "lucide-react";
 
 const navigation = [
@@ -57,37 +60,51 @@ const navigation = [
   },
 ];
 
-// Phase 6 moves this into configuration.
-const ML_APP_URL = "http://localhost:3000";
+/** The ML page each role should land on when it opens the ML app. */
+const ML_LANDING = {
+  PASSENGER: "passenger/train",
+  STAFF: "staff/train",
+  ADMIN: "admin/train",
+};
 
-function Sidebar() {
+function Sidebar({ open = false, onClose = () => {} }) {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const health = useServiceHealth();
+  const healthStyle = HEALTH_STYLES[health.state];
+
+  const handleLogout = () => {
+    onClose();
+
+    // Returns false when it has started a cross-app sign-out, which navigates
+    // the page itself; navigating here as well would cancel it.
+    if (logout()) {
+      navigate("/login");
+    }
+  };
 
   /**
-   * Open the ML app already signed in.
+   * Open the ML app already signed in, on the page this role should see.
    *
    * The token travels in the URL fragment, which browsers never send to a
    * server, and the ML app strips it from the address as soon as it has read
    * it. It is built at click time rather than rendered into an href, so the
-   * token is not sitting in the DOM waiting to be read. Without a token the
-   * link still works -- the ML app simply asks for a login.
+   * token is not sitting in the DOM. Without a token the link still works --
+   * the ML app simply asks for a sign-in.
    */
   const openMlApp = (event) => {
     event.preventDefault();
+    onClose();
 
-    const token = localStorage.getItem("token");
+    const token = getToken();
 
-    window.location.assign(
-      token
-        ? `${ML_APP_URL}/#/sso?token=${encodeURIComponent(token)}`
-        : `${ML_APP_URL}/#/`
-    );
-  };
+    if (!token) {
+      window.location.assign(mlHandoffUrl("", ""));
+      return;
+    }
 
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
+    markMlHandoff();
+    window.location.assign(mlHandoffUrl(token, ML_LANDING[user?.role] || ""));
   };
 
   const visibleNavigation = navigation.filter((item) => {
@@ -105,7 +122,15 @@ function Sidebar() {
   });
 
   return (
-    <aside className="w-64 min-h-screen bg-white border-r border-slate-200 flex flex-col">
+    <aside
+      id="main-sidebar"
+      // Off-canvas below md, static from md up. The desktop appearance is
+      // unchanged: the same width, border and background as before.
+      className={`fixed inset-y-0 left-0 z-40 w-64 bg-white border-r border-slate-200 flex flex-col overflow-y-auto transition-transform duration-200 md:static md:min-h-screen md:translate-x-0 ${
+        open ? "translate-x-0" : "-translate-x-full"
+      }`}
+      aria-label="Main navigation"
+    >
 
       {/* Logo */}
       <div className="h-20 px-6 flex items-center border-b border-slate-200">
@@ -123,6 +148,15 @@ function Sidebar() {
             Railway Intelligence
           </p>
         </div>
+
+        <button
+          type="button"
+          onClick={onClose}
+          className="ml-auto rounded-lg p-2 text-slate-500 hover:bg-slate-100 md:hidden"
+          aria-label="Close navigation"
+        >
+          <X size={20} />
+        </button>
 
       </div>
 
@@ -142,6 +176,7 @@ function Sidebar() {
               <NavLink
                 key={item.path}
                 to={item.path}
+                onClick={onClose}
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all ${isActive
                     ? "bg-orange-500 text-white shadow-sm"
@@ -166,7 +201,7 @@ function Sidebar() {
           })}
 
           <a
-            href={ML_APP_URL}
+            href="#ml-app"
             onClick={openMlApp}
             className="flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all text-slate-700 hover:bg-orange-50 hover:text-orange-600"
           >
@@ -197,17 +232,18 @@ function Sidebar() {
 
           <div className="flex items-center gap-2 mt-3">
 
-            {/* Green signal */}
             <span className="relative flex h-3 w-3">
 
-              <span className="absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-40 animate-ping"></span>
+              {health.state === "ok" && (
+                <span className="absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-40 animate-ping"></span>
+              )}
 
-              <span className="relative inline-flex h-3 w-3 rounded-full bg-green-500"></span>
+              <span className={`relative inline-flex h-3 w-3 rounded-full ${healthStyle.dot}`}></span>
 
             </span>
 
-            <span className="text-sm font-semibold text-green-700">
-              Operational
+            <span className={`text-sm font-semibold ${healthStyle.text}`}>
+              {health.label}
             </span>
 
           </div>

@@ -520,13 +520,15 @@ function Dashboard() {
                     Live Network
                   </h3>
 
-                  <span className="flex items-center gap-1 text-xs font-medium text-green-600">
+                  {selectedTrain && (
+                    <span className="flex items-center gap-1 text-xs font-medium text-green-600">
 
-                    <span className="h-2 w-2 rounded-full bg-green-500"></span>
+                      <span className="h-2 w-2 rounded-full bg-green-500"></span>
 
-                    LIVE
+                      LIVE
 
-                  </span>
+                    </span>
+                  )}
 
                 </div>
 
@@ -537,6 +539,23 @@ function Dashboard() {
               </div>
 
               {/* SELECTED TRAIN */}
+
+              {!selectedTrain ? (
+
+                <div className="rounded-xl border border-dashed border-slate-300 bg-white p-4 text-center">
+
+                  <p className="text-sm font-medium text-slate-600">
+                    No trains to show
+                  </p>
+
+                  <p className="mt-1 text-xs text-slate-400">
+                    Nothing has been recorded in this environment yet, so there
+                    is no live detail to display.
+                  </p>
+
+                </div>
+
+              ) : (
 
               <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
 
@@ -596,6 +615,8 @@ function Dashboard() {
                 </div>
 
               </div>
+
+              )}
 
               {/* NETWORK SUMMARY */}
 
@@ -713,13 +734,21 @@ function Dashboard() {
 
           <div className="mt-5 space-y-4">
 
-            {alertsData.slice(0, 3).map((alert) => (
-              <AlertItem
-                key={alert._id}
-                title={alert.message}
-                time={new Date(alert.createdAt).toLocaleTimeString()}
-              />
-            ))}
+            {alertsData.length === 0 ? (
+
+              <p className="text-sm text-slate-400">
+                No alerts have been recorded.
+              </p>
+
+            ) : (
+              alertsData.slice(0, 3).map((alert) => (
+                <AlertItem
+                  key={alert._id}
+                  title={alert.message}
+                  time={new Date(alert.createdAt).toLocaleTimeString()}
+                />
+              ))
+            )}
 
           </div>
         </div>

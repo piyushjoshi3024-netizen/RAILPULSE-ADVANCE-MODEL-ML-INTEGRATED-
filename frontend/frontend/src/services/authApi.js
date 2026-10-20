@@ -1,27 +1,20 @@
 import axios from "axios";
 
+import { AUTH_BASE_URL } from "../config";
+import { attachSession } from "./interceptors";
+
 /**
  * The identity service.
  *
  * FastAPI issues every token the two applications accept, so registration,
- * login and "who am I" all go here, while `services/api.js` keeps talking to
- * the Node API for train data. Both read the same stored token.
- *
- * The base URL is still a literal; Phase 6 moves it into configuration.
+ * login and "who am I" go here, while `services/api.js` talks to the Express
+ * API for train data. Both read the same stored token.
  */
 const authApi = axios.create({
-    baseURL: "http://localhost:8000/api/v1",
+    baseURL: AUTH_BASE_URL,
 });
 
-authApi.interceptors.request.use((config) => {
-    const token = localStorage.getItem("token");
-
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-    }
-
-    return config;
-});
+attachSession(authApi);
 
 /** FastAPI reports validation and auth failures as `detail`. */
 export const authErrorMessage = (error, fallback) => {

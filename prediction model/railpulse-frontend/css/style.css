@@ -585,6 +585,22 @@ h3 {
     margin-right: .8rem
 }
 
+/* The sidebar now ends with a link back to the main site, the sign-out
+   button, and one line saying what each of them clears. Only the first of
+   the two links should absorb the free space above: several auto margins in
+   a flex column share it out and would leave a gap between them. */
+.logout-link+.logout-link {
+    margin-top: 0
+}
+
+.sidebar-note {
+    color: var(--muted);
+    font-size: .72rem;
+    line-height: 1.45;
+    margin: 0;
+    padding: 0 .7rem 1.1rem
+}
+
 .main-column {
     min-width: 0
 }

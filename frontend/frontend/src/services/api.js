@@ -1,17 +1,12 @@
 import axios from "axios";
 
+import { API_BASE_URL } from "../config";
+import { attachSession } from "./interceptors";
+
 const api = axios.create({
-    baseURL: "http://localhost:5000/api",
+    baseURL: API_BASE_URL,
 });
 
-api.interceptors.request.use((config) => {
-    const token = localStorage.getItem("token");
-
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-    }
-
-    return config;
-});
+attachSession(api);
 
 export default api;

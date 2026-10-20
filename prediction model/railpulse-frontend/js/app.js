@@ -63,6 +63,9 @@ function render() {
     // The sign-in handoff has to be answered before the session checks below,
     // because the whole point is that there is no session yet.
     if (path.startsWith('/sso')) return acceptHandoff(path);
+    // The shared sign-out: the main site sends the browser here so this
+    // origin's own storage can be cleared, which no other origin can do.
+    if (path.startsWith('/logout')) return acceptSignOut(path);
     const currentSession = session();
     if (!currentSession && !isAuthRoute(path)) return navigate('/login/user');
     if (currentSession && isAuthRoute(path)) return navigate(`/${rolePrefix[currentSession.user.role]}/dashboard`);
@@ -102,11 +105,39 @@ async function acceptHandoff(path) {
         const user = await api.get('/auth/me');
         if (!user || !rolePrefix[user.role]) throw new ApiError('Unknown role', 401);
         setSession({ accessToken: token, user });
-        navigate(`/${rolePrefix[user.role]}/dashboard`);
+        // The main site may ask for a specific page, but only one belonging to
+        // the role the token actually carries.
+        const asked = new URLSearchParams(path.split('?')[1] || '').get('next') || '';
+        const allowed = /^[a-z]+\/[a-z]+$/.test(asked) && asked.split('/')[0] === rolePrefix[user.role];
+        navigate(allowed ? `/${asked}` : `/${rolePrefix[user.role]}/dashboard`);
     } catch {
         clearSession();
         navigate('/login/user');
     }
+}
+
+/**
+ * Clear this app's session because the main site signed out.
+ *
+ * Storage is per origin, so the main site cannot reach it: the only reliable
+ * way is this top-level visit. A hidden iframe would be a third-party context
+ * whose storage the browser keeps separately, so it would clear a copy nobody
+ * uses and report success.
+ *
+ * The return address is followed only when it is on the configured main site,
+ * so a crafted link cannot bounce someone somewhere else.
+ */
+function acceptSignOut(path) {
+    const target = new URLSearchParams(path.split('?')[1] || '').get('return');
+    clearSession();
+    window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
+
+    if (target && target.indexOf(`${CONFIG.mainAppUrl}/`) === 0) {
+        window.location.replace(target);
+        return;
+    }
+
+    navigate('/login/user');
 }
 
 function renderLanding() {
@@ -127,7 +158,7 @@ function renderShell(path) {
     const role = current.role;
     const page = path.split('/')[2] || 'dashboard';
     const nav = navigation(role);
-    app.innerHTML = `<div class="dashboard-shell"><aside id="sidebar" class="sidebar"><div class="sidebar-top"><a class="brand" href="#/${rolePrefix[role]}/dashboard"><span>${icons.pulse}</span><em>RailPulse</em></a><button class="icon-button mobile-only" data-action="close-sidebar" aria-label="Close navigation">${icons.close}</button></div><div class="role-stamp">${roleNames[role]} <span class="status-dot"></span></div><nav aria-label="Main navigation">${nav.map((item) => `<a class="nav-link ${item.page === page ? 'active' : ''}" href="#/${rolePrefix[role]}/${item.page}"><span>${item.icon}</span><em>${item.label}</em></a>`).join('')}</nav><button class="logout-link" data-action="logout"><span>${icons.logout}</span><em>Sign out</em></button></aside><div class="main-column"><header class="topbar"><button class="icon-button mobile-only" data-action="open-sidebar" aria-label="Open navigation">${icons.menu}</button><div><p class="eyebrow">${roleNames[role]}</p><h1>${pageTitle(page, role)}</h1></div><div class="topbar-tools"><div id="top-health" class="connection-pill"><span class="status-dot"></span><span>Checking</span></div><span class="top-user">${(current.full_name || current.username).slice(0, 1).toUpperCase()}</span></div></header><main id="page-content" class="page-content"></main></div></div>`;
+    app.innerHTML = `<div class="dashboard-shell"><aside id="sidebar" class="sidebar"><div class="sidebar-top"><a class="brand" href="#/${rolePrefix[role]}/dashboard"><span>${icons.pulse}</span><em>RailPulse</em></a><button class="icon-button mobile-only" data-action="close-sidebar" aria-label="Close navigation">${icons.close}</button></div><div class="role-stamp">${roleNames[role]} <span class="status-dot"></span></div><nav aria-label="Main navigation">${nav.map((item) => `<a class="nav-link ${item.page === page ? 'active' : ''}" href="#/${rolePrefix[role]}/${item.page}"><span>${item.icon}</span><em>${item.label}</em></a>`).join('')}</nav><a class="logout-link" href="${escapeHtml(CONFIG.mainAppUrl)}"><span>${icons.arrow}</span><em>Back to RailPulse</em></a><button class="logout-link" data-action="logout"><span>${icons.logout}</span><em>Sign out</em></button><p class="sidebar-note">Signing out here ends this app's session only. Signing out on RailPulse ends both.</p></aside><div class="main-column"><header class="topbar"><button class="icon-button mobile-only" data-action="open-sidebar" aria-label="Open navigation">${icons.menu}</button><div><p class="eyebrow">${roleNames[role]}</p><h1>${pageTitle(page, role)}</h1></div><div class="topbar-tools"><div id="top-health" class="connection-pill"><span class="status-dot"></span><span>Checking</span></div><span class="top-user">${(current.full_name || current.username).slice(0, 1).toUpperCase()}</span></div></header><main id="page-content" class="page-content"></main></div></div>`;
     checkHealth(document.querySelector('#top-health'));
     renderPage(role, page);
 }
