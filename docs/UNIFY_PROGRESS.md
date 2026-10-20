@@ -268,3 +268,75 @@ open gates or Phase 6 cover.
   endpoint to persist it, so the status resets on reload.
 - `services/alertService.js` is now unused — it was the only caller of the
   writing route. Deleting a file needs approval.
+
+---
+
+## Session 5 (2026-10-20): Phase 4 — unified authentication
+
+G2 taken as answered by the instruction to run Phase 4, with the cost restated:
+**existing main-site accounts do not survive**. Commits `32503b7` (Node) and
+`a4a000c` (React + ML app).
+
+### Order followed
+1. **Tests first.** `backend/tests/auth.middleware.test.js`, 13 cases. Five
+   failed against the old middleware (it accepted a token with no subject, no
+   role, a role of `SUPERUSER`, and the legacy `userId` shape).
+2. **Env.** Node's `JWT_SECRET` set to FastAPI's existing `JWT_SECRET_KEY`
+   (51 characters, reused so live ML sessions survived; never printed).
+   `CORS_ORIGINS` gained `http://localhost:5173` and `http://127.0.0.1:5173`,
+   additive. `.env.example` documents the sharing with placeholders only.
+   Both `.env` files backed up to `backups/20261020T203354/` first; `backups/`
+   is gitignored.
+3. **Node `authenticate`** rewritten as a verifier: `algorithms: ["HS256"]`,
+   non-empty `sub` required, role must be one of the three known ones, nothing
+   logged or echoed. 27/27 backend tests pass.
+4. **FastAPI CORS** — the only FastAPI change. `/openapi.json` diffed before and
+   after: **23 paths before, 23 after, schemas byte-identical**.
+5. **React** — new `services/authApi.js` for identity, `services/api.js` still
+   Node for data, one token under one key. Login takes a username; Register
+   takes username + optional full name and posts FastAPI's contract.
+   `AuthContext` reads FastAPI's `/auth/me` shape.
+6. **G3 / S1** — the registration page no longer offers staff signup and says
+   administrators create those accounts. Staff pages and OTP code stay in the
+   tree.
+7. **G4** — the sidebar builds `#/sso?token=…` at click time (never in the DOM);
+   the ML app strips the fragment before using the token and validates it with
+   `/auth/me`.
+
+### Proof script: 21 checks, 21 passed, 0 failed
+Token rules: FastAPI registers and logs in; Node accepts the FastAPI token on
+the ETA route (200) and refuses no token, an edited role, and `alg:none` (401);
+FastAPI refuses the same edited token; a PASSENGER is refused on
+`/network/.../delay-propagation` and `/simulation/update` (**403**); Node
+`/auth/me` reports the FastAPI identity.
+Browser: register through the React form → login → dashboard → one stored token
+→ the ML app opens already signed in at `#/passenger/dashboard` with **no token
+left in the address** → main-site logout clears the token and `/dashboard`
+closes again → ML sign-out returns to its login → a forged handoff token signs
+nobody in. No page errors anywhere.
+
+Screenshots `proof-01`…`proof-05` in `reports/figures/audit/`.
+
+### Phase 3 items verified now that signing in is possible
+- **A-09 confirmed, still open:** at 360 px the signed-in site scrolls
+  horizontally on every page — body `scrollWidth` 513 px in a 360 px viewport,
+  with the sidebar fixed at 256 px. Clean at 768 and 1280.
+- A-03: sidebar targets are `/dashboard` …; `/operations` and `/simulation` as a
+  PASSENGER redirect to `/dashboard`, and both are hidden from the sidebar.
+- A-04: `/no-such-page` stays put and renders "Page not found" inside the shell.
+- A-21: the Alerts page shows a real state and the mock entries are gone.
+- Zero console errors and zero page errors across 21 signed-in page loads.
+
+### Suites after Phase 4
+React build passed · React lint **11 problems (9 errors, 2 warnings)**, unchanged
+· Node **27/27** · ML frontend **183/183** · pytest **150 passed** (149 before:
+the contract test parametrises over every `api.*()` call in the ML frontend, so
+the handoff's `GET /auth/me` added one case, and it passes).
+
+### Processes
+`uvicorn` was restarted by me and now runs detached from the user's terminal,
+logging to the session scratchpad. The Node server runs under **nodemon**, which
+had already reloaded it; the nodemon parent was left alone.
+
+### Open
+G5 (keep Redis), G6 (route protection), A-20, A-02/A-14/A-17, and Phase 5–7.
