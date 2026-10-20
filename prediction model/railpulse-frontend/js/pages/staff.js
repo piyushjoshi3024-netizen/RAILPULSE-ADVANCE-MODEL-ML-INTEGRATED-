@@ -466,7 +466,9 @@ export function applyFilters() {
  */
 function fleetTable(rows, { compact = false } = {}) {
     const bounds = intervalBounds(rows);
-    return `<div class="table-wrap"><table class="chart-table fleet-table">
+    return `<div class="table-wrap" tabindex="0" role="region"
+                 aria-label="Scheduled against predicted arrival. Scrolls sideways.">
+        <table class="chart-table fleet-table">
         <caption>Scheduled against predicted arrival, newest stored prediction per train.</caption>
         <thead><tr>
             <th scope="col">Train</th>

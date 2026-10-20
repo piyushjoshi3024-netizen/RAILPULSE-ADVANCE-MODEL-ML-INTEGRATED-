@@ -2462,3 +2462,48 @@ td {
         padding: 14px 12px
     }
 }
+
+/* ==========================================================================
+   Overflow containment (Phase 5). Appended only.
+
+   The wide fleet table pushed the whole page sideways at every viewport. The
+   cause was not the table: .table-wrap scrolls it correctly. It was the
+   visually-hidden <span class="sr-only"> in the actions column header.
+   .sr-only is position: absolute, and with no positioned ancestor its
+   containing block is the initial containing block, so it escaped the
+   wrapper's overflow clip, landed at the table's un-scrolled x position and
+   extended documentElement.scrollWidth past the viewport.
+
+   Making .table-wrap a containing block fixes it for every visually-hidden
+   element inside any scrolling region, not just this one. The min-width: 0
+   rules below are belt and braces for the flex and grid children, whose
+   automatic minimum is otherwise their content width.
+   ========================================================================== */
+
+.table-wrap {
+    position: relative
+}
+
+.rp-panel,
+.rp-panel-body,
+.rp-live-block,
+.rp-historical-block,
+.main-column,
+.split-grid > * {
+    min-width: 0
+}
+
+.rp-panel-body > .table-wrap,
+.rp-panel-body > .rp-chart-mount,
+.table-wrap,
+.rp-chart-mount {
+    max-width: 100%;
+    min-width: 0
+}
+
+/* A horizontally scrollable region must be reachable by keyboard, not only by
+   trackpad, so it takes a tab stop and shows focus. */
+.table-wrap:focus-visible {
+    outline: 2px solid var(--orange-dark);
+    outline-offset: 2px
+}

@@ -5,7 +5,7 @@ Resume point for a fresh session. One phase per message; do not start the next p
 - Branch: `feature/ml-dashboards` (created from `feature/real-data-ml` @ `381fa84`)
 - Scratch dir (not committed): `/tmp/claude-1000/-home-ritik-Desktop-RAILPULSE-ADVANCE-MODEL-ML-INTEGRATED-/0e8d691c-1dc1-45d6-9435-d07e942d7053/scratchpad`
   - `metrics_before.json`, `metadata_run1.json`, `metadata_run2.json`, `fixtures/*.json` (real API responses), `openapi_before.json`
-- Last updated: 2026-10-20 — end of Phase 4
+- Last updated: 2026-10-20 — end of Phase 5 (final)
 
 ---
 
@@ -17,8 +17,8 @@ Resume point for a fresh session. One phase per message; do not start the next p
 | 1 Foundations | Done (commit `4b1395d`) |
 | 2 Passenger | Done (commit `9bcd472`) |
 | 3 Staff | Done (commit `09872d7`) |
-| 4 Admin + D3 | **Done (this commit)** |
-| 5 Verification + report | Not started |
+| 4 Admin + D3 | Done (commit `541c55e`) |
+| 5 Verification + report | **Done (this commit)** — see `docs/UI_FINAL_REPORT.md` |
 
 ---
 
@@ -962,3 +962,82 @@ three roles, visit every changed route at 360/768/1280, assert zero console erro
 scroll, capture screenshots into `reports/figures/ui/`, tab through each page and emulate
 `prefers-reduced-motion`. State tests: degraded model (move `models/` aside), stale data, empty
 history, API timeout, 401/403 handling, role isolation. Chart-data audit table. Final report.
+
+
+---
+
+## Phase 5 — verification and report (done)
+
+Full report: **`docs/UI_FINAL_REPORT.md`**.
+
+### Test tooling
+
+- `scripts/ui_smoke.py` **extended** with `--sweep`: three roles × every route × 360/768/1280, plus a
+  reduced-motion pass. Asserts rendered content, no console or page errors, no horizontal scroll, a
+  reachable tab order, and an `aria-label` and source footer on every chart. Writes one screenshot
+  per role/page/viewport.
+- `scripts/state_checks.py` **new**: degraded model, stale data, empty history, request timeout,
+  401/403 and the full role-isolation matrix.
+
+### Two pre-existing problems in `ui_smoke.py`
+
+1. Its default frontend was `127.0.0.1:3000`. Both that and `localhost:3000` are CORS-allowed, so
+   this was not the cause of failure — but my first attempt to classify the failure used port 3001,
+   which is *not* allowed, and the resulting CORS block made that evidence worthless. Re-tested on an
+   allowed origin.
+2. On an allowed origin the script **failed at step 2 against the unmodified Phase 0 frontend**
+   (`git archive 381fa84`), waiting for `[data-action='predict']`. So it was already broken before
+   this branch. My Phase 3 change also removed that selector from the staff/admin train page, so the
+   step needed rewriting for the new information architecture regardless. Repaired: it now drives the
+   fleet → drill-down → predict flow and passes for both staff and admin.
+
+`wait_for_url` was additionally replaced with a hash poll, which is more robust for this router.
+
+### Three real defects found by the sweep
+
+1. **The fleet table pushed the whole page sideways at every viewport, including 1280.** The cause
+   was not the table — `.table-wrap` scrolls it correctly. It was the visually-hidden
+   `<span class="sr-only">` in the actions column header: `.sr-only` is `position: absolute`, and
+   with no positioned ancestor its containing block is the initial containing block, so it escaped
+   the wrapper's overflow clip, landed at the table's un-scrolled x position and extended
+   `documentElement.scrollWidth` to 1341 on a 1280 viewport. Fixed by making `.table-wrap` a
+   containing block, which fixes it for every visually-hidden element in any scrolling region.
+   The wrapper also gained a tab stop and a label so sideways-scrolling content is keyboard-reachable.
+2. **The admin dashboard named the active model version with no provenance**, so a reader there could
+   not tell the model was synthetic-trained. It now carries the badge and a sentence saying a healthy
+   service says nothing about accuracy.
+3. **`state_checks.py` corrupted its own fixture** on the first run by calling `POST /demo/reset` as
+   admin purely to observe a 200 — wiping the demo feed the later checks ran against, which then
+   produced a spurious 404. Destructive endpoints are now proved by who is *refused*; the authorised
+   call is deliberately skipped.
+
+### Final results
+
+```
+ui_smoke.py --sweep      : 51 pages, 0 console errors, 0 page errors, 0 overflow,
+                           33 charts, 0 missing aria, 0 missing source. ALL PASSED
+ui_smoke.py --role admin : 13/13 PASS      --role staff : 13/13 PASS
+state_checks.py (model loaded)  : ALL PASSED (1 skipped)
+state_checks.py (model removed) : ALL PASSED (1 skipped)
+pytest -q                : 149 passed        npm test (ML frontend) : 174 passed
+backend npm test         : 14/14             React build            : passed
+React lint               : 11 errors, 2 warnings — identical to the Phase 0 baseline
+training metrics sha256  : 5b3b842f...a57d — identical to pre-change, after all five phases
+CSS                      : original 1507 lines byte-identical; all additions appended
+```
+
+### Open decision for you
+
+The sweep writes **51 screenshots, 3.7 MB, to `reports/figures/ui/`**, as the brief asked. They are
+currently **untracked**. `reports/figures/` is a tracked directory, so they will keep appearing in
+`git status` until either committed or ignored. Proposed second `.gitignore` line, **not applied**:
+
+```diff
+ reports/evaluation.json
++
++# Sweep screenshots, regenerated by scripts/ui_smoke.py --sweep.
++reports/figures/ui/
+```
+
+It would exclude only that directory; the five tracked figures in `reports/figures/` are unaffected.
+Say which you prefer — commit them as evidence, or ignore them as regenerable output.

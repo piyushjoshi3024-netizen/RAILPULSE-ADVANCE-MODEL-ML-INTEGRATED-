@@ -50,6 +50,8 @@ export async function renderAdminDashboard(content) {
     const now = Date.now();
     const stale = rows.filter((train) => age(train.updated_at, now).stale);
     const demo = rows.filter((train) => String(train.data_source || '').toUpperCase() === 'DEMO');
+    const dataset = health.dataset || {};
+    const synthetic = String(dataset.data_provenance || '').toLowerCase() === 'synthetic';
 
     content.innerHTML = `
     <section class="page-intro">
@@ -64,7 +66,11 @@ export async function renderAdminDashboard(content) {
     ${health.model !== 'ok' ? degradedBanner(health) : ''}
 
     <section class="rp-live-block">
-        <h3 class="rp-section-heading">${badge('live')} Live</h3>
+        <h3 class="rp-section-heading">${badge('live')} Live
+            ${synthetic ? badge('synthetic', `model trained on ${escapeHtml(String(finite(dataset.rows) ?? 'unknown'))} rows`) : ''}</h3>
+        ${synthetic ? `<p class="rp-section-copy">The version named below was trained on
+            <strong>synthetic data</strong>. The service being healthy says nothing about whether its
+            predictions are accurate.</p>` : ''}
         <section class="metric-grid">
             ${statusTile('Service', health.status, health.status === 'ok' ? 'All components reporting' : 'At least one component is degraded')}
             ${statusTile('Database', health.mongodb, health.mongodb === 'ok' ? 'Reachable' : 'Not reachable')}
