@@ -618,6 +618,11 @@ request is in the report for the user to run or to permit.
 ### State after this phase
 - `railpulse_node`: untouched, still holds all 7 documents, read by nothing
 - Redis: untouched, 5 keys, same configuration
-- Rollback: `git checkout -- backend/.env backend/src/models/User.js backend/src/models/Alert.js Readme.md`,
+- Rollback, corrected: `backend/.env` is gitignored, so `git checkout` cannot
+  restore it. The two steps are
+
+      cp backups/20261020T213105/backend.env backend/.env
+      git checkout -- backend/src/models/User.js backend/src/models/Alert.js Readme.md
+
   then let nodemon reload. The eleven new collections stay behind as empty
   leftovers and need separate approval to drop.
