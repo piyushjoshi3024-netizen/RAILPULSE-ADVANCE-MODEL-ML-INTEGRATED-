@@ -5,6 +5,13 @@ import {
     loadJourney, renderPassengerAlerts, renderPassengerDashboard, renderPassengerHistory,
     renderPassengerTrain,
 } from './pages/passenger.js';
+import {
+    applyFilters, renderStaffAlerts, renderStaffDashboard, renderStaffHistory, renderStaffTrains,
+    runStaffPrediction, showTrainDetail,
+} from './pages/staff.js';
+import {
+    renderStaffCapabilities, renderStaffSimulation, runScenarioComparison,
+} from './pages/operations.js';
 
 const app = document.querySelector('#app');
 let healthTimer;
@@ -17,6 +24,8 @@ restoreSession();
 window.addEventListener('hashchange', render);
 document.addEventListener('click', handleClick);
 document.addEventListener('submit', handleSubmit);
+document.addEventListener('input', handleFilterChange);
+document.addEventListener('change', handleFilterChange);
 render();
 
 function route() { return window.location.hash.replace(/^#/, '') || '/'; }
@@ -102,6 +111,15 @@ async function renderPage(role, page) {
         if (page === 'train') return renderPassengerTrain(content);
         if (page === 'history') return renderPassengerHistory(content);
         if (page === 'alerts') return renderPassengerAlerts(content);
+    }
+    // ADMIN keeps the existing renderers until Phase 4; only STAFF moves here.
+    if (role === 'STAFF') {
+        if (page === 'dashboard') return renderStaffDashboard(content);
+        if (page === 'train') return renderStaffTrains(content);
+        if (page === 'history') return renderStaffHistory(content);
+        if (page === 'alerts') return renderStaffAlerts(content);
+        if (page === 'simulation') return renderStaffSimulation(content);
+        if (page === 'capabilities') return renderStaffCapabilities(content);
     }
     if (page === 'dashboard') return renderDashboard(content, role);
     if (page === 'train') return renderTrain(content, role);
@@ -231,7 +249,14 @@ function healthView(health) { const details = health.model_details || {}; return
 function renderAccessDenied() { app.innerHTML = `<main class="center-state"><div class="empty-icon">${icons.shield}</div><p class="eyebrow">403 · Access restricted</p><h1>This portal is not assigned to your role.</h1><p>FastAPI remains the security authority. Return to your dashboard or sign out to use another account.</p><div class="action-row"><a class="button button-primary" href="#/${rolePrefix[session().user.role]}/dashboard">Dashboard ${icons.arrow}</a><button class="button button-secondary" data-action="logout">Sign out</button></div></main>`; }
 function renderNotFound(content) { content.innerHTML = `<section class="center-state"><div class="empty-icon">${icons.train}</div><p class="eyebrow">404 · Route not laid</p><h2>This route has not been laid yet.</h2><p>Return to the operational view and choose a supported section.</p></section>`; }
 
-async function handleSubmit(event) { const form = event.target; if (!(form instanceof HTMLFormElement)) return; event.preventDefault(); if (form.id === 'auth-form') return submitAuth(form); if (form.id === 'lookup-form') { const number = new FormData(form).get('train_number').trim(); await goToTrain(number); return; } if (form.id === 'simulation-form') return submitSimulation(form); }
+/** Staff fleet filters re-render from the already-loaded snapshot. */
+function handleFilterChange(event) {
+    const target = event.target;
+    if (!target || !target.id || !target.id.startsWith('filter-')) return;
+    applyFilters();
+}
+
+async function handleSubmit(event) { const form = event.target; if (!(form instanceof HTMLFormElement)) return; event.preventDefault(); if (form.id === 'auth-form') return submitAuth(form); if (form.id === 'lookup-form') { const number = new FormData(form).get('train_number').trim(); await goToTrain(number); return; } if (form.id === 'simulation-form') return submitSimulation(form); if (form.id === 'scenario-form') return runScenarioComparison(form); }
 async function submitAuth(form) { const errorBox = document.querySelector('#auth-error'); const button = form.querySelector('button[type="submit"]'); setBusy(button, true); errorBox.textContent = ''; const data = Object.fromEntries(new FormData(form)); try { if (form.dataset.register === 'true') { await api.post('/auth/register', { username: data.username, password: data.password, full_name: data.full_name || null }); toast('Account created. Sign in to continue.'); return navigate('/login/user'); } const response = await api.post('/auth/login', { username: data.username, password: data.password }); const expected = form.dataset.kind === 'user' ? 'PASSENGER' : form.dataset.kind.toUpperCase(); if (response.user.role !== expected) { errorBox.textContent = `This account belongs to ${roleNames[response.user.role] || 'another role'}. Please use the appropriate portal.`; return; } setSession({ accessToken: response.access_token, user: response.user }, data.remember === 'on'); navigate(`/${rolePrefix[response.user.role]}/dashboard`); } catch (error) { errorBox.textContent = error.message; } finally { setBusy(button, false); } }
 async function submitSimulation(form) { const message = document.querySelector('#simulation-result'); const button = form.querySelector('button[type="submit"]'); setBusy(button, true); message.textContent = ''; try { const payload = formPayload(form); const response = await api.post('/simulation/update', payload); message.textContent = response.message || 'Simulation state stored and live train updated.'; toast('Live train updated'); } catch (error) { message.textContent = error.message; } finally { setBusy(button, false); } }
 
@@ -240,7 +265,7 @@ document.addEventListener('input', (event) => {
     if (event.target && event.target.dataset && event.target.dataset.stations === 'true') loadStationOptions(event.target.value);
 });
 
-async function handleClick(event) { const trigger = event.target.closest('[data-action]'); if (!trigger) return; const action = trigger.dataset.action; if (action === 'logout') { clearSession(); navigate('/login/user'); return; } if (action === 'toggle-password') { const input = trigger.closest('.password-wrap').querySelector('input'); input.type = input.type === 'password' ? 'text' : 'password'; trigger.setAttribute('aria-label', input.type === 'password' ? 'Show password' : 'Hide password'); return; } if (action === 'open-sidebar') { document.querySelector('#sidebar')?.classList.add('open'); return; } if (action === 'close-sidebar') { document.querySelector('#sidebar')?.classList.remove('open'); return; } if (action === 'refresh-health') { showSystemHealth(); return; } if (action === 'predict') { predict(trigger.dataset.train, trigger); return; } if (action === 'track-train') { await goToTrain(trigger.dataset.train); return; } if (action === 'seed-demo') { try { const result = await api.post('/demo/seed', {}); toast(result.message || 'Demo trains seeded.'); await renderPage(session().user.role, 'dashboard'); } catch (error) { toast(error.message); } return; } if (action === 'refresh-demo') { try { const result = await api.post('/demo/refresh', {}); toast(result.message || 'Demo trains refreshed.'); await renderPage(session().user.role, 'dashboard'); } catch (error) { toast(error.message); } return; } if (action === 'clear-demo') { try { const result = await api.post('/demo/reset', {}); toast(result.message || 'Demo data cleared.'); await renderPage(session().user.role, 'dashboard'); } catch (error) { toast(error.message); } return; } }
+async function handleClick(event) { const trigger = event.target.closest('[data-action]'); if (!trigger) return; const action = trigger.dataset.action; if (action === 'logout') { clearSession(); navigate('/login/user'); return; } if (action === 'toggle-password') { const input = trigger.closest('.password-wrap').querySelector('input'); input.type = input.type === 'password' ? 'text' : 'password'; trigger.setAttribute('aria-label', input.type === 'password' ? 'Show password' : 'Hide password'); return; } if (action === 'open-sidebar') { document.querySelector('#sidebar')?.classList.add('open'); return; } if (action === 'close-sidebar') { document.querySelector('#sidebar')?.classList.remove('open'); return; } if (action === 'refresh-health') { showSystemHealth(); return; } if (action === 'predict') { predict(trigger.dataset.train, trigger); return; } if (action === 'track-train') { await goToTrain(trigger.dataset.train); return; } if (action === 'staff-detail') { await showTrainDetail(trigger.dataset.train); return; } if (action === 'staff-predict') { await runStaffPrediction(trigger.dataset.train, trigger); return; } if (action === 'seed-demo') { try { const result = await api.post('/demo/seed', {}); toast(result.message || 'Demo trains seeded.'); await renderPage(session().user.role, 'dashboard'); } catch (error) { toast(error.message); } return; } if (action === 'refresh-demo') { try { const result = await api.post('/demo/refresh', {}); toast(result.message || 'Demo trains refreshed.'); await renderPage(session().user.role, 'dashboard'); } catch (error) { toast(error.message); } return; } if (action === 'clear-demo') { try { const result = await api.post('/demo/reset', {}); toast(result.message || 'Demo data cleared.'); await renderPage(session().user.role, 'dashboard'); } catch (error) { toast(error.message); } return; } }
 
 async function predict(trainNumber, trigger) { let result = trigger?.closest('.prediction-panel')?.querySelector('#prediction-result') || document.querySelector('#prediction-result'); const button = trigger || document.querySelector(`[data-action="predict"][data-train="${CSS.escape(trainNumber)}"]`); if (!trainNumber) return; setBusy(button, true); if (result) result.innerHTML = '<div class="inline-loading">Running ETA inference…</div>'; try { const train = await api.get(`/trains/${encodeURIComponent(trainNumber)}/state`); const prediction = await api.post('/predict/eta', predictionPayload(train)); const liveResult = document.querySelector('#train-result'); if (!result && liveResult) { await loadTrain(trainNumber, liveResult, session().user.role); result = document.querySelector('#prediction-result'); } setTrainContext(trainNumber, train, prediction); if (result) result.innerHTML = predictionView(prediction); const historyResult = document.querySelector('#history-result'); if (historyResult) await loadHistory(trainNumber, historyResult); toast('Prediction updated'); scrollToUpdate(result || liveResult || '.page-content'); } catch (error) { if (result) result.innerHTML = `<div class="form-error">${escapeHtml(error.message)}</div>`; toast(error.message); } finally { setBusy(button, false); } }
 function predictionPayload(train) { const payload = { ...train }; delete payload._id; delete payload.state_source; delete payload.updated_at; delete payload.simulated_at; return payload; }

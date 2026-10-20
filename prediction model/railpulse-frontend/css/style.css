@@ -2151,3 +2151,213 @@ td {
         font-size: 1.5rem
     }
 }
+
+/* ==========================================================================
+   Staff portal (Phase 3). Appended only.
+   ========================================================================== */
+
+.filter-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 12px
+}
+
+.filter-grid label {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    font-size: .76rem;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--muted)
+}
+
+.filter-grid input,
+.filter-grid select {
+    padding: 9px 11px;
+    font-family: var(--body);
+    font-size: .9rem;
+    text-transform: none;
+    letter-spacing: normal;
+    color: var(--ink);
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 10px
+}
+
+.filter-grid input:focus-visible,
+.filter-grid select:focus-visible {
+    outline: 2px solid var(--orange-dark);
+    outline-offset: 1px
+}
+
+/* ------------------------------------------------------------ fleet table */
+
+.fleet-table th[scope="row"] {
+    min-width: 170px
+}
+
+.fleet-table th[scope="row"] small {
+    display: block;
+    font-weight: 400;
+    white-space: normal
+}
+
+.fleet-table td,
+.fleet-table th {
+    vertical-align: top
+}
+
+/* A stale row is marked by a rule and the age chip, never by colour alone. */
+.fleet-table tr.is-stale th[scope="row"] {
+    box-shadow: inset 3px 0 0 var(--muted)
+}
+
+.band-chip {
+    display: inline-block;
+    padding: 2px 8px;
+    font-size: .7rem;
+    font-weight: 600;
+    letter-spacing: .03em;
+    border: 1px solid;
+    border-radius: 999px;
+    white-space: nowrap
+}
+
+.band-ON_TIME {
+    color: #1f5c3f;
+    background: #e7f2ec;
+    border-color: #b9d8c8
+}
+
+.band-MINOR {
+    color: #5c4a73;
+    background: #efeaf4;
+    border-color: #d6cbe2
+}
+
+.band-MODERATE {
+    color: #7a4a10;
+    background: #fbf0e0;
+    border-color: #e8d4b4
+}
+
+.band-MAJOR,
+.band-SEVERE {
+    color: #8a3328;
+    background: #fbeae7;
+    border-color: #efc9c2
+}
+
+/* SEVERE additionally carries a heavier rule, so the two red bands are not
+   distinguished by colour alone. */
+.band-SEVERE {
+    box-shadow: inset 0 -2px 0 var(--red)
+}
+
+.band-stale {
+    color: var(--ink);
+    background: var(--sand-dark);
+    border-color: var(--line)
+}
+
+/* --------------------------------------------------------- interval cell */
+
+.interval-cell {
+    position: relative;
+    display: block;
+    min-width: 128px;
+    padding-top: 14px
+}
+
+.interval-track {
+    position: absolute;
+    top: 4px;
+    left: 0;
+    width: 100%;
+    height: 6px;
+    background: var(--sand-dark);
+    border-radius: 3px
+}
+
+.interval-span {
+    position: absolute;
+    top: 4px;
+    height: 6px;
+    background: var(--chart-predicted);
+    opacity: .55;
+    border-radius: 3px
+}
+
+.interval-mid {
+    position: absolute;
+    top: 1px;
+    width: 2px;
+    height: 12px;
+    background: var(--orange-dark);
+    border-radius: 1px
+}
+
+.interval-text {
+    display: block;
+    font-size: .74rem;
+    color: var(--muted);
+    white-space: nowrap
+}
+
+/* ------------------------------------------------------ capability lists */
+
+.capability-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 8px 16px;
+    margin: 0;
+    padding: 0;
+    list-style: none
+}
+
+.capability-list li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: .86rem;
+    color: var(--ink)
+}
+
+/* ------------------------------------------------------------- scenarios */
+
+.scenario-set {
+    margin: 0;
+    padding: 12px 14px;
+    border: 1px solid var(--line);
+    border-radius: 12px
+}
+
+.scenario-set legend {
+    padding: 0 6px;
+    font-size: .76rem;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--muted)
+}
+
+.scenario-set .check-row span small {
+    display: block;
+    font-size: .76rem;
+    color: var(--muted)
+}
+
+@media (max-width:560px) {
+
+    .filter-grid {
+        grid-template-columns: 1fr
+    }
+
+    .capability-list {
+        grid-template-columns: 1fr
+    }
+
+    .interval-cell {
+        min-width: 104px
+    }
+}

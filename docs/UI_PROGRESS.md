@@ -5,7 +5,7 @@ Resume point for a fresh session. One phase per message; do not start the next p
 - Branch: `feature/ml-dashboards` (created from `feature/real-data-ml` @ `381fa84`)
 - Scratch dir (not committed): `/tmp/claude-1000/-home-ritik-Desktop-RAILPULSE-ADVANCE-MODEL-ML-INTEGRATED-/0e8d691c-1dc1-45d6-9435-d07e942d7053/scratchpad`
   - `metrics_before.json`, `metadata_run1.json`, `metadata_run2.json`, `fixtures/*.json` (real API responses), `openapi_before.json`
-- Last updated: 2026-10-20 — end of Phase 2
+- Last updated: 2026-10-20 — end of Phase 3
 
 ---
 
@@ -15,8 +15,8 @@ Resume point for a fresh session. One phase per message; do not start the next p
 |---|---|
 | 0 Inspect, baseline, plan | Done (commit `9af23ee`) |
 | 1 Foundations | Done (commit `4b1395d`) |
-| 2 Passenger | **Done (this commit)** |
-| 3 Staff | Not started |
+| 2 Passenger | Done (commit `9bcd472`) |
+| 3 Staff | **Done (this commit)** |
 | 4 Admin + D3 | Not started |
 | 5 Verification + report | Not started |
 
@@ -688,3 +688,134 @@ with interval indicators, predicted-delay trend, delay-band distribution using t
 only (no "early" bucket — the dataset has no negative delays), the existing simulation and
 network-intelligence pages kept and improved, and scenario comparison labelled rule-based with the
 13 ignored request fields shown explicitly.
+
+
+---
+
+## Phase 3 — staff experience (done)
+
+Role `STAFF`, in the ML app. ADMIN still uses the original renderers; Phase 4 moves it.
+
+### Files
+
+| File | Change |
+|---|---|
+| `js/pages/staff.js` | **new**, 700 lines — overview, fleet table + filters, drill-down, history |
+| `js/pages/operations.js` | **new**, 370 lines — scenario comparison, network intelligence |
+| `js/app.js` | +27 / −2: imports, a STAFF branch, three new actions, a filter listener |
+| `css/style.css` | appended again, 2153 → 2363 lines |
+| `tests/operations.test.js` | **new**, 12 assertions for `shiftWallClock` |
+
+### Ordering, as briefed
+
+Operational overview first: degraded banner, a stale-state count banner, a baseline-loss banner that
+appears only if `beats_baseline` goes false, four KPI tiles, then the alerts panel. Charts next
+(delay-band distribution, latest predicted delay by train). Then the table, then one train in detail.
+
+### The constraint that shaped the whole module
+
+`POST /predict/eta` is **not read-only**. It writes a row to the train's prediction history *and*
+upserts the live state (`app/api/routes/predictions.py:52-70`, `train_repository.py:21-28`). A fleet
+view that predicted on load would write 16 rows and mutate 16 live states on every page view.
+
+So nothing here predicts on load. `loadFleet()` makes one read-only
+`GET /trains/{n}/predictions?limit=50` per train; the newest entry doubles as "the latest
+prediction", so the trend chart and the fleet table come from the same single request per train.
+A prediction happens only when a staff user clicks for one, and the button says what it will do.
+
+### Scenario comparison
+
+The rule-based engine the brief mentions lives in the Node service and is **not reachable from this
+portal**, and FastAPI's `/simulation/update` only stores a state. Rather than dress a stored state up
+as a scenario engine, the page says that plainly in a *Not available* card and offers an ML scenario
+comparison instead.
+
+What a scenario may vary is dictated by the model: nine of the fifteen features derive from
+`scheduled_arrival`, so shifting the schedule is the one lever offered. The page lists the features
+the model uses and the thirteen it ignores, and adds that **`distance_remaining_km` is ignored too**
+for a train the model knows, because `training/feature_contract.py:161` looks the route distance up
+by train number and uses the request value only as a fallback for an unknown train.
+
+Because each run rewrites the stored state, the tool:
+
+- states the consequence in a banner before anything runs;
+- requires an explicit acknowledgement checkbox, and refuses to run without it;
+- runs scenarios **sequentially**, since parallel runs would race on one document;
+- replays the original payload in a `finally` block, so the stored state ends as it started and the
+  newest history row reflects the train's real schedule.
+
+Measured end to end against the live backend:
+
+```
+BEFORE: scheduled_arrival = 2026-10-21T06:00:00 | history rows = 19
+  guard blocks an unacknowledged submit: True
+  5 scenarios ran, 5 table rows, 1 chart, 0 console/page errors
+AFTER : scheduled_arrival = 2026-10-21T06:00:00 | history rows = 25
+STATE RESTORED: True        (history grew by 6 = 5 scenarios + 1 restore)
+newest history row scheduled_arrival = 2026-10-21T06:00:00
+```
+
+The comparison is informative rather than flat — the model does respond to the schedule:
++6.9 min as scheduled, +13.5 six hours earlier, +13.3 six hours later, +5.1 tomorrow, +7.9 next week.
+
+### Other honesty work on this surface
+
+- The drill-down shows reported delay, speed, congestion, occupancy and trains-in-section because
+  they describe the stored state, immediately under: "**these are not inputs to the model** …
+  changing any of them cannot change a prediction."
+- After an explicit prediction, the response's `unsupported_fields_ignored` is echoed as "N fields
+  sent with this request had no effect on the result", naming each one.
+- Delay bands use the model's own five labels in the model's own order. There is no early band and
+  none is invented. A band with zero trains is still drawn, because "none in SEVERE" is information.
+- The alerts panel repeats that an empty list is not an all-clear and points at the stale count and
+  the band chart instead.
+- `MAJOR` and `SEVERE` chips share a red; `SEVERE` additionally carries a heavier rule so the two are
+  not separated by colour alone. Stale rows are marked by a rule and an age chip, not by colour.
+- The interval column is drawn on a scale shared down the column, so a wide band looks wide. Every
+  interpolated value is a number from `finite()`, and the cell carries an escaped text alternative.
+
+### A bug class found and fixed
+
+Four titles were written as `` `… &mdash; train ${escapeHtml(...)}` `` and passed to `panel()` /
+`notAvailable()`, which escape their own arguments. That rendered the literal text
+"Scenario comparison &mdash; train 12002" on screen, and double-escaped the interpolated value, so a
+name containing `&` would have shown as `&amp;amp;`. All four now pass plain text. A sweep across all
+six staff pages confirms no HTML entity is visible anywhere.
+
+### Verification — commands run and real results
+
+| Check | Result |
+|---|---|
+| `npm test` (ML frontend) | **174 tests, 37 suites, 0 fail** |
+| Staff portal at 1280 / 768 / 360 / 360+reduced-motion | **PASS** — 0 console errors, 0 page errors, no horizontal scroll, 2 charts, 0 reveal elements under reduced motion |
+| Fleet filters | search `12002` → 16 rows to 1; stale filter → 4 of 16; counts reported in the UI |
+| Drill-down | renders, and carries the "are not inputs to the model" note |
+| Scenario comparison | guard works, 5 scenarios ran, **state restored**, newest history row correct |
+| Entity sweep, all 6 staff pages | no visible HTML entities |
+| All-role regression (4 + 6 + 7 pages) | **PASS** — every page renders, 0 console errors, 0 page errors |
+| `grep` fabrication / hardcoded metrics / raw `Number(` | no matches |
+| `cd backend && npm test` | 14/14 (untouched) |
+| `pytest -q` | 140 passed (untouched) |
+| `cd frontend/frontend && npm run build` | pass, 513 ms (untouched) |
+| `cd frontend/frontend && npm run lint` | **13 problems (11 errors, 2 warnings) — identical to the Phase 0 baseline** |
+
+Screenshots: `scratchpad/phase3/staff-{dashboard,trains,history,capabilities,simulation,scenario-result}-*.png`.
+
+### Observations added
+
+- `/predict/eta` mutating the live state is a backend design issue, not a UI one: a caller cannot ask
+  for a prediction without also rewriting the stored state. The scenario tool works around it with a
+  restore, but a read-only prediction mode would be the real fix. Not changed — rule 9.
+- `intervalCells=2` of 16 rows on first load simply reflects that only two trains had stored
+  predictions carrying P10/P90; the rest show "Not recorded" rather than a fabricated range.
+
+---
+
+## Next: Phase 4 (ADMIN + D3) — not started
+
+Model health and readiness, active version, training time, dataset provenance and freshness, and
+selected-vs-baseline on the same split. Historical evaluation and Live sections separated visually.
+Per-train held-out error and the calibration curve come from the public `/health` metrics and need no
+D3. If D3 proceeds: implement the evaluation export plus the ADMIN-only endpoint, apply the one-line
+`.gitignore` change shown above, then prove `metadata["metrics"]` is byte-identical before and after
+(not `artifact_sha256`, which is not reproducible) and that `openapi.json` differs only by the new route.
