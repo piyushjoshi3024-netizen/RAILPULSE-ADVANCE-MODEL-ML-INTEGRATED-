@@ -5,7 +5,7 @@ Resume point for a fresh session. One phase per message; do not start the next p
 - Branch: `feature/ml-dashboards` (created from `feature/real-data-ml` @ `381fa84`)
 - Scratch dir (not committed): `/tmp/claude-1000/-home-ritik-Desktop-RAILPULSE-ADVANCE-MODEL-ML-INTEGRATED-/0e8d691c-1dc1-45d6-9435-d07e942d7053/scratchpad`
   - `metrics_before.json`, `metadata_run1.json`, `metadata_run2.json`, `fixtures/*.json` (real API responses), `openapi_before.json`
-- Last updated: 2026-10-20 — end of Phase 0
+- Last updated: 2026-10-20 — end of Phase 1
 
 ---
 
@@ -13,8 +13,8 @@ Resume point for a fresh session. One phase per message; do not start the next p
 
 | Phase | State |
 |---|---|
-| 0 Inspect, baseline, plan | **Done — awaiting approval of gates D1–D4 + one open question** |
-| 1 Foundations | Not started |
+| 0 Inspect, baseline, plan | Done (commit `9af23ee`) |
+| 1 Foundations | **Done (this commit)** |
 | 2 Passenger | Not started |
 | 3 Staff | Not started |
 | 4 Admin + D3 | Not started |
@@ -380,3 +380,134 @@ to IST for display and leave naive ones labelled "UTC (unconverted)" — mixed a
   `.gitignore` (one line, pending Amendment 1 approval). Visually separate *Historical evaluation*
   from *Live*.
 - **Phase 5:** extend `scripts/ui_smoke.py`; screenshots to `reports/figures/ui/`.
+
+
+---
+
+## Phase 1 — foundations (done)
+
+Gate defaults were applied, since no override was given: **D1** ML app, **D2** in-house SVG module,
+**D4** `ETAPrediction.jsx` only. **D3** stays pending until Phase 4; its `.gitignore` amendment is
+still unanswered and nothing has been changed in the backend. The timezone default was applied:
+**times render in UTC, explicitly labelled**, with the provenance caveat shown on screen.
+
+### Files added
+
+| File | Lines | What |
+|---|---|---|
+| `js/format.js` | 232 | `finite`, timezone policy + `parseInstant`/`formatInstant`/`formatClock`/`formatDay`, `age`/`describeSpan`, number & duration formatting, `cleanLabel`, `prefersReducedMotion`, `countUp` |
+| `js/chart-core.js` | 296 | DOM-free geometry: scales, `niceTicks`, `downsample`, `histogram`, `bandFor`, `tableFromSeries`, `summaryText`, path + marker builders, `nearestIndex`, `SERIES_STYLES` |
+| `js/charts.js` | 764 | SVG rendering: line/area, bar, scatter, histogram, interval band, progress track, sparkline; legend, table view, read-out, reveal, ResizeObserver |
+| `js/ui.js` | 278 | `escapeHtml`/`raw`, `badge`, `provenanceBadges`, `baselineVerdict`, `coverageNote`, `sourceFooter`, `skeleton`/`emptyState`/`errorState`/`staleBanner`/`degradedBanner`/`notAvailable`, `panel`, `chartMount`, `metaList`, `metricTile`, `timeNotice` |
+| `tests/chart-core.test.js` | 366 | 49 assertions over the pure chart layer |
+| `tests/format.test.js` | 262 | timezone, staleness, formatting, count-up |
+| `tests/ui.test.js` | 277 | escaping sweep + truthfulness of every verdict/note |
+| `package.json` | 11 | **no dependencies**; `npm test` = `node --test tests/`, `npm run serve` |
+
+`css/style.css`: **appended only**, 1506 → 2019 lines. Nothing above the original last line was
+edited. Adds `--chart-*` tokens and the `.chart-*` / `.rp-*` classes.
+
+`js/app.js`, `js/api.js`, `js/state.js`, `js/config.js`, `index.html`: **untouched this phase.**
+The new modules are not wired into any page yet; that starts in Phase 2.
+
+### Decisions taken
+
+1. **Chart text goes through DOM nodes, never string templates.** `charts.js` builds everything with
+   `createElementNS` and `textContent`, so no API-derived chart label can become markup. `ui.js`
+   returns strings because `app.js` composes with `innerHTML`, so every `ui.js` function escapes its
+   own input and `raw()` is the single, explicit opt-out.
+2. **Keyboard tooltips are one focusable plot with arrow-key stepping**, not one focusable node per
+   point. Per-point focus would blow the node budget on long series. `Home`/`End`/`Escape` work; the
+   read-out is a polite live region.
+3. **Non-colour encoding is dash pattern + marker shape + direct legend label.** A unit test asserts
+   that the dash+marker pair is unique across all five series roles, so the chart is readable in
+   greyscale.
+4. **Contrast was measured, not assumed** (see the CSS comment block for the numbers). Marks are
+   treated as graphics (WCAG 1.4.11, 3:1) and text as text (1.4.3, 4.5:1), which is why
+   `--chart-predicted` (#e8632d, 3.31 on paper) is used for strokes while
+   `--chart-predicted-text` (#bd431a, 5.19) is used for legend copy. Two real failures were found
+   and fixed: legend chips moved from `--sand` to `--paper` (green would have been 4.48), and the
+   toggled-off state moved to full `--ink` on `--sand-dark` (`--muted` on `--sand` was 4.12).
+5. **Motion is belt-and-braces off.** `charts.js` skips the reveal clip entirely under
+   `prefers-reduced-motion`, and the CSS block already at `style.css:1497` forces
+   `transition-duration: .01ms !important` globally. Verified: zero reveal/clip elements under
+   emulation. `countUp` writes the final number synchronously *before* deciding to animate, and
+   animates only on first paint or a real value change — an unchanged 30s poll animates nothing.
+6. **No demo page is committed.** The fixtures-driven harness used to verify the DOM layer lived in
+   the scratch dir and was deleted after the run.
+
+### The bug that kept recurring — worth knowing before Phase 2
+
+`Number(null)`, `Number('')`, `Number(false)` and `Number([])` are all **0**, and `Number.isFinite(0)`
+is `true`. Guarding with `Number.isFinite(Number(x))` therefore turns a *missing* API field into a
+*real zero*. The unit tests caught **seven** instances of this across three files, including:
+
+- `formatDelayMinutes(null)` rendered **"on time"** — stating a train was punctual when the API sent
+  no delay at all.
+- `coverageNote(null)` rendered **"contained the true arrival 0.0% of the time on the held-out test
+  split"** — reporting a measurement that was never taken.
+- `baselineVerdict({test_mae_minutes: null, baseline_mae_minutes: 24.7})` claimed the model beat its
+  baseline **"by 24.7 minutes"** — a fabricated margin.
+- Line charts plotted missing points at y=0 instead of breaking the line.
+
+All now route through one `finite()` guard exported from `format.js` (accepts only numbers and
+non-blank numeric strings). **Phase 2 onward: never use `Number()` on an API value; use `finite()`.**
+
+### Verification — commands run and real results
+
+| Command | Result |
+|---|---|
+| `cd "prediction model/railpulse-frontend" && npm test` | **pass — 150 tests, 34 suites, 0 fail** |
+| Playwright DOM check at 1280 / 768 / 360 / 360+reduced-motion | **PASS** (see below) |
+| Existing ML app at `localhost:3000` | **0 console errors, 0 page errors**, renders, no h-scroll at 360 |
+| `cd frontend/frontend && npm run build` | pass, built in 560 ms (React untouched) |
+| `cd frontend/frontend && npm run lint` | **fail — 13 problems (11 errors, 2 warnings), identical to the Phase 0 baseline.** Pre-existing; unchanged by this phase |
+| `cd backend && npm test` | pass 14/14 (untouched) |
+| `pytest -q` | pass 140 (untouched) |
+| `grep -rnE "Math\.random\|faker\|lorem"` over `js/`, `css/`, `tests/` | **no matches** |
+| `grep -rnE "(28\.7\|25\.4\|22\.606\|23\.979\|21\.82\|24\.73\|0\.7027)"` over `js/`, `css/` | **no matches** — no metric is hardcoded in shipped code |
+| `grep -rn innerHTML` in the four new js modules | only two occurrences, both in comments |
+
+Playwright results, every viewport identical unless noted:
+
+```
+[1280] cards=8 svgs=7 empty=1 focusable=5 svgNodes=811 hscroll=False
+       noAria=0 noSource=0 consoleErr=0 pageErr=0
+   keyboard: focus -> ArrowRight -> 'run 2 - Predicted P50 83.9 - Snapshot delay 17.0'
+             End          -> 'run 8 - Predicted P50 15.7 (range 8.9 to 60.5) - Snapshot delay 45.0'
+   table toggle: 8 rows x 3 cols, aria-expanded=true
+   5,000-point chart footer: 'showing 600 of 5000 points (min/max per bucket)'
+   markup leak through a label: False
+[360]  svgNodes=800, hscroll=False
+[360-reduced] reveal/clip elements = 0
+```
+
+Node budget held at 811 of the ~1,000 ceiling with a 5,000-point scatter on screen.
+
+### A data-availability correction found while verifying
+
+`GET /trains/{n}/predictions` stores and returns `predicted_delay_minutes`, `delay_p10_minutes`,
+`delay_p90_minutes`, `p_delay_gt_15`, `delay_category`, `risk_level`, `predicted_eta`,
+`predicted_remaining_minutes`, `model_version`, `timestamp`, `data_source` and the full
+`input_snapshot` — but **there is no `delay_p50_minutes` field** (`app/api/routes/predictions.py:60`
+persists p10, p90 and the probability only). The P50 is `predicted_delay_minutes`, which the schema
+documents as "P50 (median) predicted delay".
+
+**Phase 2/3 must read `predicted_delay_minutes` for the history centre line.** Reading
+`delay_p50_minutes` yields all-nulls. Also note that p10/p90 are not populated on every stored row,
+so the history band is legitimately partial and must be drawn as a gap, not interpolated.
+
+A second defect surfaced from the same fixture: a chart whose *first* series was entirely missing
+silently lost its x-axis ticks and its whole keyboard read-out, because both keyed off `series[0]`.
+Now both key off `anchorOf()`, the first series that actually has points.
+
+---
+
+## Next: Phase 2 (PASSENGER) — not started
+
+Planned: `js/pages/passenger.js`, wired into `app.js`'s existing `renderPage` switch.
+Scheduled vs predicted arrival, time remaining, the P10-P90 window with `coverageNote`, source badge
+with fallback reason in plain words, last-updated + `staleBanner` (which will fire by default: demo
+data is ~22 days old), route timeline from `/reference/trains/{n}/route` +
+`/trains/{n}/upcoming-stations` (two nodes only, with the API's own `limitation` shown), and a
+prediction-history sparkline off `predicted_delay_minutes`. No metrics, no feature lists, no debug data.
