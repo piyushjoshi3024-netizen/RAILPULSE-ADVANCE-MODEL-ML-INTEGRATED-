@@ -349,6 +349,16 @@ Phase 5 not started. No database, container, volume or Redis change. **No
 application code was changed in this session**: the work asked for was already
 in the tree, and the honest deliverable is the evidence, not a rewrite.
 
+### 0. Files inspected
+
+Read in full or in part, none modified:
+`js/app.js`, `js/api.js`, `js/config.js`, `js/state.js`, `js/format.js`,
+`js/ui.js`, `js/chart-core.js`, `js/charts.js`, `js/pages/passenger.js`,
+`js/pages/staff.js`, `js/pages/admin.js`, `js/pages/operations.js`,
+`css/style.css`, `tests/*.test.js`; and on the backend, read-only for field
+mapping: `app/ml/predictor.py`, `app/services/eta_service.py`,
+`app/schemas/prediction.py`, `app/api/routes/model.py`.
+
 ### 1. The four modules are already connected
 
 | Module | How it reaches the UI |
@@ -458,3 +468,89 @@ scratchpad, not the repository.
   new work.
 - `charts.js` itself has no unit test — the suite covers `chart-core`'s pure
   helpers, and the DOM layer is covered only by this browser sweep.
+
+---
+
+## Session 7 (2026-10-20): tests for the chart DOM layer
+
+Closes the gap Session 6 reported: `charts.js` had no unit test, and the DOM
+layer was covered only by a browser sweep that had to drive real pages.
+
+**No service was started and no endpoint was called in this session.** Every
+test here runs offline against controlled fixture data. No database read or
+write of any kind. The prediction rows created during Session 6 are left
+exactly as they are, pending the user's decision.
+
+### Files changed
+| File | Change |
+|---|---|
+| `prediction model/railpulse-frontend/tests/charts.test.js` | **new** — 19 tests for the rendering layer |
+| `prediction model/railpulse-frontend/tests/helpers/fake-dom.js` | **new** — ~190-line DOM stub, no dependency |
+| `docs/UNIFY_PROGRESS.md` | this entry, plus the files-inspected list Session 6 was missing |
+
+`js/charts.js` itself is **byte-identical to HEAD** (`git diff --quiet js/charts.js`
+passes). No theme, page, backend, model, auth or configuration file was touched.
+
+### Why a stub rather than a browser
+The DOM surface `charts.js` actually uses was measured first: `createElement`,
+`createElementNS`, `appendChild`, `setAttribute`, `textContent`,
+`className`/`classList`, `style.setProperty`, `addEventListener`, `hidden`,
+`remove`, `getBoundingClientRect`, one class selector, plus `ResizeObserver` and
+`requestAnimationFrame`. All of it fits in a small stub, so the tests run inside
+the project's existing `node --test` suite with **nothing installed and nothing
+started**. The stub implements only that surface; anything else fails loudly
+rather than passing against invented behaviour.
+
+### What the 19 tests assert
+- the card structure the stylesheet targets (`chart-card`, `chart-head`,
+  `chart-title`, `chart-plot`, `chart-foot`, `chart-svg`), so the theme keeps applying
+- the source line, including "Source: not stated" when a caller gives none
+- the accessible name is built from the data (point count, range, axis label)
+- a legend appears only for more than one series
+- one path per line, one rect per point per series for bars, one marker per
+  scatter point, a band for an interval chart
+- **absence stays absent**: an empty series and an all-null series both draw
+  nothing and say "no points in this series"; a partly-null series drops exactly
+  the non-finite points and the table carries no row the chart would not draw
+- the table is built lazily on first open, matches the drawn numbers through the
+  caller's own formatter, and closes without rebuilding
+- downsampling reduces a 1500-point series, admits it in the footer, and keeps
+  the extremes so a spike survives
+- the reveal clip is added when motion is allowed and **not added at all** under
+  `prefers-reduced-motion`
+- the returned handle redraws on `update`, clears the mount on `destroy`, and is
+  safe to call with no mount
+
+### Commands and results
+```
+cd "prediction model/railpulse-frontend"
+node --check tests/helpers/fake-dom.js        # clean
+node --test tests/charts.test.js              # 19 passed, 0 failed
+npm test                                      # 202 passed, 0 failed, 45 suites
+```
+Per file: chart-core 49, charts **19**, format 50, operations 12,
+passenger-dashboard 9, ui 63. The helper is not collected as a test
+(`node --test tests/` matches `*.test.js` only; grep for `fake-dom` in the run
+output returns 0).
+
+### Mutation check — the tests have teeth
+Four deliberate breakages of `charts.js`, each reverted immediately from a copy
+taken first:
+
+| Mutation | Result |
+|---|---|
+| non-finite points no longer filtered | **2 tests fail** |
+| table built eagerly instead of on demand | **1 test fails** |
+| `prefers-reduced-motion` ignored | **1 test fails** |
+| second bar series dropped | **1 test fails** |
+| restored | 19 pass, 0 fail; `git diff` on `js/charts.js` is empty |
+
+### Limitations
+- The stub is not a browser. Layout, CSS, fonts and hit-testing do not happen,
+  so these tests assert structure and numbers, not appearance. Visual and
+  responsive behaviour still rests on the Session 6 browser sweep.
+- Pointer and keyboard interaction inside `wireReadout` (hover cursor, arrow-key
+  readout) is not covered: it depends on real coordinates and focus, which the
+  stub cannot supply honestly.
+- `scenario-chart` remains verified by reading only, because exercising it posts
+  predictions.
