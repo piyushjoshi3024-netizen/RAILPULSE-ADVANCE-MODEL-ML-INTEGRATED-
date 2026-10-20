@@ -101,7 +101,7 @@ function navigation(role) {
     return base;
 }
 
-function pageTitle(page, role) { const titles = { dashboard: 'Command overview', train: role === 'PASSENGER' ? 'Track a train' : 'Live train state', history: 'Prediction history', alerts: 'Alert intelligence', simulation: 'Simulation lab', capabilities: 'Future capabilities', system: 'System health' }; return titles[page] || 'RailPulse'; }
+function pageTitle(page, role) { const titles = { dashboard: role === 'PASSENGER' ? 'Welcome' : 'Command overview', train: role === 'PASSENGER' ? 'Track a train' : 'Live train state', history: 'Prediction history', alerts: 'Alert intelligence', simulation: 'Simulation lab', capabilities: 'Future capabilities', system: 'System health' }; return titles[page] || 'RailPulse'; }
 
 async function renderPage(role, page) {
     const content = document.querySelector('#page-content');

@@ -23,8 +23,8 @@
 import { api } from '../api.js';
 import { renderChart } from '../charts.js';
 import {
-    INSTANT, WALL_CLOCK, age, cleanLabel, countUp, finite, formatClock, formatDelayMinutes,
-    formatDuration, formatInstant, formatPercent,
+    INSTANT, WALL_CLOCK, age, cleanLabel, countUp, finite, formatClock, formatDay,
+    formatDelayMinutes, formatDuration, formatInstant, formatPercent,
 } from '../format.js';
 import {
     badge, coverageNote, degradedBanner, emptyState, errorState, escapeHtml, metaList,
@@ -40,16 +40,77 @@ const STOPS_SOURCE = 'GET /api/v1/trains/{train}/upcoming-stations';
 
 /* ------------------------------------------------------------------ pages */
 
+/**
+ * The PASSENGER dashboard: a welcome page, and nothing more.
+ *
+ * It deliberately calls no endpoint and shows no number. Everything about a
+ * particular train -- state, route, arrival estimate, history -- lives on the
+ * Track a train page, which this page links to. A dashboard that duplicated the
+ * lookup gave the passenger two places to ask the same question, and a hero
+ * reading "LIVE SIGNAL" implied a live feed that neither page has.
+ */
 export async function renderPassengerDashboard(content) {
-    const selected = getState().selectedTrain;
+    const user = getState().session?.user || {};
+    const name = cleanLabel(user.full_name || user.username, { placeholder: 'traveller' });
     content.innerHTML = `
-        ${lookupPanel('Where is your train?', 'Enter a train number to see its predicted arrival and how uncertain that prediction is.')}
-        <div id="journey-result">${selected ? skeleton({ large: true, rows: 2, label: 'Loading journey' }) : chooseTrainState()}</div>
-        <div id="train-list"></div>`;
-    await Promise.all([
-        selected ? loadJourney(selected, document.querySelector('#journey-result')) : Promise.resolve(),
-        loadTrainChoices(document.querySelector('#train-list')),
-    ]);
+        <section class="welcome reveal">
+            <div>
+                <p class="eyebrow">${escapeHtml(greeting())} &middot; ${escapeHtml(formatDay(new Date()))}</p>
+                <h2>Welcome to RailPulse, ${escapeHtml(name)}.</h2>
+                <p class="lede">RailPulse estimates when a train is likely to arrive, and how uncertain
+                    that estimate is. Every arrival here is a model estimate with a range around it, not a
+                    guarantee, and no train on this service is tracked live.</p>
+            </div>
+            <p class="muted">Arrival estimates &middot; not live tracking</p>
+        </section>
+
+        ${panel({
+            title: 'Where to go next',
+            caption: 'This page holds no train data. Open Track a train to look one up.',
+            body: raw(`
+                <div class="train-card-grid">${DASHBOARD_LINKS.map(navCard).join('')}</div>
+                <div class="action-row">
+                    <a class="button button-primary" href="#/passenger/train">Track a train</a>
+                </div>`),
+        })}`;
+}
+
+/** The passenger pages this dashboard points at. Every target already exists. */
+const DASHBOARD_LINKS = [
+    {
+        href: '#/passenger/train',
+        kicker: 'Start here',
+        title: 'Track a train',
+        copy: 'Look up a train and see its predicted arrival, with the range the model puts around it.',
+    },
+    {
+        href: '#/passenger/history',
+        kicker: 'Earlier runs',
+        title: 'Prediction history',
+        copy: 'Every estimate the model has already made for a train. Past estimates, not recorded arrivals.',
+    },
+    {
+        href: '#/passenger/alerts',
+        kicker: 'Service news',
+        title: 'Alerts',
+        copy: 'Operational alerts. This backend generates none yet, and the page says so rather than showing an empty inbox.',
+    },
+];
+
+function navCard(item) {
+    return `<a class="train-card" href="${item.href}">
+        <p class="eyebrow">${escapeHtml(item.kicker)}</p>
+        <h4>${escapeHtml(item.title)}</h4>
+        <p>${escapeHtml(item.copy)}</p>
+    </a>`;
+}
+
+/** Time-of-day greeting, read in the display zone so it agrees with shown times. */
+function greeting() {
+    const hour = Number(formatClock(new Date()).slice(0, 2));
+    if (!Number.isFinite(hour)) return 'Welcome';
+    if (hour < 12) return 'Good morning';
+    return hour < 18 ? 'Good afternoon' : 'Good evening';
 }
 
 export async function renderPassengerTrain(content) {

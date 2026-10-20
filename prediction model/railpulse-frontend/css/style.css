@@ -1425,6 +1425,16 @@ td {
         flex-direction: column
     }
 
+    /* The welcome hero is a two-column row on wide screens. Below this width
+       the right-hand note collides with the lede, so stack them. Only
+       .welcome is narrowed here; .page-intro and .train-header keep the
+       shared rule above. */
+    .welcome {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: .8rem
+    }
+
     .lookup-form {
         min-width: 0
     }
