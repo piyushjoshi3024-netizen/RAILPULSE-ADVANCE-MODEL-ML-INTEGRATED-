@@ -1,7 +1,15 @@
-const API_URL = "http://localhost:5000/api/auth";
+const API_URL = "http://localhost:5000/api";
 
-export const registerStaff = async (data) => {
-    const response = await fetch(`${API_URL}/register-staff`, {
+/**
+ * POST a JSON body and return the parsed response.
+ *
+ * Express answers an unknown route with an HTML 404 page, so parsing the body
+ * as JSON unconditionally turned "that route does not exist" into a syntax
+ * error on the user's screen. The content type is checked first, and a
+ * non-JSON reply is reported as what it is.
+ */
+const postJson = async (path, data) => {
+    const response = await fetch(`${API_URL}${path}`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -9,47 +17,33 @@ export const registerStaff = async (data) => {
         body: JSON.stringify(data),
     });
 
+    const isJson = (response.headers.get("content-type") || "")
+        .includes("application/json");
+
+    if (!isJson) {
+        throw new Error(
+            `The server did not return a JSON response (HTTP ${response.status}) for ${path}.`
+        );
+    }
+
     const result = await response.json();
 
     if (!response.ok) {
-        throw new Error(result.message || "Staff registration failed");
+        throw new Error(result.message || `Request to ${path} failed`);
     }
 
     return result;
 };
 
+export const registerStaff = async (data) => {
+    return postJson("/auth/register-staff", data);
+};
+
+// The OTP endpoints are mounted on /api/staff-auth, not under /api/auth.
 export const sendStaffOTP = async (data) => {
-    const response = await fetch(`${API_URL}/staff/send-otp`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-    });
-
-    const result = await response.json();
-
-    if (!response.ok) {
-        throw new Error(result.message || "Failed to send OTP");
-    }
-
-    return result;
+    return postJson("/staff-auth/send-otp", data);
 };
 
 export const verifyStaffOTP = async (data) => {
-    const response = await fetch(`${API_URL}/staff/verify-otp`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-    });
-
-    const result = await response.json();
-
-    if (!response.ok) {
-        throw new Error(result.message || "OTP verification failed");
-    }
-
-    return result;
+    return postJson("/staff-auth/verify-otp", data);
 };
