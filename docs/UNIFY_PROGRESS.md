@@ -143,3 +143,53 @@ Branch: `feature/unified-auth-db` (created off `feature/ml-dashboards`).
   `renderDashboard`, which is **unreachable** for all three roles (see Session
   1, correction 3). Removing it means deleting dead code, which needs
   approval, and its STAFF/ADMIN branch is out of Phase 1 scope.
+
+---
+
+## Session 3 (2026-10-20): Phase 2 — audit and plan (read-only)
+
+Full report: `docs/AUDIT_PHASE2.md`. Screenshots and raw sweep data:
+`prediction model/railpulse-backend/reports/figures/audit/` (18 PNGs +
+`audit_pass.json`). No application code, config or data was changed.
+
+### Baseline, real results
+- `npm run build` (React) — passed, 2010 modules, 570 ms, one 580 kB chunk warning
+- `npm run lint` (React) — **13 problems (11 errors, 2 warnings), all pre-existing**
+- `npm test` (Node) — 14/14 passed
+- `pytest -q` (FastAPI, `.venv/bin/python`) — 149 passed, 3 deprecation warnings
+- `node --test tests/` (ML frontend) — 183/183 passed
+- `npm ci` and `pip install` were **not run**: installing needs approval and both
+  environments were already present and working.
+
+### New findings beyond Session 1
+- **A-20 (high):** `GET /api/alerts/:trainId` *writes*. It calls
+  `alertService.generateAlert`, which inserts an Alert and broadcasts over
+  Socket.IO. Unauthenticated.
+- **A-22 (high):** `Simulation.jsx` scenarios 2 and 3 post train ids that do not
+  exist. `railpulse_node.trains` has exactly one document, `6a9d5a64…` (12951).
+  Both scenarios always fail, silently.
+- **A-23 (medium):** `CommandCenter.jsx` pins risk/bottleneck/propagation/recovery
+  to that same hardcoded id in four separate effects.
+- **A-21 (medium):** `Alerts.jsx` hardcodes the same id and renders one alert; its
+  five-entry mock array is dead.
+- **A-24, A-25 (low):** dead service function `runPassengerSimulation`; 580 kB bundle.
+
+### Measured, not inferred
+- No-auth probes: `GET /api/trains` 200, `/api/train-events` 200, `/api/alerts` 200,
+  `/api/operations/network` 200, `/api/trains/:id/eta` **401**. FastAPI: `/trains`
+  and `/alerts` **401**, `/health/` 200.
+- `POST /api/auth/staff/send-otp` → **404 HTML**; `POST /api/staff-auth/send-otp` → **400**.
+- Playwright anonymous sweep at 360/768/1280: **zero console errors, zero page
+  errors, no horizontal scroll** on every page reached; anonymous redirects correct
+  in both apps.
+
+### Still blocked
+No usable credential for either app (random per-run passwords in the smoke scripts;
+one unreadable bcrypt hash in `railpulse_node`). The role sweep, the authenticated
+responsive check (A-09), keyboard tab-through of the signed-in shell, and the
+end-to-end prediction all remain **not run**.
+
+### Next
+Waiting on: G1 (target `railpulse`; copy-5-docs or start-fresh), G2, G3 (S1/S2/S3),
+G4, G5, G6, the approved audit IDs for Phase 3, and a credential or permission to
+create one test passenger.
