@@ -2,11 +2,7 @@ const jwt = require("jsonwebtoken");
 
 const authenticate = (req, res, next) => {
   try {
-    console.log("JWT SECRET EXISTS:", !!process.env.JWT_SECRET);
-
     const authHeader = req.headers.authorization;
-
-    console.log("AUTH HEADER:", authHeader ? "Received" : "Missing");
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({
@@ -21,8 +17,8 @@ const authenticate = (req, res, next) => {
       process.env.JWT_SECRET
     );
 
-    console.log("JWT VERIFIED:", decoded);
-
+    // The decoded payload is never logged: it carries the user id and role,
+    // and request logs are the easiest place to leak an identity.
     req.user = decoded;
 
     next();
