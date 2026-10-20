@@ -199,7 +199,50 @@ Anonymous sweep, Chromium, at 360 / 768 / 1280:
   tab-through of the authenticated shell, and the cross-app flow — is **not
   verified**. See "Blocked" below.
 
-### Blocked on you
+### Authenticated sweep (run after you approved one test passenger)
+
+A single throwaway account, `phase2_passenger` (PASSENGER, full name "Phase 2
+Audit"), was registered through `POST /api/v1/auth/register` — HTTP 201, users in
+`railpulse` went 18 → 19. Its password is not recorded in the repository. The
+sweep then signed in through the real login form at 1280, 768 and 360.
+
+| Page | 1280 | 768 | 360 | Console errors | Page errors |
+|---|---|---|---|---|---|
+| Dashboard (title "Welcome") | ok | ok | ok | 0 | 0 |
+| Track a train | ok | ok | ok | 0 | 0 |
+| Prediction history | ok | ok | ok | 0 | 0 |
+| Alerts | ok | ok | ok | 0 | 0 |
+
+"ok" = no horizontal scroll (`scrollWidth == clientWidth`). Screenshots:
+`auth-<page>-<width>.png`; raw data `auth_pass.json`.
+
+**End-to-end prediction, PASSENGER, train 12002 — works.** Typing the number into
+the lookup and submitting produced:
+
+- "Predicted arrival" panel with scheduled and predicted times
+- "Most likely somewhere between 06:01 IST and 06:26 IST — that is +1.4 min to
+  +26.4 min against the timetable" (the P10–P90 range)
+- "Chance of arriving more than 15 minutes late: 44% — about 44 in 100 journeys
+  that look like this one to the model"
+- the synthetic-data notice, and 2 rendered charts
+- The beats-baseline warning correctly did **not** appear: `/health/` reports
+  `beats_baseline: true` (test MAE 21.8 min vs baseline 24.7 min), so the sentence
+  is not supposed to show. It is wired to the real value, not hardcoded.
+
+**A-07 confirmed at runtime.** A PASSENGER opening `#/passenger/simulation` is
+served the staff page: `#simulation-form` is present, the "SIMULATION MODE" badge
+renders, and the topbar reads "Simulation lab". Screenshot
+`auth-simulation-leak-1280.png`.
+
+**Keyboard order in the signed-in shell is correct.** Ten tabs from the top:
+brand → Dashboard → Track train → Prediction history → Alerts → Sign out →
+then the page's own cards (train, history, alerts) → the primary "Track a train"
+button. No trap, no skipped landmark.
+
+### Still blocked on you
+
+#### Remaining gap
+
 
 No usable credential exists for either app:
 

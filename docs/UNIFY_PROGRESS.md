@@ -193,3 +193,27 @@ end-to-end prediction all remain **not run**.
 Waiting on: G1 (target `railpulse`; copy-5-docs or start-fresh), G2, G3 (S1/S2/S3),
 G4, G5, G6, the approved audit IDs for Phase 3, and a credential or permission to
 create one test passenger.
+
+### Phase 2 addendum — decisions received, authenticated sweep run
+
+Decisions: **credential** = create one test passenger (approved); **G1** = target
+`railpulse`, **start fresh** (leave `railpulse_node` untouched as the backup);
+**G3** = **S1** (staff seeded or admin-created, OTP pages hidden, code kept);
+**G4** = **URL fragment** handoff. Still open: G2, G5, G6, and the audit IDs.
+
+Created `phase2_passenger` (PASSENGER) via `POST /api/v1/auth/register` → 201;
+`railpulse.users` 18 → 19. Password kept out of the repo (session scratchpad only).
+
+Authenticated results (added to `docs/AUDIT_PHASE2.md`):
+- Dashboard / Track / History / Alerts at 1280, 768, 360: **no horizontal scroll,
+  0 console errors, 0 page errors** on all twelve combinations.
+- **End-to-end prediction works** for a PASSENGER on train 12002: P10–P90 range
+  (+1.4 to +26.4 min), 44% chance of >15 min late, synthetic notice, 2 charts.
+  The beats-baseline warning correctly stays hidden because `/health/` reports
+  `beats_baseline: true` (MAE 21.8 vs baseline 24.7).
+- **A-07 confirmed live**: `#/passenger/simulation` serves the staff simulation
+  form and the SIMULATION MODE badge to a PASSENGER.
+- Keyboard order in the signed-in shell is correct (brand → nav → sign out → page).
+
+Remaining verification gap: **A-09** (React fixed `w-64` sidebar at 360 px) still
+needs a *main-site* account, which the approval did not cover.
