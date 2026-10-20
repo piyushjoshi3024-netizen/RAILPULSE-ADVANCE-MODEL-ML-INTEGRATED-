@@ -20,6 +20,8 @@ const simulationRoutes = require("./routes/simulation.routes");
 
 const alertRoutes = require("./routes/alert.routes");
 
+const referenceRoutes = require("./routes/reference.routes");
+
 const staffAuthRoutes = require("./routes/staffAuth.routes");
 
 const app = express();
@@ -75,5 +77,9 @@ app.use("/api/simulation", simulationRoutes);
 // Alert Routes
 
 app.use("/api/alerts", alertRoutes);
+
+// Static reference geography (stations, corridors)
+
+app.use("/api", referenceRoutes);
 
 module.exports = app;

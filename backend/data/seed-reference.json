@@ -1,0 +1,50 @@
+{
+  "_comment": [
+    "Static reference geography. Not live data: a station does not move.",
+    "Provenance: the coordinates are the ones that were written into",
+    "frontend/frontend/src/pages/Dashboard.jsx and NetworkMap.jsx. That was the",
+    "only station geography in this repository, and the two copies disagreed",
+    "about Vadodara (NetworkMap only) and about trailing zeroes. This file is",
+    "the union, which is why it has 13 stations and not 12.",
+    "The corridors are NetworkMap's four named ones, rewritten as station codes",
+    "so the coordinates exist in exactly one place. Dashboard's three unnamed",
+    "polylines were variants of the same three routes and carried no id."
+  ],
+  "stations": [
+    { "code": "NDLS", "name": "New Delhi",      "lat": 28.6139, "lng": 77.2090, "zone": "NR" },
+    { "code": "GGN",  "name": "Gurugram",       "lat": 28.4595, "lng": 77.0266, "zone": "NR" },
+    { "code": "RE",   "name": "Rewari",         "lat": 28.1990, "lng": 76.6190, "zone": "NWR" },
+    { "code": "JP",   "name": "Jaipur",         "lat": 26.9124, "lng": 75.7873, "zone": "NWR" },
+    { "code": "AGC",  "name": "Agra",           "lat": 27.1767, "lng": 78.0081, "zone": "NCR" },
+    { "code": "KOTA", "name": "Kota",           "lat": 25.2138, "lng": 75.8648, "zone": "WCR" },
+    { "code": "BPL",  "name": "Bhopal",         "lat": 23.2599, "lng": 77.4126, "zone": "WCR" },
+    { "code": "BRC",  "name": "Vadodara",       "lat": 22.3072, "lng": 73.1812, "zone": "WR" },
+    { "code": "ST",   "name": "Surat",          "lat": 21.1702, "lng": 72.8311, "zone": "WR" },
+    { "code": "MMCT", "name": "Mumbai Central", "lat": 19.0760, "lng": 72.8777, "zone": "WR" },
+    { "code": "CNB",  "name": "Kanpur",         "lat": 26.4499, "lng": 80.3319, "zone": "NCR" },
+    { "code": "PRYJ", "name": "Prayagraj",      "lat": 25.4358, "lng": 81.8463, "zone": "NCR" },
+    { "code": "HWH",  "name": "Kolkata",        "lat": 22.5726, "lng": 88.3639, "zone": "ER" }
+  ],
+  "corridors": [
+    {
+      "corridorId": "delhi-mumbai",
+      "name": "Delhi-Mumbai Main Corridor",
+      "stations": ["NDLS", "AGC", "KOTA", "BPL", "BRC", "ST", "MMCT"]
+    },
+    {
+      "corridorId": "delhi-jaipur",
+      "name": "Delhi-Jaipur Corridor",
+      "stations": ["NDLS", "GGN", "RE", "JP"]
+    },
+    {
+      "corridorId": "delhi-kolkata",
+      "name": "Delhi-Kolkata East Corridor",
+      "stations": ["NDLS", "AGC", "CNB", "PRYJ", "HWH"]
+    },
+    {
+      "corridorId": "jaipur-mumbai",
+      "name": "Jaipur-Mumbai Corridor",
+      "stations": ["JP", "KOTA", "BPL", "BRC", "ST", "MMCT"]
+    }
+  ]
+}

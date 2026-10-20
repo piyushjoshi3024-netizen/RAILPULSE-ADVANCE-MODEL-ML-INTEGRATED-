@@ -837,3 +837,148 @@ Behaviour:
 
 - **Done:** Phase A survey. No code changed; this document is the only edit.
 - **Next:** Phase B (data layer) once A4 is answered. Stopping here as instructed.
+
+---
+
+## Phase B — Data layer (branch `feature/dynamic-site`)
+
+Gates answered: A2 and A3 approved; **D-A1** scenarios stay a source constant in
+`src/config/scenarios.js`, no endpoint; **D-A2** poll every 15 s, paused while
+the tab is hidden, `socket.io-client` **not** installed; station coordinates
+taken from the page source and labelled static reference data; the two dead
+arrays left in place for Phase G.
+
+**No page was changed.** `git diff --stat` touches no file under `src/pages/`.
+
+### What was built
+
+**Shared state components** — `src/components/state/`: `Loading.jsx`,
+`EmptyState.jsx`, `ErrorState.jsx`. The markup is lifted from the inline
+version already in Alerts.jsx so wiring a page changes no pixels. `ErrorState`
+adds a **Try again** button bound to a hook's `refetch`, so one failed request
+costs one request to recover from instead of a full page reload.
+
+**`src/hooks/useResource.js`** — the one load-state implementation:
+- `loading` is true for the **first** load only, so a poll never blanks a
+  screen that is already showing good data;
+- a failure keeps the previous `data` rather than emptying it;
+- an in-flight request is aborted by the next refetch, so a slow answer cannot
+  arrive last and overwrite a newer one;
+- it ignores 401, which the axios interceptor already handles by ending the
+  session — reporting it twice flashed an error on a page about to be replaced;
+- nothing is set after unmount;
+- `refetch` is stable, safe in a dependency array or on a button.
+
+**Polling** — `src/config/polling.js`: `LIVE_POLL_MS`/`ALERTS_POLL_MS` = 15000,
+`STATIC_POLL_MS` = 0. The timer stops on `visibilitychange` when the tab hides
+and **refetches immediately** on return rather than waiting out the interval, so
+a returning user never reads a stale number and a background tab costs nothing.
+
+**Resource hooks** — one per resource, each returning
+`{ data, loading, error, updatedAt, refetch }` plus a named, always-defined
+field: `useTrains` (`trains`), `useTrainEvents` (`events` + `latestByTrain`, the
+reduction three places wrote by hand), `useAlerts` (`alerts`),
+`useNetworkSummary` (`summary`, `networkStatus`, `affectedStations`),
+`useStations` (`stations`, `byCode`, `byName`, `positionOf`), `useCorridors`
+(`corridors` with resolved `positions` and a `missing` list), `useTrainEta`
+(disabled until a train id exists). Barrel at `src/hooks/index.js`.
+
+**Services** — new `referenceService.js` and `networkService.js`; `trainService`,
+`trainEventService`, `etaService` and `alertService` now accept an `AbortSignal`
+(old call sites unaffected — it is a trailing argument). `alertService` gained
+`getAlerts()` for `GET /api/alerts`; the pre-existing `getAlert(trainId)` is
+left untouched but is **not used by any hook**, because that route *creates* an
+alert rather than reading one.
+
+### Backend: the A2 endpoints, read-only
+
+| Added | Purpose |
+|---|---|
+| `src/models/Station.js` → `main_stations` | `{code, name, lat, lng, zone, dataSource}` |
+| `src/models/Corridor.js` → `main_corridors` | `{corridorId, name, stations[], dataSource}` — codes only, no geometry |
+| `src/services/reference.service.js`, `src/controllers/reference.controller.js`, `src/routes/reference.routes.js` | `GET /api/stations`, `GET /api/corridors` |
+| `src/app.js` | mounts them at `/api` |
+
+Both are GET-only and left open like the other data routes, so this adds **no**
+new auth decision — route protection is still the unapproved D4 checkpoint.
+`dataSource` was added to `Train` and `Alert` as well: mongoose drops unknown
+fields in strict mode, so without it the seed's `--reset` would have matched
+nothing and silently failed to clean up after itself.
+
+### Seed script (written, **not run**)
+
+`backend/scripts/seed-demo.js`, plus `npm run seed`. Data in
+`backend/data/seed-reference.json` and `seed-demo-trains.json`.
+
+    node scripts/seed-demo.js                  # dry run, writes nothing
+    node scripts/seed-demo.js --apply          # writes
+    node scripts/seed-demo.js --apply --reset  # deletes dataSource:"SEED" rows first
+
+- Validates the seed files **against each other before connecting**: a corridor
+  naming an unknown station, or an alert naming an unknown train, aborts with a
+  message instead of writing a row that renders blank.
+- Prints the database name, the five collections it may write
+  (`main_stations`, `main_corridors`, `trains`, `trainevents`, `main_alerts`)
+  and the six it never opens (`users`, `main_users`, `live_train_state`,
+  `reference_trains`, `predictions`, FastAPI's `alerts`), then a per-collection
+  table: existing → insert → update → final.
+- Upserts on a natural key, so a second run changes nothing. Creates no accounts.
+
+**Provenance.** 13 stations and 4 corridors: the union of the two page copies,
+which disagreed — NetworkMap had Vadodara and named its corridors, Dashboard did
+not. The 12 trains are the **real** trains in the ML service's own
+`journeys_clean.parquet` (read 2026-10-20), with their real names, routes and
+observed delays, so both applications name the same trains. Values were mapped
+onto the existing model enums (`Train.trainType` has no Rajdhani or Shatabdi
+member; `Alert.alertType` has no CONGESTION).
+
+**Honest gap:** only **5 of 12** demo trains sit at a station this repository
+has a coordinate for. The other seven run between stations (Chennai, Lucknow,
+Varanasi, Dibrugarh, Gorakhpur…) that no file here has a point for. They are
+seeded with their real station *names* and will appear in every list but **not
+on the map**. No coordinate was guessed to hide that. The script prints this
+coverage line on every run.
+
+### Verification
+
+| Check | Result |
+|---|---|
+| React `vite build` | **passed** |
+| React `eslint src` | **11 problems (9 errors, 2 warnings)** — identical to the pre-existing baseline; the new files are clean |
+| `eslint src/hooks src/components/state src/config` | **0 problems** |
+| Node `npm test` | **27 passed, 0 failed** |
+| `node --check scripts/seed-demo.js` | passed |
+| `GET /api/stations`, `/api/corridors` registered | confirmed by walking the router stack |
+| Seed cross-validation (unknown codes / orphan alerts) | **none** |
+| Pages changed | **none** |
+
+### Decisions and one caveat
+
+- **D-B1:** the hooks return both the raw `data` and a named always-defined
+  field (`trains`, `alerts`…). Pages can be wired one at a time without a
+  `|| []` at every call site.
+- **D-B2:** corridors are resolved to coordinates inside `useCorridors`, not on
+  the server. The coordinates then exist in exactly one collection.
+- **D-B3:** a station code with no coordinate is **dropped** from a polyline
+  and reported in `missing`, rather than breaking the line or inventing a point.
+- **Caveat C-B1:** `src/config.js` (the file) and `src/config/` (the new
+  directory) now both exist. The build resolves `../config` to `config.js` —
+  verified, the API base is in the bundle — but it is a trap. Worth folding
+  `config.js` into `config/index.js` later; it touches ~8 import sites, so it is
+  not being done inside Phase B.
+
+### Commands
+
+    cd frontend/frontend && npx vite build && npx eslint src
+    cd backend && npm test
+    cd backend && node --check scripts/seed-demo.js
+
+### Status
+
+- **Done:** Phase B. 14 files added, 7 modified, **0 pages touched**.
+- **Not done, needs your yes:** running even the **dry run** of the seed — it
+  opens a database connection, which is on the ask-first list. It writes
+  nothing without `--apply`.
+- **Next:** Phase C, one page at a time, when you name the page. Dashboard is
+  the natural first: it already fetches four of its five resources, so wiring it
+  is mostly deleting its own `useEffect`.

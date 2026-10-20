@@ -1,9 +1,9 @@
 import api from "./api";
 
-export const getTrainEvents = () => {
-    return api.get("/train-events");
+export const getTrainEvents = (signal) => {
+    return api.get("/train-events", { signal });
 };
 
-export const getTrainEventById = (id) => {
-    return api.get(`/train-events/${id}`);
+export const getTrainEventById = (id, signal) => {
+    return api.get(`/train-events/${id}`, { signal });
 };
