@@ -1,23 +1,22 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { runStaffSimulation } from "../services/simulationService";
+import { getTrains } from "../services/trainService";
+
 const scenarios = [
   {
     id: 1,
     name: "Train Delay",
     description: "Simulate the effect of a delayed train on the network.",
-    train: "12951 - Mumbai Rajdhani",
   },
   {
     id: 2,
     name: "Platform Congestion",
     description: "Simulate platform availability constraints.",
-    train: "12952 - Delhi Rajdhani",
   },
   {
     id: 3,
     name: "High Traffic",
     description: "Simulate increased traffic on a railway corridor.",
-    train: "12002 - Bhopal Shatabdi",
   },
 ];
 
@@ -29,30 +28,73 @@ function Simulation() {
   const [simulated, setSimulated] = useState(false);
   const [simulationResult, setSimulationResult] = useState(null);
 
+  // Each scenario used to carry a train id written into the source. Two of the
+  // three did not exist in the database, so those scenarios always failed and
+  // said nothing about it. The trains come from the API now, and the operator
+  // chooses one.
+  const [trains, setTrains] = useState([]);
+  const [trainId, setTrainId] = useState("");
+  const [error, setError] = useState("");
+  const [running, setRunning] = useState(false);
+
+  useEffect(() => {
+    const loadTrains = async () => {
+      try {
+        const response = await getTrains();
+        const available = response.data || [];
+
+        setTrains(available);
+
+        if (available.length > 0) {
+          setTrainId(String(available[0]._id));
+        } else {
+          setError("No trains are available to simulate.");
+        }
+      } catch (loadError) {
+        console.error("Failed to load trains:", loadError);
+        setError("The list of trains could not be loaded.");
+      }
+    };
+
+    loadTrains();
+  }, []);
+
   const selectedScenario = scenarios.find(
     (item) => item.name === scenario
   );
 
-  const runSimulation = async () => {
-    try {
-      const selectedTrainId =
-        selectedScenario.id === 1
-          ? "6a9d5a64a663314c1afeaa69"
-          : selectedScenario.id === 2
-            ? "6a9d5aa7a663314c1afeaa71"
-            : "6aa059ac1366fcd8e7e46558";
+  const selectedTrain = trains.find(
+    (item) => String(item._id) === trainId
+  );
 
+  const runSimulation = async () => {
+    if (!trainId) {
+      setError("Choose a train before running the simulation.");
+      setSimulated(false);
+      return;
+    }
+
+    setRunning(true);
+    setError("");
+
+    try {
       const response = await runStaffSimulation({
-        trainId: selectedTrainId,
+        trainId,
         additionalDelayMinutes: Number(delay || 0),
       });
 
       setSimulationResult(response.data);
       setSimulated(true);
-    } catch (error) {
-      console.error("Failed to run simulation:", error);
+    } catch (runError) {
+      console.error("Failed to run simulation:", runError);
+      setError(
+        runError.response?.data?.message ||
+        "The simulation could not be run. Check that the API is reachable."
+      );
       setSimulationResult(null);
       setSimulated(false);
+    } finally {
+      setRunning(false);
     }
   };
 
@@ -112,6 +154,39 @@ function Simulation() {
         </div>
 
 
+        <div className="mt-6">
+
+          <label
+            htmlFor="simulation-train"
+            className="mb-2 block text-sm font-medium text-slate-600"
+          >
+            Train
+          </label>
+
+          <select
+            id="simulation-train"
+            value={trainId}
+            onChange={(e) => {
+              setTrainId(e.target.value);
+              setSimulated(false);
+            }}
+            disabled={trains.length === 0}
+            className="w-full max-w-md rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 disabled:bg-slate-50 disabled:text-slate-400"
+          >
+            {trains.length === 0 ? (
+              <option value="">No trains available</option>
+            ) : (
+              trains.map((train) => (
+                <option key={train._id} value={String(train._id)}>
+                  {train.trainNumber} - {train.trainName}
+                </option>
+              ))
+            )}
+          </select>
+
+        </div>
+
+
         {/* SCENARIO DESCRIPTION */}
 
         <div className="mt-5 rounded-xl bg-orange-50 p-4">
@@ -125,7 +200,10 @@ function Simulation() {
           </p>
 
           <p className="mt-2 text-xs text-slate-500">
-            Selected train: {selectedScenario.train}
+            Selected train:{" "}
+            {selectedTrain
+              ? `${selectedTrain.trainNumber} - ${selectedTrain.trainName}`
+              : "none selected"}
           </p>
 
         </div>
@@ -231,13 +309,21 @@ function Simulation() {
 
         {/* RUN BUTTON */}
 
+        {error && (
+          <div className="mt-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+            {error}
+          </div>
+        )}
+
         <div className="mt-6 flex justify-end">
 
           <button
+            type="button"
             onClick={runSimulation}
-            className="rounded-lg bg-orange-500 px-6 py-3 text-sm font-semibold text-white transition hover:bg-orange-600"
+            disabled={running || !trainId}
+            className="rounded-lg bg-orange-500 px-6 py-3 text-sm font-semibold text-white transition hover:bg-orange-600 disabled:bg-orange-300"
           >
-            Run Simulation
+            {running ? "Running..." : "Run Simulation"}
           </button>
 
         </div>
