@@ -7,6 +7,11 @@ import {
     sendStaffOTP,
 } from "../services/authService";
 
+// Staff accounts are created by an administrator, and the Express endpoints
+// behind this form answer 410 Gone. The flow is kept behind this flag rather
+// than deleted, so it can be revived if the policy changes.
+const STAFF_SELF_REGISTRATION_OPEN = false;
+
 const StaffRegister = () => {
     const navigate = useNavigate();
 
@@ -29,6 +34,11 @@ const StaffRegister = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        if (!STAFF_SELF_REGISTRATION_OPEN) {
+            setError("Staff self-registration is closed. Ask an administrator to create the account.");
+            return;
+        }
 
         try {
             setLoading(true);
@@ -175,7 +185,17 @@ const StaffRegister = () => {
                             )}
 
 
-                            <form
+                                                {/* The Express staff endpoints answer 410 Gone: staff accounts
+                        are created by an administrator in the prediction
+                        service. The form is kept, and disabled, rather than
+                        posting into an endpoint that cannot answer. */}
+                    <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                        Staff self-registration is closed. Railway staff accounts
+                        are created by an administrator, and this form no longer
+                        submits.
+                    </div>
+
+                    <form
                                 onSubmit={handleSubmit}
                                 className="space-y-5"
                             >

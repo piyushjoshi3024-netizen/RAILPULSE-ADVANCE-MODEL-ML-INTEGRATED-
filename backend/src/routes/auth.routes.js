@@ -9,14 +9,20 @@ const {
 
 const authenticate = require("../../middleware/auth");
 const authorize = require("../../middleware/rbac");
+const gone = require("../../middleware/gone");
+
+// Retired: FastAPI registers users and issues tokens for both applications.
+// The controllers above are still imported so the implementation stays
+// readable and revivable, but nothing routes to them any more.
+const RETIRED = "This endpoint has been retired. RailPulse accounts are created and signed in through the prediction service at /api/v1/auth.";
 
 const router = express.Router();
 
-router.post("/register", register);
+router.post("/register", gone(RETIRED));
 
-router.post("/register-staff", registerStaff);
+router.post("/register-staff", gone("This endpoint has been retired. Railway staff accounts are created by an administrator."));
 
-router.post("/login", login);
+router.post("/login", gone(RETIRED));
 
 router.get("/me", authenticate, getMe);
 

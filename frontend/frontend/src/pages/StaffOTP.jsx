@@ -2,6 +2,9 @@ import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { verifyStaffOTP } from "../services/authService";
 
+// Closed with the rest of the Express identity surface; see StaffRegister.
+const STAFF_VERIFICATION_OPEN = false;
+
 const StaffOTP = () => {
     const location = useLocation();
     const navigate = useNavigate();
@@ -17,6 +20,11 @@ const StaffOTP = () => {
 
     const handleVerify = async (e) => {
         e.preventDefault();
+
+        if (!STAFF_VERIFICATION_OPEN) {
+            setError("Staff verification is closed. Ask an administrator to create the account.");
+            return;
+        }
 
         try {
             setLoading(true);
@@ -69,9 +77,15 @@ const StaffOTP = () => {
                     Verify Staff Account
                 </h1>
 
-                <p className="text-gray-500 text-center mb-8">
+                <p className="text-gray-500 text-center mb-4">
                     Enter the OTP sent to {email}
                 </p>
+
+                <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                    Staff verification is closed. Railway staff accounts are
+                    created by an administrator, so this code can no longer be
+                    checked.
+                </div>
 
                 {error && (
                     <div className="bg-red-100 text-red-600 p-3 rounded-lg mb-4">
