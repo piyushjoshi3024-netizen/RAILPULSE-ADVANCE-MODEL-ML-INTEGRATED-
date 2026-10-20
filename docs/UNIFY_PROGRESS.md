@@ -554,3 +554,70 @@ taken first:
   stub cannot supply honestly.
 - `scenario-chart` remains verified by reading only, because exercising it posts
   predictions.
+
+---
+
+## Session 8 (2026-10-20): Phase 5 — one database
+
+Executed with explicit approval: **D1** (Node startup may create its collections),
+**D2 option (c)** (seed one train with the id the surviving Redis key points at),
+**D3** (verify with reads only). Redis untouched, `railpulse_node` untouched,
+no Docker or volume change, nothing installed.
+
+### Backup taken first, and verified
+`backups/20261020T213105/` (gitignored): `railpulse.archive.gz`, `railpulse_node.archive.gz`,
+`backend.env`, `before-state.txt`, `after-state.txt`, and the two dump logs.
+`mongodump` is absent from the host but present in the container, so both dumps
+were streamed to stdout — nothing was written inside the container.
+The logs confirm coverage: railpulse users 23, predictions 150, live_train_state 16,
+reference_trains 12, simulation_states 6, alerts 0; railpulse_node all 11
+collections including trains 1, trainevents 1, journeys 1, etapredictions 3.
+
+### Files changed
+| File | Change |
+|---|---|
+| `backend/.env` | `MONGO_URI` database `railpulse_node` → `railpulse` (one line) |
+| `backend/src/models/User.js` | `mongoose.model("User", userSchema, "main_users")` |
+| `backend/src/models/Alert.js` | `mongoose.model("Alert", alertSchema, "main_alerts")` |
+| `Readme.md` | the database paragraph, which named two databases that never existed under those names |
+
+### What the database did
+Purely additive. Eleven new, empty collections appeared in `railpulse`:
+`main_users`, `main_alerts`, `trains`, `trainevents`, `etapredictions`,
+`journeys`, `simulations`, `bottlenecks`, `propagations`, `recoveries`,
+`riskassessments`.
+
+`diff before-state.txt after-state.txt` shows **only those eleven additions**.
+All 17 pre-existing collections are identical in document count and index set,
+including the one that mattered:
+
+    railpulse.users docs=23 idx=[_id_,username_1]      before and after
+
+No `email_1` index was created there. The unique email and employeeId indexes
+went to `main_users`, where they belong and where there is nothing to collide with.
+
+### Verified with reads only
+- Node `/api/health` 200; FastAPI `/api/v1/health/` reports `mongodb: ok`, `model: ok`
+- FastAPI on the shared database: login as the existing test passenger still works,
+  `/trains` 200, `/alerts` 200, `/reference/trains` 200,
+  `/trains/12002/predictions` 200 — identity and history intact
+- Node reads its new, empty collections: `/api/trains` `[]`, `/api/train-events` `[]`,
+  `/api/alerts` `[]`, `/api/operations/network` `totalTrains: 0`
+- Suites, none of which bind Mongo: Node **27 passed**, ML frontend **202 passed**,
+  pytest **150 passed**, React build passed
+
+### Not done: the D2(c) seed
+The single approved insert was **refused by the sandbox**, not by the application:
+
+    POST /api/trains  ->  denied: "Modify Shared Resources"
+
+I did not route around it. The main site therefore starts empty, and the Node ETA
+route stays unavailable because its Redis key has no matching train. The exact
+request is in the report for the user to run or to permit.
+
+### State after this phase
+- `railpulse_node`: untouched, still holds all 7 documents, read by nothing
+- Redis: untouched, 5 keys, same configuration
+- Rollback: `git checkout -- backend/.env backend/src/models/User.js backend/src/models/Alert.js Readme.md`,
+  then let nodemon reload. The eleven new collections stay behind as empty
+  leftovers and need separate approval to drop.

@@ -43,4 +43,8 @@ const alertSchema = new mongoose.Schema(
     }
 );
 
-module.exports = mongoose.model("Alert", alertSchema);
+// Explicit collection name. The default "alerts" belongs to FastAPI, which
+// reads alert_type / severity / message / created_at; this schema writes
+// alertType and a trainId ObjectId, and a document of this shape in that
+// collection makes the FastAPI /alerts endpoint raise a KeyError.
+module.exports = mongoose.model("Alert", alertSchema, "main_alerts");

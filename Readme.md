@@ -31,6 +31,6 @@ The main website's **ETA prediction using ML model** sidebar item opens the sepa
 
 ## Data and Security
 
-Both applications use the MongoDB container but separate databases: `railpulse` for the main app and `railpulse_eta_ml` for the ML app. Redis is used by the main backend for live train state. Demo trains are synthetic and are not real-time railway data.
+Both applications share one MongoDB database, `railpulse`, on the `railpulse-mongo` container. FastAPI owns `users`, `alerts`, `predictions`, `reference_trains`, `live_train_state` and `simulation_states`. The Express API writes its own collections alongside them, and the two whose default names would have collided are given explicit ones: `main_users` and `main_alerts`. `railpulse_node`, the database the Express API used before, is kept untouched as a backup and is no longer read or written by anything. Redis is still used by the main backend for live train state. Demo trains are synthetic and are not real-time railway data.
 
 Create local `.env` files from the instructions in the detailed guide. Never include `.env` files, credentials, virtual environments, `node_modules`, generated model binaries, or build output in a ZIP shared with others. The ML model artifact is generated locally from the included CSV during setup.
