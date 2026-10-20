@@ -220,9 +220,10 @@ describe('staleBanner', () => {
     });
 
     it('states the age and the timestamp for stale data', () => {
+        // updated_at is an INSTANT: 15:53 UTC renders as 21:23 IST.
         const html = staleBanner('2026-09-28T15:53:46.587000', { now, what: 'This train state' });
         assert.match(html, /21 days ago/);
-        assert.match(html, /28 Sep 2026, 15:53 UTC/);
+        assert.match(html, /28 Sep 2026, 21:23 IST/);
         assert.match(html, /Everything derived from it is that old too/);
     });
 
@@ -287,7 +288,11 @@ describe('panel and tiles', () => {
 describe('timeNotice', () => {
     it('puts the timezone caveat on screen, not just in a code comment', () => {
         const html = timeNotice();
-        assert.match(html, /UTC/);
-        assert.match(html, /not timetable-accurate/);
+        assert.match(html, /India Standard Time/);
+        assert.match(html, /UTC\+5:30/);
+        // The dataset records no zone; reading it as Indian local is an
+        // assumption, and the page has to say so.
+        assert.match(html, /records no timezone/);
+        assert.match(html, /is an assumption/);
     });
 });

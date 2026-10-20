@@ -1,22 +1,48 @@
 /**
  * Formatting, time and motion helpers shared by every RailPulse surface.
  *
- * Timezone policy (deliberate, documented, single point of change)
- * ----------------------------------------------------------------
- * The FastAPI backend treats every datetime as UTC: app/ml/predictor.py attaches
- * UTC to naive values and demo state is built from datetime.now(timezone.utc).
- * Aware fields (predicted_eta, eta_lower, eta_upper) come back with a "Z";
- * naive fields (scheduled_arrival, current_timestamp, prediction history
- * timestamps) come back with no offset at all.
+ * Timezone policy
+ * ---------------
+ * Display zone is Asia/Kolkata ("IST"), because this is Indian railway data.
  *
- * We therefore read naive values AS UTC -- exactly as the backend does -- and
- * label every rendered time with its zone. Shifting them to IST would move
- * every displayed time 5h30m away from what the API actually means.
+ * Getting there is not uniform, because the backend's datetimes do not all mean
+ * the same thing. Two kinds exist and they must be read differently:
  *
- * The underlying synthetic CSV holds bare wall-clock times that were authored as
- * Indian local time and are never converted by the cleaning code, so these
- * instants are not timetable-accurate. That caveat belongs on screen next to the
- * provenance, not hidden in a formatter. See TIME_NOTICE.
+ *   WALL_CLOCK  The digits are an Indian local wall-clock reading. They are
+ *               rendered as IST unchanged. `scheduled_arrival` is the CSV's
+ *               Sc_arr__time (for example 06:00:00) carried straight through.
+ *
+ *   INSTANT     A genuine point in time. Converted to IST for display. The
+ *               backend writes these with datetime.now(timezone.utc) and Mongo
+ *               hands them back naive, so a naive INSTANT is read as UTC.
+ *
+ * `predicted_eta`, `eta_lower` and `eta_upper` arrive with a "Z" but are
+ * WALL_CLOCK, not INSTANT. The Z is synthetic: app/ml/predictor.py:141 anchors
+ * on `scheduled_arrival or current_timestamp` and line 147 stamps UTC onto a
+ * naive value with `replace(tzinfo=utc)`, so the ETA inherits the anchor's
+ * wall-clock digits and a timezone it never had. Measured against this repo's
+ * running backend:
+ *
+ *     scheduled_arrival        2026-10-21T06:00:00          (naive)
+ *     predicted_eta            2026-10-21T06:06:55.306953Z  (Z is synthetic)
+ *     difference               6.921782550 min
+ *     predicted_delay_minutes  6.921782546 min  -> the same number
+ *
+ * Converting that Z as if it were a real offset would print an arrival 5h30m
+ * later than its own schedule: 06:00 IST scheduled against 11:36 IST predicted,
+ * a 337-minute delay the model never produced. So the ETA family is read as
+ * wall-clock, which keeps it consistent with the schedule it was derived from.
+ *
+ * Conversely, treating a naive INSTANT as Indian local would push a
+ * just-written `current_timestamp` 5h30m into the future and invert the
+ * staleness logic, so those are read as UTC and then converted.
+ *
+ * Durations -- predicted_delay_minutes, the p10/p50/p90 quantiles,
+ * predicted_remaining_minutes -- carry no zone and are unaffected by any of this.
+ *
+ * The underlying synthetic CSV holds bare wall-clock times with no zone recorded;
+ * reading them as Indian local is an assumption about the data's origin, not a
+ * fact the file states. See TIME_NOTICE, which puts that on screen.
  */
 
 /**
@@ -43,37 +69,100 @@ const MONTHS = Object.freeze(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', '
 
 /** Zone used for display. Change here only; nothing else hardcodes a zone. */
 export const DISPLAY_ZONE = Object.freeze({
-    timeZone: 'UTC',
-    label: 'UTC',
+    timeZone: 'Asia/Kolkata',
+    label: 'IST',
 });
 
+/**
+ * India has observed UTC+05:30 with no daylight saving since 1945, so a fixed
+ * offset is safe for turning wall-clock digits into an instant. Rendering still
+ * goes through Intl with the real zone id, so a future rule change would be
+ * picked up for display even if this constant stayed put.
+ */
+export const IST_OFFSET_MINUTES = 330;
+
+/** How a backend datetime field should be read. See the policy note above. */
+export const WALL_CLOCK = 'wall_clock';
+export const INSTANT = 'instant';
+
+/**
+ * Per-field reading, keyed by the name the API uses. Both the FastAPI snake_case
+ * names and the Node camelCase mirrors are listed, because both reach the UI.
+ *
+ * Anything absent defaults to INSTANT, which is the safe choice: a true instant
+ * rendered in IST is correct, whereas wrongly treating an instant as wall-clock
+ * silently shifts it by 5h30m.
+ */
+export const FIELD_TIME_KIND = Object.freeze({
+    // Indian wall-clock, straight from the dataset's Sc_arr__time.
+    scheduled_arrival: WALL_CLOCK,
+    scheduledEta: WALL_CLOCK,
+    // Derived from the anchor above, so the same frame despite the "Z".
+    predicted_eta: WALL_CLOCK,
+    predictedEta: WALL_CLOCK,
+    eta_lower: WALL_CLOCK,
+    eta_upper: WALL_CLOCK,
+    // Genuine instants written with datetime.now(timezone.utc).
+    current_timestamp: INSTANT,
+    updated_at: INSTANT,
+    timestamp: INSTANT,
+    trained_at: INSTANT,
+    predictionTimestamp: INSTANT,
+    retrieved_at: INSTANT,
+});
+
+/** The reading for a field name, defaulting to INSTANT. */
+export function timeKindFor(fieldName) {
+    return FIELD_TIME_KIND[fieldName] || INSTANT;
+}
+
 export const TIME_NOTICE =
-    'Times are shown in UTC, which is how the backend stores and returns them. '
-    + 'The synthetic source data was authored as Indian wall-clock time and is served '
-    + 'without conversion, so these instants are not timetable-accurate.';
+    'Times are shown in India Standard Time (IST, UTC+5:30). Scheduled and predicted '
+    + 'arrival times are wall-clock readings carried through from the synthetic dataset, '
+    + 'which records no timezone; reading them as Indian local time is an assumption about '
+    + 'their origin. Timestamps the backend generated are true UTC instants and are converted.';
 
 /** Anything older than this is presented as stale, with the age stated. */
 export const STALE_AFTER_MS = 10 * 60 * 1000;
 
 const ISO_WITH_ZONE = /(?:Z|[+-]\d{2}:?\d{2})$/i;
+const ISO_PARTS = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?(?:\.(\d{1,6}))?/;
 
 /**
- * Parse an API datetime, recording whether the backend sent a zone at all.
+ * Parse an API datetime according to how that field should be read.
  *
- * A naive string is interpreted as UTC to match app/ml/predictor.py. Returning
- * `naive` lets a caller disclose that the zone was assumed rather than stated.
- *
- * @returns {{date: Date|null, naive: boolean}}
+ * @param {string|Date} value
+ * @param {string} [kind] WALL_CLOCK or INSTANT (default)
+ * @returns {{date: Date|null, naive: boolean, kind: string}}
+ *   `naive` reports whether the backend stated a zone at all, so a caller can
+ *   disclose that the zone was assumed rather than given.
  */
-export function parseInstant(value) {
+export function parseInstant(value, kind = INSTANT) {
     if (value instanceof Date) {
-        return { date: Number.isNaN(value.getTime()) ? null : value, naive: false };
+        const ok = !Number.isNaN(value.getTime());
+        return { date: ok ? value : null, naive: false, kind };
     }
-    if (typeof value !== 'string' || !value.trim()) return { date: null, naive: false };
+    if (typeof value !== 'string' || !value.trim()) return { date: null, naive: false, kind };
     const raw = value.trim();
     const naive = !ISO_WITH_ZONE.test(raw);
+
+    if (kind === WALL_CLOCK) {
+        // Read the digits only; any offset present is discarded on purpose,
+        // because for these fields it is a label the backend invented.
+        const matched = ISO_PARTS.exec(raw);
+        if (!matched) return { date: null, naive, kind };
+        const [, y, mo, d, h, mi, sec, frac] = matched;
+        const ms = Date.UTC(
+            Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi),
+            Number(sec || 0), Number((frac || '0').padEnd(3, '0').slice(0, 3)),
+        ) - IST_OFFSET_MINUTES * 60 * 1000;
+        const date = new Date(ms);
+        return { date: Number.isNaN(date.getTime()) ? null : date, naive, kind };
+    }
+
+    // INSTANT: a naive value is UTC, because that is what the backend wrote.
     const date = new Date(naive ? `${raw}Z` : raw);
-    return { date: Number.isNaN(date.getTime()) ? null : date, naive };
+    return { date: Number.isNaN(date.getTime()) ? null : date, naive, kind };
 }
 
 function parts(date) {
@@ -88,25 +177,25 @@ function parts(date) {
     return { ...numeric, month: MONTHS[Number(numeric.month) - 1] || numeric.month };
 }
 
-/** "28 Sep 2026, 15:53 UTC", or the placeholder when there is no value. */
-export function formatInstant(value, { placeholder = 'Not available' } = {}) {
-    const { date } = parseInstant(value);
+/** "21 Oct 2026, 06:00 IST", or the placeholder when there is no value. */
+export function formatInstant(value, { placeholder = 'Not available', kind = INSTANT } = {}) {
+    const { date } = parseInstant(value, kind);
     if (!date) return placeholder;
     const p = parts(date);
     return `${p.day} ${p.month} ${p.year}, ${p.hour}:${p.minute} ${DISPLAY_ZONE.label}`;
 }
 
-/** "15:53 UTC" -- for dense surfaces where the date is already established. */
-export function formatClock(value, { placeholder = '--:--' } = {}) {
-    const { date } = parseInstant(value);
+/** "06:00 IST" -- for dense surfaces where the date is already established. */
+export function formatClock(value, { placeholder = '--:--', kind = INSTANT } = {}) {
+    const { date } = parseInstant(value, kind);
     if (!date) return placeholder;
     const p = parts(date);
     return `${p.hour}:${p.minute} ${DISPLAY_ZONE.label}`;
 }
 
-/** "28 Sep 2026" */
-export function formatDay(value, { placeholder = 'Not available' } = {}) {
-    const { date } = parseInstant(value);
+/** "21 Oct 2026" */
+export function formatDay(value, { placeholder = 'Not available', kind = INSTANT } = {}) {
+    const { date } = parseInstant(value, kind);
     if (!date) return placeholder;
     const p = parts(date);
     return `${p.day} ${p.month} ${p.year}`;
@@ -121,7 +210,8 @@ export function formatDay(value, { placeholder = 'Not available' } = {}) {
  * @returns {{ms: number|null, text: string, stale: boolean}}
  */
 export function age(value, now = Date.now(), staleAfterMs = STALE_AFTER_MS) {
-    const { date } = parseInstant(value);
+    // Always INSTANT: an age is only meaningful against a real point in time.
+    const { date } = parseInstant(value, INSTANT);
     if (!date) return { ms: null, text: 'unknown age', stale: true };
     const ms = now - date.getTime();
     if (ms < 0) return { ms, text: 'dated in the future', stale: true };

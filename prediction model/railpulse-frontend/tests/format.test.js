@@ -1,23 +1,34 @@
 /**
  * Unit tests for the formatting, time and motion helpers.
  *
- * The timezone tests are the important ones: they pin the documented decision
- * that a naive backend datetime is read as UTC, matching app/ml/predictor.py,
- * so a later change cannot silently shift every displayed time by 5h30m.
+ * The timezone tests are the important ones. They pin a policy that is not
+ * uniform across the API, and a regression here moves every arrival time on
+ * screen by 5h30m without anything crashing.
  */
 
 import assert from 'node:assert/strict';
 import { afterEach, describe, it } from 'node:test';
 
 import {
-    DISPLAY_ZONE, STALE_AFTER_MS, TIME_NOTICE, age, cleanLabel, countUp, describeSpan,
-    formatClock, formatDay, formatDelayMinutes, formatDuration, formatInstant, formatNumber,
-    formatPercent, parseInstant, prefersReducedMotion,
+    DISPLAY_ZONE, FIELD_TIME_KIND, INSTANT, IST_OFFSET_MINUTES, STALE_AFTER_MS, TIME_NOTICE,
+    WALL_CLOCK, age, cleanLabel, countUp, describeSpan, finite, formatClock, formatDay,
+    formatDelayMinutes, formatDuration, formatInstant, formatNumber, formatPercent,
+    parseInstant, prefersReducedMotion, timeKindFor,
 } from '../js/format.js';
 
-/* Real values taken from this repo's live API responses, not invented. */
-const AWARE = '2026-09-28T16:09:30.149691Z';   // PredictionResponse.predicted_eta
-const NAIVE = '2026-09-28T15:53:46.587000';    // trains/{n}/state.scheduled_arrival
+/*
+ * Every literal below was captured from this repo's running FastAPI backend on
+ * 2026-10-20, not invented. The DEMO state and the prediction it produced:
+ *
+ *   GET  /api/v1/trains/12002/state -> scheduled_arrival 2026-10-21T06:00:00
+ *                                      current_timestamp 2026-10-20T08:24:51.409000
+ *   POST /api/v1/predict/eta        -> predicted_eta     2026-10-21T06:06:55.306953Z
+ *                                      predicted_delay_minutes 6.921782546
+ */
+const SCHEDULED = '2026-10-21T06:00:00';              // naive, Indian wall-clock
+const PREDICTED_ETA = '2026-10-21T06:06:55.306953Z';  // "Z" is synthetic
+const CURRENT_TS = '2026-10-20T08:24:51.409000';      // naive, a true UTC instant
+const PREDICTED_DELAY_MINUTES = 6.921782546;
 
 afterEach(() => {
     delete globalThis.window;
@@ -25,75 +36,166 @@ afterEach(() => {
     delete globalThis.performance;
 });
 
-describe('parseInstant', () => {
-    it('reads an aware value as sent and reports it was not naive', () => {
-        const { date, naive } = parseInstant(AWARE);
-        assert.equal(naive, false);
-        assert.equal(date.toISOString(), '2026-09-28T16:09:30.149Z');
+describe('timezone policy', () => {
+    it('displays India Standard Time', () => {
+        assert.equal(DISPLAY_ZONE.timeZone, 'Asia/Kolkata');
+        assert.equal(DISPLAY_ZONE.label, 'IST');
+        assert.equal(IST_OFFSET_MINUTES, 330);
     });
 
-    it('reads a naive value as UTC, matching app/ml/predictor.py', () => {
-        const { date, naive } = parseInstant(NAIVE);
-        assert.equal(naive, true, 'callers must be able to disclose that the zone was assumed');
-        assert.equal(date.toISOString(), '2026-09-28T15:53:46.587Z');
+    it('classifies each field by what it provably is', () => {
+        assert.equal(timeKindFor('scheduled_arrival'), WALL_CLOCK);
+        assert.equal(timeKindFor('predicted_eta'), WALL_CLOCK);
+        assert.equal(timeKindFor('eta_lower'), WALL_CLOCK);
+        assert.equal(timeKindFor('eta_upper'), WALL_CLOCK);
+        assert.equal(timeKindFor('current_timestamp'), INSTANT);
+        assert.equal(timeKindFor('updated_at'), INSTANT);
+        assert.equal(timeKindFor('timestamp'), INSTANT);
     });
 
-    it('does not shift a naive value into or out of IST', () => {
-        const { date } = parseInstant(NAIVE);
-        assert.equal(date.getUTCHours(), 15, 'a +5:30 shift here would misreport every time on screen');
-        assert.equal(date.getUTCMinutes(), 53);
+    it('covers the Node camelCase mirrors as well as the FastAPI names', () => {
+        assert.equal(timeKindFor('scheduledEta'), WALL_CLOCK);
+        assert.equal(timeKindFor('predictedEta'), WALL_CLOCK);
+        assert.equal(timeKindFor('predictionTimestamp'), INSTANT);
     });
 
-    it('accepts an explicit offset without re-interpreting it', () => {
-        const { date, naive } = parseInstant('2026-09-28T21:23:46+05:30');
+    it('defaults an unknown field to INSTANT, the safe direction', () => {
+        // Treating a true instant as wall-clock silently shifts it 5h30m;
+        // rendering a true instant in IST is simply correct.
+        assert.equal(timeKindFor('some_new_field'), INSTANT);
+        assert.equal(timeKindFor(undefined), INSTANT);
+        assert.ok(Object.values(FIELD_TIME_KIND).every((k) => k === WALL_CLOCK || k === INSTANT));
+    });
+
+    it('states the assumption on screen rather than only in a comment', () => {
+        assert.match(TIME_NOTICE, /India Standard Time/);
+        assert.match(TIME_NOTICE, /UTC\+5:30/);
+        assert.match(TIME_NOTICE, /records no timezone/);
+        assert.match(TIME_NOTICE, /is an assumption/);
+    });
+});
+
+describe('WALL_CLOCK fields: Indian local digits, read as IST', () => {
+    it('renders a naive schedule at its face value in IST', () => {
+        // 06:00:00 in the CSV must read 06:00 IST, not 11:30 IST.
+        assert.equal(formatInstant(SCHEDULED, { kind: WALL_CLOCK }), '21 Oct 2026, 06:00 IST');
+        assert.equal(formatClock(SCHEDULED, { kind: WALL_CLOCK }), '06:00 IST');
+        assert.equal(formatDay(SCHEDULED, { kind: WALL_CLOCK }), '21 Oct 2026');
+    });
+
+    it('does not read a naive Indian local time as UTC', () => {
+        const { date } = parseInstant(SCHEDULED, WALL_CLOCK);
+        // 06:00 IST is 00:30 UTC. If this were read as UTC it would be 06:00 UTC.
+        assert.equal(date.toISOString(), '2026-10-21T00:30:00.000Z');
+    });
+
+    it('reports that the backend stated no zone, so a caller can disclose it', () => {
+        assert.equal(parseInstant(SCHEDULED, WALL_CLOCK).naive, true);
+        assert.equal(parseInstant(PREDICTED_ETA, WALL_CLOCK).naive, false);
+    });
+
+    it('ignores the synthetic Z on predicted_eta', () => {
+        // predictor.py stamps UTC onto a naive anchor, so the Z is a label the
+        // value never earned. Honouring it would move the ETA 5h30m.
+        assert.equal(formatInstant(PREDICTED_ETA, { kind: WALL_CLOCK }), '21 Oct 2026, 06:06 IST');
+    });
+
+    it('keeps the ETA consistent with the schedule it was derived from', () => {
+        const scheduled = parseInstant(SCHEDULED, WALL_CLOCK).date;
+        const predicted = parseInstant(PREDICTED_ETA, WALL_CLOCK).date;
+        const gapMinutes = (predicted - scheduled) / 60000;
+        // The gap on screen must equal the delay the model actually produced.
+        // Tolerance is one millisecond expressed in minutes: the API sends
+        // microseconds (.306953) and a JS Date holds milliseconds (.306), so a
+        // sub-millisecond difference is a representation limit, not a drift.
+        const oneMillisecondInMinutes = 1 / 60000;
+        assert.ok(Math.abs(gapMinutes - PREDICTED_DELAY_MINUTES) < oneMillisecondInMinutes,
+            `displayed gap ${gapMinutes} should match predicted_delay_minutes ${PREDICTED_DELAY_MINUTES}`);
+        // And it must certainly be minutes, not hours.
+        assert.ok(gapMinutes > 6 && gapMinutes < 7, `gap was ${gapMinutes} minutes`);
+    });
+
+    it('would have shown a 337-minute delay had the Z been honoured -- the regression this guards', () => {
+        const scheduled = parseInstant(SCHEDULED, WALL_CLOCK).date;
+        const wrong = parseInstant(PREDICTED_ETA, INSTANT).date;
+        const wrongGap = (wrong - scheduled) / 60000;
+        assert.ok(wrongGap > 300, 'misreading the ETA family inflates the delay by about 5h30m');
+        assert.equal(formatInstant(PREDICTED_ETA, { kind: INSTANT }), '21 Oct 2026, 11:36 IST');
+    });
+});
+
+describe('INSTANT fields: true points in time, converted to IST', () => {
+    it('converts a naive backend instant from UTC to IST', () => {
+        // datetime.now(timezone.utc) stored naive: 08:24 UTC is 13:54 IST.
+        assert.equal(formatInstant(CURRENT_TS, { kind: INSTANT }), '20 Oct 2026, 13:54 IST');
+    });
+
+    it('does not read a true instant as Indian local', () => {
+        const { date } = parseInstant(CURRENT_TS, INSTANT);
+        assert.equal(date.toISOString(), '2026-10-20T08:24:51.409Z');
+    });
+
+    it('preserves and converts an explicit UTC offset', () => {
+        const { date, naive } = parseInstant('2026-09-28T15:53:46Z', INSTANT);
         assert.equal(naive, false);
         assert.equal(date.toISOString(), '2026-09-28T15:53:46.000Z');
+        assert.equal(formatInstant('2026-09-28T15:53:46Z'), '28 Sep 2026, 21:23 IST');
     });
 
-    it('returns null for junk instead of an Invalid Date', () => {
+    it('preserves and converts a non-UTC offset without re-interpreting it', () => {
+        assert.equal(formatInstant('2026-09-28T21:23:46+05:30'), '28 Sep 2026, 21:23 IST');
+        assert.equal(formatInstant('2026-09-28T10:53:46-05:00'), '28 Sep 2026, 21:23 IST');
+        // All three spellings are the same instant and must render identically.
+        assert.equal(formatInstant('2026-09-28T15:53:46Z'), formatInstant('2026-09-28T21:23:46+05:30'));
+    });
+
+    it('handles an offset written without a colon', () => {
+        assert.equal(formatInstant('2026-09-28T21:23:46+0530'), '28 Sep 2026, 21:23 IST');
+    });
+
+    it('is the default kind when none is given', () => {
+        assert.equal(formatInstant(CURRENT_TS), formatInstant(CURRENT_TS, { kind: INSTANT }));
+    });
+});
+
+describe('parseInstant edge cases', () => {
+    it('returns null for junk instead of an Invalid Date, in both kinds', () => {
         for (const value of ['', '   ', null, undefined, 'tomorrow', 42, {}]) {
-            assert.equal(parseInstant(value).date, null, `${JSON.stringify(value)} should not parse`);
+            assert.equal(parseInstant(value, INSTANT).date, null, `INSTANT ${JSON.stringify(value)}`);
+            assert.equal(parseInstant(value, WALL_CLOCK).date, null, `WALL_CLOCK ${JSON.stringify(value)}`);
         }
     });
 
     it('passes a Date through and rejects an invalid one', () => {
-        const date = new Date(AWARE);
+        const date = new Date(CURRENT_TS + 'Z');
         assert.equal(parseInstant(date).date, date);
         assert.equal(parseInstant(new Date('nope')).date, null);
     });
-});
 
-describe('formatInstant / formatClock / formatDay', () => {
-    it('labels the zone on every rendered time', () => {
-        assert.equal(DISPLAY_ZONE.label, 'UTC');
-        assert.match(formatInstant(AWARE), /UTC$/);
-        assert.match(formatClock(AWARE), /UTC$/);
-    });
-
-    it('renders an aware instant in the display zone', () => {
-        assert.equal(formatInstant(AWARE), '28 Sep 2026, 16:09 UTC');
-        assert.equal(formatClock(AWARE), '16:09 UTC');
-        assert.equal(formatDay(AWARE), '28 Sep 2026');
-    });
-
-    it('renders a naive instant at its face value, not shifted', () => {
-        assert.equal(formatInstant(NAIVE), '28 Sep 2026, 15:53 UTC');
+    it('crosses a date boundary correctly when converting into IST', () => {
+        // 22:00 UTC is 03:30 IST the following day.
+        assert.equal(formatInstant('2026-10-20T22:00:00Z'), '21 Oct 2026, 03:30 IST');
+        // And 00:15 IST is the previous day in UTC.
+        assert.equal(parseInstant('2026-10-21T00:15:00', WALL_CLOCK).date.toISOString(),
+            '2026-10-20T18:45:00.000Z');
     });
 
     it('uses a 24-hour clock, so 00:xx is never printed as 12:xx', () => {
-        assert.equal(formatClock('2026-01-01T00:30:00Z'), '00:30 UTC');
-        assert.equal(formatClock('2026-01-01T13:05:00Z'), '13:05 UTC');
+        assert.equal(formatClock('2026-01-01T00:30:00', { kind: WALL_CLOCK }), '00:30 IST');
+        assert.equal(formatClock('2026-01-01T13:05:00', { kind: WALL_CLOCK }), '13:05 IST');
+    });
+
+    it('labels the zone on every rendered time', () => {
+        assert.match(formatInstant(CURRENT_TS), /IST$/);
+        assert.match(formatClock(CURRENT_TS), /IST$/);
+        assert.match(formatInstant(SCHEDULED, { kind: WALL_CLOCK }), /IST$/);
     });
 
     it('shows a placeholder rather than a fabricated time', () => {
         assert.equal(formatInstant(null), 'Not available');
         assert.equal(formatClock(null), '--:--');
         assert.equal(formatInstant(null, { placeholder: 'No ETA' }), 'No ETA');
-    });
-
-    it('states the provenance caveat the formatter cannot fix', () => {
-        assert.match(TIME_NOTICE, /UTC/);
-        assert.match(TIME_NOTICE, /not timetable-accurate/);
+        assert.equal(formatInstant(null, { kind: WALL_CLOCK }), 'Not available');
     });
 });
 
@@ -106,9 +208,16 @@ describe('age', () => {
         assert.equal(result.text, '2 minutes ago');
     });
 
-    it('calls the real demo data stale, because it is', () => {
-        // The seeded demo state in this repo is dated 2026-09-28.
-        const result = age(NAIVE, now);
+    it('ages a naive backend instant as UTC, not as Indian local', () => {
+        // CURRENT_TS is 08:24:51 UTC. Against 2026-10-20T06:00Z it is in the
+        // future; misreading it as IST would make a just-written state look
+        // 5h30m old instead, inverting the staleness verdict.
+        assert.equal(age(CURRENT_TS, Date.parse('2026-10-20T09:00:00Z')).text, '35 minutes ago');
+        assert.equal(age(CURRENT_TS, Date.parse('2026-10-20T08:25:00Z')).stale, false);
+    });
+
+    it('calls a genuinely old state stale', () => {
+        const result = age('2026-09-28T13:20:50.842000', now);
         assert.equal(result.stale, true);
         assert.equal(result.text, '21 days ago');
     });

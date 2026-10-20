@@ -5,7 +5,7 @@ Resume point for a fresh session. One phase per message; do not start the next p
 - Branch: `feature/ml-dashboards` (created from `feature/real-data-ml` @ `381fa84`)
 - Scratch dir (not committed): `/tmp/claude-1000/-home-ritik-Desktop-RAILPULSE-ADVANCE-MODEL-ML-INTEGRATED-/0e8d691c-1dc1-45d6-9435-d07e942d7053/scratchpad`
   - `metrics_before.json`, `metadata_run1.json`, `metadata_run2.json`, `fixtures/*.json` (real API responses), `openapi_before.json`
-- Last updated: 2026-10-20 — end of Phase 1
+- Last updated: 2026-10-20 — end of Phase 2
 
 ---
 
@@ -14,8 +14,8 @@ Resume point for a fresh session. One phase per message; do not start the next p
 | Phase | State |
 |---|---|
 | 0 Inspect, baseline, plan | Done (commit `9af23ee`) |
-| 1 Foundations | **Done (this commit)** |
-| 2 Passenger | Not started |
+| 1 Foundations | Done (commit `4b1395d`) |
+| 2 Passenger | **Done (this commit)** |
 | 3 Staff | Not started |
 | 4 Admin + D3 | Not started |
 | 5 Verification + report | Not started |
@@ -511,3 +511,180 @@ with fallback reason in plain words, last-updated + `staleBanner` (which will fi
 data is ~22 days old), route timeline from `/reference/trains/{n}/route` +
 `/trains/{n}/upcoming-stations` (two nodes only, with the API's own `limitation` shown), and a
 prediction-history sparkline off `predicted_delay_minutes`. No metrics, no feature lists, no debug data.
+
+
+---
+
+## Timezone decision — RESOLVED (user instruction, 2026-10-20)
+
+**Display zone is now `Asia/Kolkata` ("IST") everywhere.** The Phase 1 UTC default is withdrawn.
+
+Getting there is not uniform, because the backend's datetimes do not all mean the same thing.
+`js/format.js` now carries an explicit policy table, `FIELD_TIME_KIND`, with two readings:
+
+| Reading | Fields | Treatment |
+|---|---|---|
+| `WALL_CLOCK` | `scheduled_arrival`, `predicted_eta`, `eta_lower`, `eta_upper`, `scheduledEta`, `predictedEta` | digits are Indian local wall-clock; rendered as IST unchanged |
+| `INSTANT` (default) | `current_timestamp`, `updated_at`, `timestamp`, `trained_at`, `predictionTimestamp`, `retrieved_at` | a true point in time; naive means UTC; converted to IST |
+
+Anything not listed defaults to `INSTANT`, the safe direction: rendering a true instant in IST is
+correct, whereas wrongly treating an instant as wall-clock silently shifts it 5h30m.
+
+### Why the ETA family is WALL_CLOCK despite carrying a "Z"
+
+`app/ml/predictor.py:141` anchors on `scheduled_arrival or current_timestamp`; line 147 stamps UTC
+onto a naive value with `replace(tzinfo=utc)`. The ETA therefore inherits the anchor's wall-clock
+digits plus a timezone it never had. Measured against the running backend:
+
+```
+scheduled_arrival        2026-10-21T06:00:00          (naive)
+predicted_eta            2026-10-21T06:06:55.306953Z  (the Z is synthetic)
+predicted_eta - scheduled_arrival = 6.921782550 min
+predicted_delay_minutes           = 6.921782546 min   -> the same number
+```
+
+Honouring that Z would print **06:00 IST scheduled against 11:36 IST predicted — a 337-minute
+delay the model never produced**. Reading it as wall-clock keeps the screen consistent with the
+model's own output. Conversely, reading a naive `current_timestamp` as Indian local would push a
+just-written state 5h30m into the future and invert the staleness verdict. Both failure modes are
+pinned by tests.
+
+Genuinely-aware timestamps are preserved and converted properly: `...Z`, `+05:30` and `-05:00`
+spellings of the same instant all render identically, including the offset-without-colon form.
+Durations (`predicted_delay_minutes`, the quantiles, `predicted_remaining_minutes`) carry no zone
+and are untouched by any of this.
+
+**Assumption stated on screen,** not only in comments: `TIME_NOTICE` says the synthetic dataset
+records no timezone, so reading its times as Indian local is an assumption about their origin.
+
+Tests added: 20 timezone assertions covering both readings, offset preservation, the two regressions
+above, date-boundary crossing in both directions, 24-hour formatting and the field-classification table.
+
+## `.gitignore` amendment — PROPOSED, NOT APPLIED
+
+Shown for approval; it will only be applied in Phase 4 if D3 proceeds.
+
+```diff
+--- prediction model/railpulse-backend/.gitignore (current)
++++ prediction model/railpulse-backend/.gitignore (proposed)
+@@ -51,3 +51,9 @@
+ data/processed/
+ data/raw/
+ models/
++
++# Per-row evaluation export, rewritten by every training run (Phase 4 / gate D3).
++# Only this one file: reports/eda.md, reports/model_comparison.md and
++# reports/figures/ stay tracked. GET /api/v1/model/evaluation returns
++# 404 evaluation_unavailable when it is absent.
++reports/evaluation.json
+```
+
+- **Excludes:** exactly one generated file, `reports/evaluation.json` — 111 rows of synthetic
+  held-out predictions plus aggregates, rewritten by every `training.pipeline` run.
+- **Hides no required file.** Verified against `git ls-files`: no tracked path matches. All 7
+  tracked files under `reports/` (`eda.md`, `model_comparison.md`, 5 figures) stay tracked.
+- **Scope:** a literal path, no wildcard, anchored to the backend directory. `reports/` itself is
+  not ignored.
+- **Why:** without it, every training run dirties the working tree and invites committing generated
+  per-row output. The endpoint's `404 evaluation_unavailable` path already covers the file's absence.
+
+---
+
+## Phase 2 — passenger experience (done)
+
+Role `PASSENGER`, in the ML app. One question answered: *when will my train arrive, and how sure is
+that?* Staff and admin renderers are untouched.
+
+### Files
+
+| File | Change |
+|---|---|
+| `js/pages/passenger.js` | **new**, 470 lines — dashboard, track-train, history, alerts |
+| `js/app.js` | +27 / −2: import, a PASSENGER branch in `renderPage`, and `goToTrain()` |
+| `js/format.js` | timezone layer rewritten (see above) |
+| `css/style.css` | appended again, 2019 → 2153 lines |
+| `tests/format.test.js`, `tests/ui.test.js` | retargeted to IST, 20 timezone assertions added |
+
+### What the passenger sees
+
+- **Three times side by side:** scheduled, predicted (emphasised), and journey left to run.
+- **The answer in words**, not just numbers: "The model expects this train to arrive **+6.9 min**
+  against its schedule"; "Most likely somewhere between **06:01 IST** and **06:26 IST**".
+- **Risk phrased to resist over-reading:** "Chance of arriving more than 15 minutes late: **44%** —
+  about 44 in 100 journeys that look like this one to the model."
+- **Interval chart** with the scheduled time as the zero reference, P10/P90 labelled directly.
+- **`coverageNote`** stating the measured 70.3% against the 80% it aims for, and that this is
+  coverage across a test split rather than confidence in this one prediction.
+- **Route timeline** where each node is labelled with where its information comes from (Timetable /
+  Reported state / Predicted), under a bold "**No part of this route is GPS-tracked**".
+- **Prediction history** as a chart plus a table, captioned that these are past estimates and that
+  the system never learns the actual arrival time.
+- **Stale banner** and the "About this estimate" provenance block.
+
+Deliberately absent, per the brief: no MAE, no baseline numbers, no feature or ignored-field lists,
+no model internals. A grep in the verification run confirms none of those strings reach the page.
+Rule 4 is still honoured — if `beats_baseline` ever goes false, a plain-words sentence appears in
+"About this estimate"; passengers get the sentence, never the metrics.
+
+### Three honesty traps found and handled
+
+1. **`predicted_remaining_minutes` is measured from the state's `current_timestamp`, not from now.**
+   It equals `(scheduled_arrival − current_timestamp) + predicted_delay`, verified numerically. On a
+   stale state that is a completely different number from "time from now", so it is labelled
+   "measured from HH:MM IST, not from now" and the reading's age is appended when stale. No
+   countdown is shown, because nothing here updates in real time.
+2. **`TrainStateRequest` has no `data_source` field**, so a DEMO train's prediction returns
+   `data_source: "LIVE"`. The input's origin is therefore read from the stored state and never from
+   the prediction response; demo journeys are badged from the state.
+3. **`/alerts` can never return rows.** An empty inbox would read as "no problems", so the page
+   shows the API's own `limitation` plus: "This is not a statement that your train is running
+   normally. No alerting exists here at all, so nothing can be reported either way."
+
+### Two pre-existing bugs fixed in passing
+
+- **`navigate()` to the current hash fires no `hashchange`**, so picking a train while already on the
+  train page left the previous train on screen. `goToTrain()` re-renders in place instead. Affects
+  all roles; it is a correctness fix, not a refactor.
+- **Scroll position survived the re-render**, leaving the answer above the viewport after choosing a
+  train from the list (measured `scrollY` 506). `goToTrain()` now returns to the top, honouring
+  `prefers-reduced-motion`.
+
+### Verification — commands run and real results
+
+| Check | Result |
+|---|---|
+| `npm test` (ML frontend) | **162 tests, 36 suites, 0 fail** |
+| Passenger journey at 1280 / 768 / 360 / 360+reduced-motion | **PASS** — 0 console errors, 0 page errors, no horizontal scroll, 28–29 `HH:MM IST` times, 2 charts, topbar clear of content, 0 reveal elements under reduced motion |
+| Passenger alerts | renders the *Not available* state and the "not a statement that your train is running normally" line |
+| STAFF + ADMIN regression, 13 pages | **PASS** — every page renders, 0 console errors, 0 page errors |
+| `grep -rnE "Math.random\|faker\|lorem"` | no matches |
+| hardcoded metric literals | no matches |
+| `Number(` in `js/pages/passenger.js` | none — all API values go through `finite()` |
+| `cd backend && npm test` | 14/14 (untouched) |
+| `pytest -q` | 140 passed (untouched) |
+| `cd frontend/frontend && npm run build` | pass, 466 ms (untouched) |
+| `cd frontend/frontend && npm run lint` | **13 problems (11 errors, 2 warnings) — identical to the Phase 0 baseline** |
+
+Screenshots: `scratchpad/phase2/journey-final-{1280,360}.png`, `passenger-{dashboard,alerts,history}-*.png`.
+
+### New observation for the final report
+
+`scrollToUpdate()` in `js/app.js` calls `scrollIntoView({ behavior: 'smooth' })` unconditionally,
+ignoring `prefers-reduced-motion`. Pre-existing, and only reachable from the staff/admin `predict`
+path, which Phase 3 touches. Not fixed yet; my own scroll helper honours the preference.
+
+Also seen while testing: the dev Mongo holds residue from earlier sessions — trains numbered
+`string` and `FRONTEND-TEST-123` with `data_source: CSV_LIVE`, which no code in this repo writes.
+The UI handles them without breaking (placeholders for the missing schedule), but they are not
+produced by this codebase.
+
+---
+
+## Next: Phase 3 (STAFF) — not started
+
+Operational overview first (alerts as an honest *Not available* panel, plus stale/degraded banners),
+then charts, then tables and drill-down. Train/date filters and search, predicted-vs-scheduled table
+with interval indicators, predicted-delay trend, delay-band distribution using the model's own bands
+only (no "early" bucket — the dataset has no negative delays), the existing simulation and
+network-intelligence pages kept and improved, and scenario comparison labelled rule-based with the
+13 ignored request fields shown explicitly.
