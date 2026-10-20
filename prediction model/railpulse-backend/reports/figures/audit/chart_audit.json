@@ -1,0 +1,1070 @@
+[
+  {
+    "role": "PASSENGER",
+    "page": "dashboard",
+    "width": 1280,
+    "mounts": [],
+    "hscroll": false,
+    "scrollWidth": 1280,
+    "clientWidth": 1280,
+    "notAvailable": 0
+  },
+  {
+    "role": "PASSENGER",
+    "page": "train",
+    "width": 1280,
+    "mounts": [
+      {
+        "id": "arrival-interval-chart",
+        "hasSvg": true,
+        "marks": 3,
+        "label": "How late, and how uncertain Predicted delay: 1 point, from 6.9 to 6.9, latest 6.9.",
+        "series": 1,
+        "hasTable": false,
+        "hasSummary": true,
+        "hasTableToggle": true,
+        "emptyText": "How late, and how uncertain\n\nZero is the scheduled time. The",
+        "width": 878
+      },
+      {
+        "id": "history-sparkline",
+        "hasSvg": true,
+        "marks": 49,
+        "label": "Predicted delay, earlier runs Predicted delay: 46 points, from 5.1 to 83.9 minutes late, l",
+        "series": 1,
+        "hasTable": false,
+        "hasSummary": true,
+        "hasTableToggle": true,
+        "emptyText": "Predicted delay, earlier runs\n0\n20\n40\n60\n80\n19:09 IST\n14:06 ",
+        "width": 878
+      }
+    ],
+    "hscroll": false,
+    "scrollWidth": 1280,
+    "clientWidth": 1280,
+    "notAvailable": 0
+  },
+  {
+    "role": "PASSENGER",
+    "page": "history",
+    "width": 1280,
+    "mounts": [
+      {
+        "id": "arrival-interval-chart",
+        "hasSvg": true,
+        "marks": 3,
+        "label": "How late, and how uncertain Predicted delay: 1 point, from 6.9 to 6.9, latest 6.9.",
+        "series": 1,
+        "hasTable": false,
+        "hasSummary": true,
+        "hasTableToggle": true,
+        "emptyText": "How late, and how uncertain\n\nZero is the scheduled time. The",
+        "width": 878
+      },
+      {
+        "id": "history-sparkline",
+        "hasSvg": true,
+        "marks": 51,
+        "label": "Predicted delay, earlier runs Predicted delay: 48 points, from 5.1 to 83.9 minutes late, l",
+        "series": 1,
+        "hasTable": false,
+        "hasSummary": true,
+        "hasTableToggle": true,
+        "emptyText": "Predicted delay, earlier runs\n0\n20\n40\n60\n80\n19:09 IST\n14:06 ",
+        "width": 878
+      }
+    ],
+    "hscroll": false,
+    "scrollWidth": 1280,
+    "clientWidth": 1280,
+    "notAvailable": 0
+  },
+  {
+    "role": "PASSENGER",
+    "page": "alerts",
+    "width": 1280,
+    "mounts": [],
+    "hscroll": false,
+    "scrollWidth": 1280,
+    "clientWidth": 1280,
+    "notAvailable": 1
+  },
+  {
+    "role": "PASSENGER",
+    "page": "dashboard",
+    "width": 768,
+    "mounts": [],
+    "hscroll": false,
+    "scrollWidth": 768,
+    "clientWidth": 768,
+    "notAvailable": 0
+  },
+  {
+    "role": "PASSENGER",
+    "page": "train",
+    "width": 768,
+    "mounts": [
+      {
+        "id": "arrival-interval-chart",
+        "hasSvg": true,
+        "marks": 3,
+        "label": "How late, and how uncertain Predicted delay: 1 point, from 6.9 to 6.9, latest 6.9.",
+        "series": 1,
+        "hasTable": false,
+        "hasSummary": true,
+        "hasTableToggle": true,
+        "emptyText": "How late, and how uncertain\n\nZero is the scheduled time. The",
+        "width": 657
+      },
+      {
+        "id": "history-sparkline",
+        "hasSvg": true,
+        "marks": 51,
+        "label": "Predicted delay, earlier runs Predicted delay: 48 points, from 5.1 to 83.9 minutes late, l",
+        "series": 1,
+        "hasTable": false,
+        "hasSummary": true,
+        "hasTableToggle": true,
+        "emptyText": "Predicted delay, earlier runs\n0\n20\n40\n60\n80\n19:09 IST\n14:06 ",
+        "width": 657
+      }
+    ],
+    "hscroll": false,
+    "scrollWidth": 768,
+    "clientWidth": 768,
+    "notAvailable": 0
+  },
+  {
+    "role": "PASSENGER",
+    "page": "history",
+    "width": 768,
+    "mounts": [
+      {
+        "id": "arrival-interval-chart",
+        "hasSvg": true,
+        "marks": 3,
+        "label": "How late, and how uncertain Predicted delay: 1 point, from 6.9 to 6.9, latest 6.9.",
+        "series": 1,
+        "hasTable": false,
+        "hasSummary": true,
+        "hasTableToggle": true,
+        "emptyText": "How late, and how uncertain\n\nZero is the scheduled time. The",
+        "width": 657
+      },
+      {
+        "id": "history-sparkline",
+        "hasSvg": true,
+        "marks": 52,
+        "label": "Predicted delay, earlier runs Predicted delay: 49 points, from 5.1 to 83.9 minutes late, l",
+        "series": 1,
+        "hasTable": false,
+        "hasSummary": true,
+        "hasTableToggle": true,
+        "emptyText": "Predicted delay, earlier runs\n0\n20\n40\n60\n80\n19:09 IST\n14:06 ",
+        "width": 657
+      }
+    ],
+    "hscroll": false,
+    "scrollWidth": 768,
+    "clientWidth": 768,
+    "notAvailable": 0
+  },
+  {
+    "role": "PASSENGER",
+    "page": "alerts",
+    "width": 768,
+    "mounts": [],
+    "hscroll": false,
+    "scrollWidth": 768,
+    "clientWidth": 768,
+    "notAvailable": 1
+  },
+  {
+    "role": "PASSENGER",
+    "page": "dashboard",
+    "width": 360,
+    "mounts": [],
+    "hscroll": false,
+    "scrollWidth": 360,
+    "clientWidth": 360,
+    "notAvailable": 0
+  },
+  {
+    "role": "PASSENGER",
+    "page": "train",
+    "width": 360,
+    "mounts": [
+      {
+        "id": "arrival-interval-chart",
+        "hasSvg": true,
+        "marks": 3,
+        "label": "How late, and how uncertain Predicted delay: 1 point, from 6.9 to 6.9, latest 6.9.",
+        "series": 1,
+        "hasTable": false,
+        "hasSummary": true,
+        "hasTableToggle": true,
+        "emptyText": "How late, and how uncertain\n\nZero is the scheduled time. The",
+        "width": 272
+      },
+      {
+        "id": "history-sparkline",
+        "hasSvg": true,
+        "marks": 53,
+        "label": "Predicted delay, earlier runs Predicted delay: 50 points, from 5.1 to 83.9 minutes late, l",
+        "series": 1,
+        "hasTable": false,
+        "hasSummary": true,
+        "hasTableToggle": true,
+        "emptyText": "Predicted delay, earlier runs\n0\n20\n40\n60\n80\n19:14 IST\n14:06 ",
+        "width": 272
+      }
+    ],
+    "hscroll": false,
+    "scrollWidth": 360,
+    "clientWidth": 360,
+    "notAvailable": 0
+  },
+  {
+    "role": "PASSENGER",
+    "page": "history",
+    "width": 360,
+    "mounts": [
+      {
+        "id": "arrival-interval-chart",
+        "hasSvg": true,
+        "marks": 3,
+        "label": "How late, and how uncertain Predicted delay: 1 point, from 6.9 to 6.9, latest 6.9.",
+        "series": 1,
+        "hasTable": false,
+        "hasSummary": true,
+        "hasTableToggle": true,
+        "emptyText": "How late, and how uncertain\n\nZero is the scheduled time. The",
+        "width": 272
+      },
+      {
+        "id": "history-sparkline",
+        "hasSvg": true,
+        "marks": 53,
+        "label": "Predicted delay, earlier runs Predicted delay: 50 points, from 5.1 to 83.9 minutes late, l",
+        "series": 1,
+        "hasTable": false,
+        "hasSummary": true,
+        "hasTableToggle": true,
+        "emptyText": "Predicted delay, earlier runs\n0\n20\n40\n60\n80\n19:14 IST\n14:06 ",
+        "width": 272
+      }
+    ],
+    "hscroll": false,
+    "scrollWidth": 360,
+    "clientWidth": 360,
+    "notAvailable": 0
+  },
+  {
+    "role": "PASSENGER",
+    "page": "alerts",
+    "width": 360,
+    "mounts": [],
+    "hscroll": false,
+    "scrollWidth": 360,
+    "clientWidth": 360,
+    "notAvailable": 1
+  },
+  {
+    "role": "STAFF",
+    "page": "dashboard",
+    "width": 1280,
+    "mounts": [
+      {
+        "id": "band-chart",
+        "hasSvg": true,
+        "marks": 6,
+        "label": "Predicted delay band Trains: 5 points, from 0.0 to 3.0 trains, latest 0.0.",
+        "series": 1,
+        "hasTable": false,
+        "hasSummary": true,
+        "hasTableToggle": true,
+        "emptyText": "Predicted delay band\n\nBands are the model's own (ON_TIME, MI",
+        "width": 522
+      },
+      {
+        "id": "fleet-delay-chart",
+        "hasSvg": true,
+        "marks": 8,
+        "label": "Latest predicted delay by train Predicted delay: 7 points, from 6.9 to 87.0 minutes, lates",
+        "series": 1,
+        "hasTable": false,
+        "hasSummary": true,
+        "hasTableToggle": true,
+        "emptyText": "Latest predicted delay by train\n\nThe newest stored predictio",
+        "width": 387
+      }
+    ],
+    "hscroll": false,
+    "scrollWidth": 1280,
+    "clientWidth": 1280,
+    "notAvailable": 1
+  },
+  {
+    "role": "STAFF",
+    "page": "train",
+    "width": 1280,
+    "mounts": [],
+    "hscroll": false,
+    "scrollWidth": 1280,
+    "clientWidth": 1280,
+    "notAvailable": 0
+  },
+  {
+    "role": "STAFF",
+    "page": "history",
+    "width": 1280,
+    "mounts": [
+      {
+        "id": "fleet-trend",
+        "hasSvg": true,
+        "marks": 122,
+        "label": "Predicted delay across successive runs Train 12002: 50 points, from 5.1 to 83.9 minutes, l",
+        "series": 5,
+        "hasTable": false,
+        "hasSummary": true,
+        "hasTableToggle": true,
+        "emptyText": "Predicted delay across successive runs\n\nUp to five trains wi",
+        "width": 928
+      }
+    ],
+    "hscroll": false,
+    "scrollWidth": 1280,
+    "clientWidth": 1280,
+    "notAvailable": 0
+  },
+  {
+    "role": "STAFF",
+    "page": "alerts",
+    "width": 1280,
+    "mounts": [],
+    "hscroll": false,
+    "scrollWidth": 1280,
+    "clientWidth": 1280,
+    "notAvailable": 1
+  },
+  {
+    "role": "STAFF",
+    "page": "simulation",
+    "width": 1280,
+    "mounts": [],
+    "hscroll": false,
+    "scrollWidth": 1280,
+    "clientWidth": 1280,
+    "notAvailable": 1
+  },
+  {
+    "role": "STAFF",
+    "page": "capabilities",
+    "width": 1280,
+    "mounts": [],
+    "hscroll": false,
+    "scrollWidth": 1280,
+    "clientWidth": 1280,
+    "notAvailable": 1
+  },
+  {
+    "role": "STAFF",
+    "page": "dashboard",
+    "width": 768,
+    "mounts": [
+      {
+        "id": "band-chart",
+        "hasSvg": true,
+        "marks": 6,
+        "label": "Predicted delay band Trains: 5 points, from 0.0 to 3.0 trains, latest 0.0.",
+        "series": 1,
+        "hasTable": false,
+        "hasSummary": true,
+        "hasTableToggle": true,
+        "emptyText": "Predicted delay band\n\nBands are the model's own (ON_TIME, MI",
+        "width": 707
+      },
+      {
+        "id": "fleet-delay-chart",
+        "hasSvg": true,
+        "marks": 8,
+        "label": "Latest predicted delay by train Predicted delay: 7 points, from 6.9 to 87.0 minutes, lates",
+        "series": 1,
+        "hasTable": false,
+        "hasSummary": true,
+        "hasTableToggle": true,
+        "emptyText": "Latest predicted delay by train\n\nThe newest stored predictio",
+        "width": 707
+      }
+    ],
+    "hscroll": false,
+    "scrollWidth": 768,
+    "clientWidth": 768,
+    "notAvailable": 1
+  },
+  {
+    "role": "STAFF",
+    "page": "train",
+    "width": 768,
+    "mounts": [],
+    "hscroll": false,
+    "scrollWidth": 768,
+    "clientWidth": 768,
+    "notAvailable": 0
+  },
+  {
+    "role": "STAFF",
+    "page": "history",
+    "width": 768,
+    "mounts": [
+      {
+        "id": "fleet-trend",
+        "hasSvg": true,
+        "marks": 122,
+        "label": "Predicted delay across successive runs Train 12002: 50 points, from 5.1 to 83.9 minutes, l",
+        "series": 5,
+        "hasTable": false,
+        "hasSummary": true,
+        "hasTableToggle": true,
+        "emptyText": "Predicted delay across successive runs\n\nUp to five trains wi",
+        "width": 707
+      }
+    ],
+    "hscroll": false,
+    "scrollWidth": 768,
+    "clientWidth": 768,
+    "notAvailable": 0
+  },
+  {
+    "role": "STAFF",
+    "page": "alerts",
+    "width": 768,
+    "mounts": [],
+    "hscroll": false,
+    "scrollWidth": 768,
+    "clientWidth": 768,
+    "notAvailable": 1
+  },
+  {
+    "role": "STAFF",
+    "page": "simulation",
+    "width": 768,
+    "mounts": [],
+    "hscroll": false,
+    "scrollWidth": 768,
+    "clientWidth": 768,
+    "notAvailable": 1
+  },
+  {
+    "role": "STAFF",
+    "page": "capabilities",
+    "width": 768,
+    "mounts": [],
+    "hscroll": false,
+    "scrollWidth": 768,
+    "clientWidth": 768,
+    "notAvailable": 1
+  },
+  {
+    "role": "STAFF",
+    "page": "dashboard",
+    "width": 360,
+    "mounts": [
+      {
+        "id": "band-chart",
+        "hasSvg": true,
+        "marks": 6,
+        "label": "Predicted delay band Trains: 5 points, from 0.0 to 3.0 trains, latest 0.0.",
+        "series": 1,
+        "hasTable": false,
+        "hasSummary": true,
+        "hasTableToggle": true,
+        "emptyText": "Predicted delay band\n\nBands are the model's own (ON_TIME, MI",
+        "width": 322
+      },
+      {
+        "id": "fleet-delay-chart",
+        "hasSvg": true,
+        "marks": 8,
+        "label": "Latest predicted delay by train Predicted delay: 7 points, from 6.9 to 87.0 minutes, lates",
+        "series": 1,
+        "hasTable": false,
+        "hasSummary": true,
+        "hasTableToggle": true,
+        "emptyText": "Latest predicted delay by train\n\nThe newest stored predictio",
+        "width": 322
+      }
+    ],
+    "hscroll": false,
+    "scrollWidth": 360,
+    "clientWidth": 360,
+    "notAvailable": 1
+  },
+  {
+    "role": "STAFF",
+    "page": "train",
+    "width": 360,
+    "mounts": [],
+    "hscroll": false,
+    "scrollWidth": 360,
+    "clientWidth": 360,
+    "notAvailable": 0
+  },
+  {
+    "role": "STAFF",
+    "page": "history",
+    "width": 360,
+    "mounts": [
+      {
+        "id": "fleet-trend",
+        "hasSvg": true,
+        "marks": 122,
+        "label": "Predicted delay across successive runs Train 12002: 50 points, from 5.1 to 83.9 minutes, l",
+        "series": 5,
+        "hasTable": false,
+        "hasSummary": true,
+        "hasTableToggle": true,
+        "emptyText": "Predicted delay across successive runs\n\nUp to five trains wi",
+        "width": 322
+      }
+    ],
+    "hscroll": false,
+    "scrollWidth": 360,
+    "clientWidth": 360,
+    "notAvailable": 0
+  },
+  {
+    "role": "STAFF",
+    "page": "alerts",
+    "width": 360,
+    "mounts": [],
+    "hscroll": false,
+    "scrollWidth": 360,
+    "clientWidth": 360,
+    "notAvailable": 1
+  },
+  {
+    "role": "STAFF",
+    "page": "simulation",
+    "width": 360,
+    "mounts": [],
+    "hscroll": false,
+    "scrollWidth": 360,
+    "clientWidth": 360,
+    "notAvailable": 1
+  },
+  {
+    "role": "STAFF",
+    "page": "capabilities",
+    "width": 360,
+    "mounts": [],
+    "hscroll": false,
+    "scrollWidth": 360,
+    "clientWidth": 360,
+    "notAvailable": 1
+  },
+  {
+    "role": "ADMIN",
+    "page": "dashboard",
+    "width": 1280,
+    "mounts": [],
+    "hscroll": false,
+    "scrollWidth": 1280,
+    "clientWidth": 1280,
+    "notAvailable": 1
+  },
+  {
+    "role": "ADMIN",
+    "page": "train",
+    "width": 1280,
+    "mounts": [],
+    "hscroll": false,
+    "scrollWidth": 1280,
+    "clientWidth": 1280,
+    "notAvailable": 0
+  },
+  {
+    "role": "ADMIN",
+    "page": "history",
+    "width": 1280,
+    "mounts": [
+      {
+        "id": "fleet-trend",
+        "hasSvg": true,
+        "marks": 122,
+        "label": "Predicted delay across successive runs Train 12002: 50 points, from 5.1 to 83.9 minutes, l",
+        "series": 5,
+        "hasTable": false,
+        "hasSummary": true,
+        "hasTableToggle": true,
+        "emptyText": "Predicted delay across successive runs\n\nUp to five trains wi",
+        "width": 928
+      }
+    ],
+    "hscroll": false,
+    "scrollWidth": 1280,
+    "clientWidth": 1280,
+    "notAvailable": 0
+  },
+  {
+    "role": "ADMIN",
+    "page": "alerts",
+    "width": 1280,
+    "mounts": [],
+    "hscroll": false,
+    "scrollWidth": 1280,
+    "clientWidth": 1280,
+    "notAvailable": 1
+  },
+  {
+    "role": "ADMIN",
+    "page": "simulation",
+    "width": 1280,
+    "mounts": [],
+    "hscroll": false,
+    "scrollWidth": 1280,
+    "clientWidth": 1280,
+    "notAvailable": 1
+  },
+  {
+    "role": "ADMIN",
+    "page": "capabilities",
+    "width": 1280,
+    "mounts": [],
+    "hscroll": false,
+    "scrollWidth": 1280,
+    "clientWidth": 1280,
+    "notAvailable": 1
+  },
+  {
+    "role": "ADMIN",
+    "page": "system",
+    "width": 1280,
+    "mounts": [
+      {
+        "id": "baseline-chart",
+        "hasSvg": true,
+        "marks": 4,
+        "label": "Mean absolute error on the held-out split MAE (minutes): 3 points, from 21.8 to 24.7 minut",
+        "series": 1,
+        "hasTable": false,
+        "hasSummary": true,
+        "hasTableToggle": true,
+        "emptyText": "Mean absolute error on the held-out split\n\nLower is better. ",
+        "width": 840
+      },
+      {
+        "id": "coverage-chart",
+        "hasSvg": true,
+        "marks": 3,
+        "label": "Measured interval coverage against its target Coverage: 1 point, from 0.7 to 0.7, latest 0",
+        "series": 0,
+        "hasTable": false,
+        "hasSummary": true,
+        "hasTableToggle": true,
+        "emptyText": "Measured interval coverage against its target\nheld-out split",
+        "width": 840
+      },
+      {
+        "id": "segment-chart",
+        "hasSvg": true,
+        "marks": 25,
+        "label": "Error and bias by train MAE: 12 points, from 5.6 to 48.7 minutes, latest 5.6. Bias: 12 poi",
+        "series": 2,
+        "hasTable": false,
+        "hasSummary": true,
+        "hasTableToggle": true,
+        "emptyText": "Error and bias by train\n\nMAE is how wrong, bias is which way",
+        "width": 840
+      },
+      {
+        "id": "calibration-chart",
+        "hasSvg": true,
+        "marks": 4,
+        "label": "Predicted probability against observed rate Calibration bin: 3 points, from 0.3 to 0.8 obs",
+        "series": 1,
+        "hasTable": false,
+        "hasSummary": true,
+        "hasTableToggle": true,
+        "emptyText": "Predicted probability against observed rate\n\nOn the diagonal",
+        "width": 840
+      },
+      {
+        "id": "scatter-chart",
+        "hasSvg": true,
+        "marks": 112,
+        "label": "Predicted delay against actual delay Journey: 111 points, from 4.1 to 50.8 predicted delay",
+        "series": 1,
+        "hasTable": false,
+        "hasSummary": true,
+        "hasTableToggle": true,
+        "emptyText": "Predicted delay against actual delay\n\nEach point is one held",
+        "width": 840
+      },
+      {
+        "id": "residual-chart",
+        "hasSvg": true,
+        "marks": 17,
+        "label": "Residuals: predicted minus actual Residual: 111 points, from -142 to 39.3 journeys, latest",
+        "series": 1,
+        "hasTable": false,
+        "hasSummary": true,
+        "hasTableToggle": true,
+        "emptyText": "Residuals: predicted minus actual\n\nBars right of zero are jo",
+        "width": 840
+      },
+      {
+        "id": "historical-trend",
+        "hasSvg": true,
+        "marks": 2,
+        "label": "Absolute error by journey date Absolute error: 111 points, from 0.4 to 142 absolute error ",
+        "series": 1,
+        "hasTable": false,
+        "hasSummary": true,
+        "hasTableToggle": true,
+        "emptyText": "Absolute error by journey date\n\nOrdered by the date of the j",
+        "width": 840
+      }
+    ],
+    "hscroll": false,
+    "scrollWidth": 1280,
+    "clientWidth": 1280,
+    "notAvailable": 2
+  },
+  {
+    "role": "ADMIN",
+    "page": "dashboard",
+    "width": 768,
+    "mounts": [],
+    "hscroll": false,
+    "scrollWidth": 768,
+    "clientWidth": 768,
+    "notAvailable": 1
+  },
+  {
+    "role": "ADMIN",
+    "page": "train",
+    "width": 768,
+    "mounts": [],
+    "hscroll": false,
+    "scrollWidth": 768,
+    "clientWidth": 768,
+    "notAvailable": 0
+  },
+  {
+    "role": "ADMIN",
+    "page": "history",
+    "width": 768,
+    "mounts": [
+      {
+        "id": "fleet-trend",
+        "hasSvg": true,
+        "marks": 122,
+        "label": "Predicted delay across successive runs Train 12002: 50 points, from 5.1 to 83.9 minutes, l",
+        "series": 5,
+        "hasTable": false,
+        "hasSummary": true,
+        "hasTableToggle": true,
+        "emptyText": "Predicted delay across successive runs\n\nUp to five trains wi",
+        "width": 707
+      }
+    ],
+    "hscroll": false,
+    "scrollWidth": 768,
+    "clientWidth": 768,
+    "notAvailable": 0
+  },
+  {
+    "role": "ADMIN",
+    "page": "alerts",
+    "width": 768,
+    "mounts": [],
+    "hscroll": false,
+    "scrollWidth": 768,
+    "clientWidth": 768,
+    "notAvailable": 1
+  },
+  {
+    "role": "ADMIN",
+    "page": "simulation",
+    "width": 768,
+    "mounts": [],
+    "hscroll": false,
+    "scrollWidth": 768,
+    "clientWidth": 768,
+    "notAvailable": 1
+  },
+  {
+    "role": "ADMIN",
+    "page": "capabilities",
+    "width": 768,
+    "mounts": [],
+    "hscroll": false,
+    "scrollWidth": 768,
+    "clientWidth": 768,
+    "notAvailable": 1
+  },
+  {
+    "role": "ADMIN",
+    "page": "system",
+    "width": 768,
+    "mounts": [
+      {
+        "id": "baseline-chart",
+        "hasSvg": true,
+        "marks": 4,
+        "label": "Mean absolute error on the held-out split MAE (minutes): 3 points, from 21.8 to 24.7 minut",
+        "series": 1,
+        "hasTable": false,
+        "hasSummary": true,
+        "hasTableToggle": true,
+        "emptyText": "Mean absolute error on the held-out split\n\nLower is better. ",
+        "width": 619
+      },
+      {
+        "id": "coverage-chart",
+        "hasSvg": true,
+        "marks": 3,
+        "label": "Measured interval coverage against its target Coverage: 1 point, from 0.7 to 0.7, latest 0",
+        "series": 0,
+        "hasTable": false,
+        "hasSummary": true,
+        "hasTableToggle": true,
+        "emptyText": "Measured interval coverage against its target\nheld-out split",
+        "width": 619
+      },
+      {
+        "id": "segment-chart",
+        "hasSvg": true,
+        "marks": 25,
+        "label": "Error and bias by train MAE: 12 points, from 5.6 to 48.7 minutes, latest 5.6. Bias: 12 poi",
+        "series": 2,
+        "hasTable": false,
+        "hasSummary": true,
+        "hasTableToggle": true,
+        "emptyText": "Error and bias by train\n\nMAE is how wrong, bias is which way",
+        "width": 619
+      },
+      {
+        "id": "calibration-chart",
+        "hasSvg": true,
+        "marks": 4,
+        "label": "Predicted probability against observed rate Calibration bin: 3 points, from 0.3 to 0.8 obs",
+        "series": 1,
+        "hasTable": false,
+        "hasSummary": true,
+        "hasTableToggle": true,
+        "emptyText": "Predicted probability against observed rate\n\nOn the diagonal",
+        "width": 619
+      },
+      {
+        "id": "scatter-chart",
+        "hasSvg": true,
+        "marks": 112,
+        "label": "Predicted delay against actual delay Journey: 111 points, from 4.1 to 50.8 predicted delay",
+        "series": 1,
+        "hasTable": false,
+        "hasSummary": true,
+        "hasTableToggle": true,
+        "emptyText": "Predicted delay against actual delay\n\nEach point is one held",
+        "width": 619
+      },
+      {
+        "id": "residual-chart",
+        "hasSvg": true,
+        "marks": 17,
+        "label": "Residuals: predicted minus actual Residual: 111 points, from -142 to 39.3 journeys, latest",
+        "series": 1,
+        "hasTable": false,
+        "hasSummary": true,
+        "hasTableToggle": true,
+        "emptyText": "Residuals: predicted minus actual\n\nBars right of zero are jo",
+        "width": 619
+      },
+      {
+        "id": "historical-trend",
+        "hasSvg": true,
+        "marks": 2,
+        "label": "Absolute error by journey date Absolute error: 111 points, from 0.4 to 142 absolute error ",
+        "series": 1,
+        "hasTable": false,
+        "hasSummary": true,
+        "hasTableToggle": true,
+        "emptyText": "Absolute error by journey date\n\nOrdered by the date of the j",
+        "width": 619
+      }
+    ],
+    "hscroll": false,
+    "scrollWidth": 768,
+    "clientWidth": 768,
+    "notAvailable": 2
+  },
+  {
+    "role": "ADMIN",
+    "page": "dashboard",
+    "width": 360,
+    "mounts": [],
+    "hscroll": false,
+    "scrollWidth": 360,
+    "clientWidth": 360,
+    "notAvailable": 1
+  },
+  {
+    "role": "ADMIN",
+    "page": "train",
+    "width": 360,
+    "mounts": [],
+    "hscroll": false,
+    "scrollWidth": 360,
+    "clientWidth": 360,
+    "notAvailable": 0
+  },
+  {
+    "role": "ADMIN",
+    "page": "history",
+    "width": 360,
+    "mounts": [
+      {
+        "id": "fleet-trend",
+        "hasSvg": true,
+        "marks": 122,
+        "label": "Predicted delay across successive runs Train 12002: 50 points, from 5.1 to 83.9 minutes, l",
+        "series": 5,
+        "hasTable": false,
+        "hasSummary": true,
+        "hasTableToggle": true,
+        "emptyText": "Predicted delay across successive runs\n\nUp to five trains wi",
+        "width": 322
+      }
+    ],
+    "hscroll": false,
+    "scrollWidth": 360,
+    "clientWidth": 360,
+    "notAvailable": 0
+  },
+  {
+    "role": "ADMIN",
+    "page": "alerts",
+    "width": 360,
+    "mounts": [],
+    "hscroll": false,
+    "scrollWidth": 360,
+    "clientWidth": 360,
+    "notAvailable": 1
+  },
+  {
+    "role": "ADMIN",
+    "page": "simulation",
+    "width": 360,
+    "mounts": [],
+    "hscroll": false,
+    "scrollWidth": 360,
+    "clientWidth": 360,
+    "notAvailable": 1
+  },
+  {
+    "role": "ADMIN",
+    "page": "capabilities",
+    "width": 360,
+    "mounts": [],
+    "hscroll": false,
+    "scrollWidth": 360,
+    "clientWidth": 360,
+    "notAvailable": 1
+  },
+  {
+    "role": "ADMIN",
+    "page": "system",
+    "width": 360,
+    "mounts": [
+      {
+        "id": "baseline-chart",
+        "hasSvg": true,
+        "marks": 4,
+        "label": "Mean absolute error on the held-out split MAE (minutes): 3 points, from 21.8 to 24.7 minut",
+        "series": 1,
+        "hasTable": false,
+        "hasSummary": true,
+        "hasTableToggle": true,
+        "emptyText": "Mean absolute error on the held-out split\n\nLower is better. ",
+        "width": 246
+      },
+      {
+        "id": "coverage-chart",
+        "hasSvg": true,
+        "marks": 3,
+        "label": "Measured interval coverage against its target Coverage: 1 point, from 0.7 to 0.7, latest 0",
+        "series": 0,
+        "hasTable": false,
+        "hasSummary": true,
+        "hasTableToggle": true,
+        "emptyText": "Measured interval coverage against its target\nheld-out split",
+        "width": 246
+      },
+      {
+        "id": "segment-chart",
+        "hasSvg": true,
+        "marks": 25,
+        "label": "Error and bias by train MAE: 12 points, from 5.6 to 48.7 minutes, latest 5.6. Bias: 12 poi",
+        "series": 2,
+        "hasTable": false,
+        "hasSummary": true,
+        "hasTableToggle": true,
+        "emptyText": "Error and bias by train\n\nMAE is how wrong, bias is which way",
+        "width": 246
+      },
+      {
+        "id": "calibration-chart",
+        "hasSvg": true,
+        "marks": 4,
+        "label": "Predicted probability against observed rate Calibration bin: 3 points, from 0.3 to 0.8 obs",
+        "series": 1,
+        "hasTable": false,
+        "hasSummary": true,
+        "hasTableToggle": true,
+        "emptyText": "Predicted probability against observed rate\n\nOn the diagonal",
+        "width": 246
+      },
+      {
+        "id": "scatter-chart",
+        "hasSvg": true,
+        "marks": 112,
+        "label": "Predicted delay against actual delay Journey: 111 points, from 4.1 to 50.8 predicted delay",
+        "series": 1,
+        "hasTable": false,
+        "hasSummary": true,
+        "hasTableToggle": true,
+        "emptyText": "Predicted delay against actual delay\n\nEach point is one held",
+        "width": 246
+      },
+      {
+        "id": "residual-chart",
+        "hasSvg": true,
+        "marks": 17,
+        "label": "Residuals: predicted minus actual Residual: 111 points, from -142 to 39.3 journeys, latest",
+        "series": 1,
+        "hasTable": false,
+        "hasSummary": true,
+        "hasTableToggle": true,
+        "emptyText": "Residuals: predicted minus actual\n\nBars right of zero are jo",
+        "width": 246
+      },
+      {
+        "id": "historical-trend",
+        "hasSvg": true,
+        "marks": 2,
+        "label": "Absolute error by journey date Absolute error: 111 points, from 0.4 to 142 absolute error ",
+        "series": 1,
+        "hasTable": false,
+        "hasSummary": true,
+        "hasTableToggle": true,
+        "emptyText": "Absolute error by journey date\n\nOrdered by the date of the j",
+        "width": 246
+      }
+    ],
+    "hscroll": false,
+    "scrollWidth": 360,
+    "clientWidth": 360,
+    "notAvailable": 2
+  }
+]

@@ -340,3 +340,121 @@ had already reloaded it; the nodemon parent was left alone.
 
 ### Open
 G5 (keep Redis), G6 (route protection), A-20, A-02/A-14/A-17, and Phase 5–7.
+
+---
+
+## Session 6 (2026-10-20): ML frontend chart integration — verification
+
+Phase 5 not started. No database, container, volume or Redis change. **No
+application code was changed in this session**: the work asked for was already
+in the tree, and the honest deliverable is the evidence, not a rewrite.
+
+### 1. The four modules are already connected
+
+| Module | How it reaches the UI |
+|---|---|
+| `format.js` | imported by `ui.js`, `chart-core.js`, `charts.js` and all four page modules |
+| `chart-core.js` | imported by `charts.js` (scales, ticks, paths, downsampling, histogram, table and summary builders) and directly by `pages/admin.js` (`histogram`) and `pages/staff.js` (`bandFor`) |
+| `charts.js` | `renderChart` imported by `pages/passenger.js`, `pages/staff.js`, `pages/admin.js`, `pages/operations.js` |
+| `ui.js` | panels, badges, empty/error/not-available states across every page |
+
+**15 `renderChart` call sites** and 16 declared mounts. Every `chart-core`
+export is consumed by `charts.js`; none is dead.
+
+### 2. Field mappings, checked against live payloads
+
+- `POST /predict/eta` returns `delay_p10_minutes`, `delay_p50_minutes`,
+  `delay_p90_minutes` **and** `predicted_delay_minutes`. Measured on train 12002:
+  `predicted_delay_minutes = delay_p50_minutes = 6.921782546274498`, p10 1.366,
+  p90 26.362. They are the same number by construction —
+  `app/ml/predictor.py:99-101` assigns `predicted_delay_minutes=p50` and
+  `delay_p50_minutes=p50`, and the schema documents the former as "P50 (median)".
+  The passenger interval chart's use of `predicted_delay_minutes` as the median
+  between p10 and p90 is therefore correct, not an approximation.
+- **Stored history rows have no `delay_p50_minutes`** (confirmed absent in
+  `GET /trains/12002/predictions`). `pages/passenger.js` already says so in a
+  comment and uses `predicted_delay_minutes`, with p10/p90 for the band.
+- `GET /model/evaluation` returns **111 real held-out rows** with
+  `p10 / p50 / p90 / actual_delay_minutes / residual_minutes / journey_date /
+  train_number / run_frequency / season`. The admin scatter, residual histogram
+  and by-date trend read exactly those fields.
+- The admin calibration chart's rendered table matched the API byte for byte:
+  45%/30%, 63%/64%, 82%/81% against `mean_predicted` 0.4490 / 0.6331 / 0.8215
+  and `observed_rate` 0.30 / 0.64 / 0.8077.
+
+### 3. Every mount draws, from real data
+
+Signed in as PASSENGER, STAFF and ADMIN at 1280, 768 and 360 (51 page loads):
+
+| Chart | Page | Series | Marks | Accessible name |
+|---|---|---|---|---|
+| `arrival-interval-chart` | passenger train | 1 | 3 | "How late, and how uncertain…" |
+| `history-sparkline` | passenger train/history | 1 | 49–51 | "Predicted delay, earlier runs… 46–48 points" |
+| `band-chart` | staff dashboard | 1 | 6 | "Predicted delay band… 5 points" |
+| `fleet-delay-chart` | staff dashboard | 1 | 8 | "Latest predicted delay by train… 7 points" |
+| `fleet-trend` | staff/admin history | 5 | 122 | "Predicted delay across successive runs… 50 points" |
+| `detail-trend` | staff train detail | 1 | 53 | "Predicted delay for train 12002… 50 points" |
+| `baseline-chart` | admin system | 1 | 4 | "Mean absolute error on the held-out split… 3 points" |
+| `coverage-chart` | admin system | — | 3 | "Measured interval coverage against its target" |
+| `segment-chart` | admin system | 2 | 25 | "Error and bias by train… 12 points each" |
+| `calibration-chart` | admin system | 1 | 4 | "Predicted probability against observed rate… 3 points" |
+| `scatter-chart` | admin system | 1 | 112 | "Predicted delay against actual delay… 111 points" |
+| `residual-chart` | admin system | 1 | 17 | "Residuals: predicted minus actual… 111 points" |
+| `historical-trend` | admin system | 1 | 2 | "Absolute error by journey date… 111 points" |
+
+**No empty mounts. No horizontal scroll at 360, 768 or 1280 on any page for any
+role. Zero console errors and zero page errors across the whole sweep.** Every
+chart carries an aria-label built from the drawn data and a "View as table"
+toggle whose numbers match the API.
+
+A first pass appeared to show `segment-chart` drawing almost nothing. That was
+my instrument, not the product: a legend swatch is also an `<svg>`, so
+`querySelector('svg')` measured the swatch on every multi-series chart. Reading
+`svg.chart-svg` showed 25 marks and the correct label.
+
+### 4. Missing and partial data
+
+- `99999`, a train that does not exist: **0 charts, 0 marks**, and the page says
+  "Train 99999 is not in the…". Nothing is drawn.
+- `12229`, a live train with **0 stored predictions** (confirmed via the API):
+  the history panel falls back to `emptyState('No earlier predictions', …)`.
+- Guards verified in source: `if (!evalData) return`, `if (!rows.length) return`,
+  `finite(intervals.coverage) !== null`, `Array.isArray(curve) && curve.length`,
+  and `.filter(point => point.x !== null && point.y !== null)` on the scatter.
+  Admin feature importance renders `notAvailable(...)` rather than inventing a
+  ranking from measured error.
+
+### 5. Commands and results
+
+| Command | Result |
+|---|---|
+| `node --test tests/` (ML frontend) | **183 passed, 0 failed** — chart-core 49, format 50, ui 63, operations 12, passenger-dashboard 9 |
+| `npm test` (backend) | 27 passed, 0 failed |
+| `pytest -q` | 150 passed |
+| Playwright chart sweep, 3 roles × 3 widths | 51 page loads, 0 console errors, 0 page errors, 0 horizontal scroll |
+
+### 6. Files changed
+
+No source file changed. Added: `reports/figures/audit/charts-*.png` (13
+screenshots), `chart_audit.json`. The sweep scripts live in the session
+scratchpad, not the repository.
+
+### 7. Limitations and disclosures
+
+- **This verification wrote prediction rows.** Exercising the Track page asks
+  the model for a prediction, and the backend persists every prediction. The
+  `predictions` collection went from 135 at the Phase 2 inventory to **150**;
+  roughly 13–14 of those rows come from this session's sweeps. No other
+  collection changed: `users` 23, `live_train_state` 16, `simulation_states` 6,
+  `alerts` 0, all unchanged this session. No schema, index, container or volume
+  was touched.
+- **`scenario-chart` (staff simulation) is verified by reading, not running.**
+  `runScenarioComparison` posts `/predict/eta` several times and has its own
+  "acknowledge the write" checkbox, so running it would write more rows than a
+  verification should. Its mount and mapping were checked in source only.
+- The admin scatter plots p50 against actual and does not draw the p10–p90
+  interval the evaluation rows also carry. That is a design choice, not a
+  mapping error; showing whether each actual fell inside its interval would be
+  new work.
+- `charts.js` itself has no unit test — the suite covers `chart-core`'s pure
+  helpers, and the DOM layer is covered only by this browser sweep.
