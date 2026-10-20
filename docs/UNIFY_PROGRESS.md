@@ -714,3 +714,126 @@ No data or configuration changed, so a revert is complete on its own.
 ### Next: the D4 checkpoint
 Route protection is not implemented. The diff and test plan will be presented for
 explicit approval before anything is applied.
+
+---
+
+## Phase A — Data contract (read-only survey, 2026-10-20, branch `feature/dynamic-site`)
+
+### A0. Corrections to the stated known facts
+
+Six of the nine assumptions in the brief are already fixed by Phases 1–6a and
+were re-verified by grep, not taken on trust:
+
+| Stated fact | Actual state |
+|---|---|
+| `Alerts` holds `initialAlerts` | **Gone.** `Alerts.jsx:7` is `useState([])`, fed by `GET /api/alerts` (`Alerts.jsx:30`). |
+| Hardcoded `localhost` in 6 files | **Gone.** `grep localhost frontend/frontend/src` outside `config.js` → 0 hits. All three origins come from `VITE_*` in [config.js](frontend/frontend/src/config.js). |
+| `/` renders `Register` | **Fixed.** `App.jsx:81` → `<Entry />`. |
+| Inner `<Routes>` has no catch-all | **Fixed.** `App.jsx:180` → `path="*"`. |
+| Node middleware logs the decoded JWT | **Fixed.** [auth.js:44](backend/middleware/auth.js:44) pins `algorithms`, requires `sub` + a known `role`; only the error *message* is logged. |
+| Staff OTP path mismatch | **Moot.** Both `/api/auth/*` identity routes and `/api/staff-auth/*` answer **410 Gone** (D2). |
+| Node + FastAPI share `users`/`alerts` | **Already separated.** Node uses `main_users` ([User.js:64](backend/src/models/User.js:64)) and `main_alerts` ([Alert.js:50](backend/src/models/Alert.js:50)). No other Node collection name collides with FastAPI's (`alerts`, `users`, `predictions`, `reference_trains`, `live_train_state`). |
+
+Still true: **hardcoded arrays remain** in `Dashboard`, `NetworkMap`,
+`ETAPrediction`, `JourneyManagement`, `Simulation`.
+
+### A1. Page → hardcoded data → supplying endpoint
+
+| Page | Hardcoded | Lines | Used? | Endpoint that could supply it |
+|---|---|---|---|---|
+| Dashboard | `stations` (name, code, `[lat,lng]`) | [Dashboard.jsx:38](frontend/frontend/src/pages/Dashboard.jsx:38) | yes, map markers | **MISSING** — no coordinates anywhere. FastAPI `GET /api/v1/reference/stations` returns only `{station_name, serves_trains}` ([reference_repository.py:82](prediction%20model/railpulse-backend/app/db/repositories/reference_repository.py:82)). |
+| Dashboard | `corridors` (arrays of `[lat,lng]`) | [Dashboard.jsx:106](frontend/frontend/src/pages/Dashboard.jsx:106) | yes, polylines | **MISSING** — no route geometry; the dataset has no intermediate stops by design (reference_service docstring). |
+| Dashboard | — | — | — | trains/events/network/alerts already live: `GET /api/trains`, `/api/train-events`, `/api/operations/network`, `/api/alerts` ([Dashboard.jsx:190](frontend/frontend/src/pages/Dashboard.jsx:190)). |
+| NetworkMap | `stations`, `corridors` | [NetworkMap.jsx:39](frontend/frontend/src/pages/NetworkMap.jsx:39), [:112](frontend/frontend/src/pages/NetworkMap.jsx:112) | yes ([:469](frontend/frontend/src/pages/NetworkMap.jsx:469), [:492](frontend/frontend/src/pages/NetworkMap.jsx:492)) | same MISSING gap as Dashboard. |
+| NetworkMap | `trains` (6 fixed numbers + `[lat,lng]`) | [NetworkMap.jsx:168](frontend/frontend/src/pages/NetworkMap.jsx:168) | yes — merged with `backendMapTrains` at [:427](frontend/frontend/src/pages/NetworkMap.jsx:427), so the **hardcoded list decides which trains appear** | `GET /api/trains` exists; the *positions* are MISSING. |
+| ETAPrediction | `trains` (7-field demo objects) | [ETAPrediction.jsx:6](frontend/frontend/src/pages/ETAPrediction.jsx:6) | **no — dead code**, never referenced | nothing needed; delete. Page already uses `getTrains`/`getTrainEvents`/`getTrainETA`. |
+| JourneyManagement | `journeys` | [JourneyManagement.jsx:5](frontend/frontend/src/pages/JourneyManagement.jsx:5) | **no — dead code**, never referenced | nothing needed; delete. Page posts `POST /api/journey/plan`. |
+| Simulation | `scenarios` (3 labels) | [Simulation.jsx:5](frontend/frontend/src/pages/Simulation.jsx:5) | yes ([:62](frontend/frontend/src/pages/Simulation.jsx:62), [:147](frontend/frontend/src/pages/Simulation.jsx:147)) | **MISSING**, but this is a UI vocabulary of what the simulator supports, not demo data. See A2-d. |
+| Alerts, Trains, CommandCenter | none | — | — | already live. |
+
+**Live-update finding:** there is **no Socket.IO client in the React app** —
+`grep socket.io frontend/frontend/src` → 0 hits. The server emits
+`train:update` / alerts ([trainSocket.js:31](backend/src/sockets/trainSocket.js:31)) and nothing listens.
+Phase C's "live parts via the existing Socket.IO" therefore needs
+`socket.io-client` installed (**a dependency install — needs your yes**) or
+polling instead. Recommendation: **poll** for now, socket later as its own step.
+
+### A2. Proposed minimal additions for the MISSING items
+
+**(a) Station geography — the only real data gap.** Both maps need
+`{code, name, lat, lng}`. Nothing in either database has a coordinate. Minimal
+honest option, reusing the existing Node stack:
+
+New model `backend/src/models/Station.js` → collection **`main_stations`**
+(prefix matches the existing convention), route `GET /api/stations`:
+
+    [ { "code": "NDLS", "name": "New Delhi", "lat": 28.6139, "lng": 77.2090,
+        "zone": "NR", "dataSource": "SEED" } ]
+
+**(b) Corridors.** Rather than invent route geometry, store the ordered station
+codes and let the client resolve them to coordinates from (a). Collection
+**`main_corridors`**, route `GET /api/corridors`:
+
+    [ { "id": "delhi-mumbai", "name": "Delhi – Mumbai",
+        "stations": ["NDLS","GGN","RE","JP","KOTA","RTM","ST","BCT"],
+        "dataSource": "SEED" } ]
+
+This keeps one source of truth for coordinates and makes the client's
+`corridor.stations.map(lookup)` the only geometry code.
+
+**(c) Train positions.** No position exists today. `TrainEvent` already carries
+`station` ([TrainEvent.js:11](backend/src/models/TrainEvent.js:11)), so a
+position can be *derived* — `station → main_stations.lat/lng` — with no new
+field and no invented data. Trains whose latest event names an unknown station
+simply do not get a marker, which is the honest outcome. **No new endpoint**;
+this is client-side joining in Phase C.
+
+**(d) Simulation scenarios.** The three entries describe the branches
+`POST /api/simulation/{passenger,staff}` actually implements. Moving them to the
+server would be ceremony, not dynamism. **Recommendation: leave them in the
+source as a documented UI constant**, moved to `src/constants/scenarios.js`, and
+record the decision. Tell me if you want an endpoint instead.
+
+### A3. Proposed seed script (dry-run by default)
+
+`backend/scripts/seed-demo.js`, run as:
+
+    node scripts/seed-demo.js              # dry run: prints a plan, writes nothing
+    node scripts/seed-demo.js --apply      # writes (asks for your yes first)
+    node scripts/seed-demo.js --apply --reset   # replaces seeded docs only
+
+Behaviour:
+- Writes **only** `main_stations`, `main_corridors`, `trains`, `trainevents`,
+  `main_alerts`. Never touches `users`, `main_users`, `live_train_state`,
+  `reference_trains`, `predictions`, `alerts`.
+- Every document carries `dataSource: "SEED"`; `--reset` deletes by that marker
+  only, so hand-entered rows survive.
+- Idempotent via `updateOne(..., {upsert:true})` keyed on `trainNumber` / `code` / `id`.
+- Dry run prints a per-collection table: existing count → inserts → updates → final.
+- Reuses the existing mongoose models and `connectDB`; no new dependency.
+- Content: ~12 stations and 3 corridors (the coordinates currently in the two
+  page files, which is where the only station geography in this repo lives),
+  ~8 trains from the FastAPI reference catalogue so numbers match the ML app,
+  one `TrainEvent` per train, 3 alerts.
+- Does **not** create accounts. Staff seeding stays with Phase D gate G3.
+
+### A4. Decisions needed from you before Phase B
+
+1. Approve A2 (a)–(d) and A3 as written.
+2. **D-A1:** Simulation scenarios — source constant (my recommendation) or endpoint?
+3. **D-A2:** Phase C live updates — poll (no install) or install `socket.io-client`?
+4. Station coordinates come from the existing page source. Confirm that is the
+   intended provenance; there is no other source in this repo.
+
+### Commands used (all read-only)
+
+    grep -rn "const .*= \[" frontend/frontend/src/pages/
+    grep -rn "router\.\(get\|post\)" backend/src/routes/
+    grep -rn "@router\." "prediction model/railpulse-backend/app/api/routes/"
+    grep -rn "super().__init__" "prediction model/railpulse-backend/app/db/repositories/"
+    grep -rn "mongoose.model(" backend/src/models/
+
+### Status
+
+- **Done:** Phase A survey. No code changed; this document is the only edit.
+- **Next:** Phase B (data layer) once A4 is answered. Stopping here as instructed.
