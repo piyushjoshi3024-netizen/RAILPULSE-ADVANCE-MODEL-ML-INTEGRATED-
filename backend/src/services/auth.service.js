@@ -83,36 +83,7 @@ const loginUser = async ({ email, password }) => {
   };
 };
 
-/**
- * The user behind a verified token.
- *
- * The token carries only an id and a role, so anything the UI shows about the
- * person -- their name, their email -- has to be read back from the database
- * rather than echoed out of the token.
- */
-const getUserById = async (userId) => {
-  const user = await User.findById(userId).select(
-    "-password -otp -otpExpiresAt"
-  );
-
-  if (!user) {
-    const error = new Error("User not found");
-    error.statusCode = 404;
-    throw error;
-  }
-
-  return {
-    id: user._id,
-    name: user.name,
-    email: user.email,
-    role: user.role,
-    employeeId: user.employeeId,
-    isStaffVerified: user.isStaffVerified,
-  };
-};
-
 module.exports = {
   registerUser,
   loginUser,
-  getUserById,
 };

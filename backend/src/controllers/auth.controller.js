@@ -154,19 +154,18 @@ const login = async (req, res) => {
 // GET CURRENT USER
 // ===============================
 
+/**
+ * Legacy. FastAPI is the identity provider now, and Node has no record of the
+ * people it authenticates, so the verified token's own claims are the only
+ * thing this endpoint can honestly answer with. The browser reads the full
+ * profile from FastAPI's /auth/me instead.
+ */
 const getMe = async (req, res) => {
-  try {
-    const user = await authService.getUserById(req.user.userId);
-
-    return res.json({
-      message: "Authenticated user",
-      user,
-    });
-  } catch (error) {
-    return res.status(error.statusCode || 500).json({
-      message: error.message || "Could not load the current user",
-    });
-  }
+  return res.json({
+    message: "Authenticated user",
+    user: req.user,
+    identityProvider: "fastapi",
+  });
 };
 
 // ===============================
