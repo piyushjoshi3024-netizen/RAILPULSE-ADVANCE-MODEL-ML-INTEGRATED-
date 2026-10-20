@@ -57,9 +57,33 @@ const navigation = [
   },
 ];
 
+// Phase 6 moves this into configuration.
+const ML_APP_URL = "http://localhost:3000";
+
 function Sidebar() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+
+  /**
+   * Open the ML app already signed in.
+   *
+   * The token travels in the URL fragment, which browsers never send to a
+   * server, and the ML app strips it from the address as soon as it has read
+   * it. It is built at click time rather than rendered into an href, so the
+   * token is not sitting in the DOM waiting to be read. Without a token the
+   * link still works -- the ML app simply asks for a login.
+   */
+  const openMlApp = (event) => {
+    event.preventDefault();
+
+    const token = localStorage.getItem("token");
+
+    window.location.assign(
+      token
+        ? `${ML_APP_URL}/#/sso?token=${encodeURIComponent(token)}`
+        : `${ML_APP_URL}/#/`
+    );
+  };
 
   const handleLogout = () => {
     logout();
@@ -142,7 +166,8 @@ function Sidebar() {
           })}
 
           <a
-            href="http://localhost:3000"
+            href={ML_APP_URL}
+            onClick={openMlApp}
             className="flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all text-slate-700 hover:bg-orange-50 hover:text-orange-600"
           >
             <Clock3 size={19} strokeWidth={2} />

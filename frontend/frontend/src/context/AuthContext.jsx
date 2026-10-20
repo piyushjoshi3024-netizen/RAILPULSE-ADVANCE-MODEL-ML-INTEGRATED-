@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import api from "../services/api";
+import authApi from "../services/authApi";
 
 const AuthContext = createContext(null);
 
@@ -17,12 +17,14 @@ export function AuthProvider({ children }) {
 
         const verifyUser = async () => {
             try {
-                const response = await api.get("/auth/me");
+                // FastAPI answers with the user object itself:
+                // { username, role, full_name }.
+                const response = await authApi.get("/auth/me");
 
-                setUser(response.data.user);
+                setUser(response.data);
                 localStorage.setItem(
                     "user",
-                    JSON.stringify(response.data.user)
+                    JSON.stringify(response.data)
                 );
             } catch (error) {
                 console.error("Authentication verification failed");

@@ -1,14 +1,16 @@
 import { useState } from "react";
 import { TrainFront } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import api from "../services/api";
+import authApi, { authErrorMessage } from "../services/authApi";
 
 function Login() {
     const navigate = useNavigate();
+    const location = useLocation();
+    const notice = location.state?.notice;
     const { login } = useAuth();
 
-    const [email, setEmail] = useState("");
+    const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
 
     const [loading, setLoading] = useState(false);
@@ -21,22 +23,20 @@ function Login() {
         setError("");
 
         try {
-            const response = await api.post("/auth/login", {
-                email,
+            // FastAPI is the only identity provider for both applications.
+            const response = await authApi.post("/auth/login", {
+                username,
                 password,
             });
 
-            const { token, user } = response.data;
+            const { access_token: accessToken, user } = response.data;
 
-            login(token, user);
+            login(accessToken, user);
 
             navigate("/dashboard");
         } catch (error) {
-            console.error(error);
-
             setError(
-                error.response?.data?.message ||
-                "Invalid email or password"
+                authErrorMessage(error, "Invalid username or password")
             );
         } finally {
             setLoading(false);
@@ -152,8 +152,11 @@ function Login() {
                                 >
 
                                     <div>
-                                        <label className="block text-sm font-semibold text-black mb-2">
-                                            Email
+                                        <label
+                                            htmlFor="login-username"
+                                            className="block text-sm font-semibold text-black mb-2"
+                                        >
+                                            Username
                                         </label>
 
                                         <div className="relative">
@@ -167,25 +170,22 @@ function Login() {
                                                     stroke="currentColor"
                                                     strokeWidth="2"
                                                 >
-                                                    <rect
-                                                        x="3"
-                                                        y="5"
-                                                        width="18"
-                                                        height="14"
-                                                        rx="2"
-                                                    />
+                                                    <circle cx="12" cy="8" r="4" />
 
-                                                    <path d="m3 7 9 6 9-6" />
+                                                    <path d="M4 21a8 8 0 0 1 16 0" />
                                                 </svg>
                                             </div>
 
                                             <input
-                                                type="email"
-                                                value={email}
+                                                id="login-username"
+                                                name="username"
+                                                type="text"
+                                                autoComplete="username"
+                                                value={username}
                                                 onChange={(e) =>
-                                                    setEmail(e.target.value)
+                                                    setUsername(e.target.value)
                                                 }
-                                                placeholder="Enter email"
+                                                placeholder="Enter username"
                                                 required
                                                 className="w-full pl-11 pr-4 py-3.5 border border-gray-300 rounded-xl outline-none bg-white !text-black !placeholder:text-gray-400 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all"
                                             />
@@ -222,7 +222,10 @@ function Login() {
                                             </div>
 
                                             <input
+                                                id="login-password"
+                                                name="password"
                                                 type="password"
+                                                autoComplete="current-password"
                                                 value={password}
                                                 onChange={(e) =>
                                                     setPassword(e.target.value)
@@ -234,6 +237,12 @@ function Login() {
 
                                         </div>
                                     </div>
+
+                                    {notice && !error && (
+                                        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl text-sm">
+                                            {notice}
+                                        </div>
+                                    )}
 
                                     {error && (
                                         <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl text-sm">

@@ -60,6 +60,9 @@ function isAuthRoute(path) { return path.startsWith('/login') || path === '/regi
 
 function render() {
     const path = route();
+    // The sign-in handoff has to be answered before the session checks below,
+    // because the whole point is that there is no session yet.
+    if (path.startsWith('/sso')) return acceptHandoff(path);
     const currentSession = session();
     if (!currentSession && !isAuthRoute(path)) return navigate('/login/user');
     if (currentSession && isAuthRoute(path)) return navigate(`/${rolePrefix[currentSession.user.role]}/dashboard`);
@@ -69,6 +72,41 @@ function render() {
     const expectedRole = path.split('/')[1]?.toUpperCase();
     if (currentSession?.user.role !== expectedRole) return renderAccessDenied();
     renderShell(path);
+}
+
+/**
+ * Accept a session handed over from the main RailPulse site.
+ *
+ * The token arrives in the URL fragment, which the browser never sends to any
+ * server. It is stripped from the address immediately -- before the token is
+ * even used -- so it does not sit in the visible URL, and a copied link
+ * carries nothing. The token is then checked against /auth/me rather than
+ * trusted: an expired or forged one signs nobody in, it just lands on the
+ * login page. The weakness that remains is that the fragment existed in this
+ * tab's history for an instant; a one-time code exchanged server-side would
+ * close that, at the cost of a new endpoint.
+ */
+async function acceptHandoff(path) {
+    const token = new URLSearchParams(path.split('?')[1] || '').get('token');
+    window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
+
+    if (!token) return navigate('/login/user');
+
+    app.innerHTML = `<main class="center-state"><div class="empty-icon">${icons.pulse}</div><p class="eyebrow">Signing you in</p><h1>Opening RailPulse&hellip;</h1></main>`;
+
+    // The API layer reads the token out of the stored session, so it has to be
+    // stored before it can be validated. A failed check clears it again.
+    setSession({ accessToken: token, user: { username: '', role: 'PASSENGER' } });
+
+    try {
+        const user = await api.get('/auth/me');
+        if (!user || !rolePrefix[user.role]) throw new ApiError('Unknown role', 401);
+        setSession({ accessToken: token, user });
+        navigate(`/${rolePrefix[user.role]}/dashboard`);
+    } catch {
+        clearSession();
+        navigate('/login/user');
+    }
 }
 
 function renderLanding() {
