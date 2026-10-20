@@ -626,3 +626,91 @@ request is in the report for the user to run or to permit.
 
   then let nodemon reload. The eleven new collections stay behind as empty
   leftovers and need separate approval to drop.
+
+---
+
+## Session 9 (2026-10-20): Phase 6a + D2
+
+Approved scope only. Redis untouched, `railpulse_node` untouched, no database
+write, no Docker or volume change, nothing installed, no migration. The D4
+route-protection work is **not started**: it waits at the checkpoint.
+
+### Commits
+| Commit | Content |
+|---|---|
+| `186dde6` | Phase 6a: cross-app sign-out, 401 handling, re-registration messaging, configurable origins, truthful health, mobile drawer, honest empty states |
+| `62c9bc9` | D2: the five Express identity endpoints answer 410 Gone |
+
+### Files changed
+**New:** `frontend/frontend/src/config.js`, `frontend/frontend/.env.example`,
+`frontend/frontend/src/services/session.js`,
+`frontend/frontend/src/services/interceptors.js`,
+`frontend/frontend/src/hooks/useServiceHealth.js`, `backend/middleware/gone.js`.
+
+**Changed:** `services/api.js`, `services/authApi.js`, `services/authService.js`,
+`context/AuthContext.jsx`, `pages/Login.jsx`, `pages/Dashboard.jsx`,
+`pages/StaffRegister.jsx`, `pages/StaffOTP.jsx`, `components/layout/Sidebar.jsx`,
+`components/layout/Header.jsx`, `components/layout/MainLayout.jsx`;
+ML app `js/config.js`, `js/app.js`, `css/style.css`;
+`backend/src/routes/auth.routes.js`, `backend/src/routes/staffAuth.routes.js`.
+
+### D1 — cross-app sign-out, and why it is a visible round trip
+Storage is per origin, so the main site cannot clear the ML app's. A hidden
+iframe was rejected deliberately: it is a third-party context whose storage the
+browser partitions separately, so it would clear a copy nobody uses and report
+success — exactly the false claim the instruction warned against. The reliable
+mechanism is a top-level visit to the ML app's `#/logout?return=…`, which clears
+its own storage and returns. It only happens when this browser actually handed a
+session over (`railpulse.mlHandoff`), so an ordinary sign-out stays instant. The
+return address is accepted only when it is on the configured main origin, so the
+route cannot be used as an open redirect.
+
+**Measured:** after signing out on the main site, the ML app's
+`sessionStorage`/`localStorage` session is **gone** and it lands on `#/login/user`.
+
+### D3 — recorded limitation
+Sign-out clears both clients. **It does not revoke the token server-side.** A
+copy taken before sign-out stays valid until it expires, 60 minutes after it was
+issued. No denylist was added, as decided.
+
+### D2 — the caller check found callers
+`StaffRegister.jsx` and `StaffOTP.jsx` still posted to the staff registration and
+OTP routes. They are unlinked but reachable by URL, so they were changed to state
+the policy rather than submit into a 410. The flows sit behind
+`STAFF_SELF_REGISTRATION_OPEN` / `STAFF_VERIFICATION_OPEN` instead of being deleted.
+
+Measured: `POST /api/auth/register`, `/api/auth/login`, `/api/auth/register-staff`,
+`/api/staff-auth/send-otp`, `/api/staff-auth/verify-otp` → **410** each, and
+`railpulse.main_users` is still **0** afterwards. `GET /api/auth/me` still answers
+401 without a token.
+
+### Test results
+| Check | Result |
+|---|---|
+| Phase 6a browser verification (read-only) | **30 passed, 0 failed** |
+| ML app staff/admin regression (read-only) | **20 passed, 0 failed** |
+| Node `npm test` | 27 passed |
+| ML frontend `npm test` | 202 passed |
+| `pytest -q` | 150 passed |
+| React build | passed |
+| React lint | **11 problems (9 errors, 2 warnings)** — the pre-existing baseline, unchanged |
+
+Highlights from the browser run: no horizontal scroll at **360, 768 or 1280** with
+the drawer open or closed; hamburger present only below md; Escape closes and
+returns focus; a dead token lands on `/login?expired=1`, says the session ended
+and clears the token; a wrong password stays on the form and explains the account
+reset; ML staff and admin pages render at 360 and 1280 with their charts and no
+console errors.
+
+### Known honest states, not defects
+The main site shows zeroes and "No trains to show" because Phase 5 started fresh
+and the demo seed is still pending by decision D5.
+
+### Rollback
+    git revert 62c9bc9        # D2 only
+    git revert 186dde6        # Phase 6a only
+No data or configuration changed, so a revert is complete on its own.
+
+### Next: the D4 checkpoint
+Route protection is not implemented. The diff and test plan will be presented for
+explicit approval before anything is applied.
