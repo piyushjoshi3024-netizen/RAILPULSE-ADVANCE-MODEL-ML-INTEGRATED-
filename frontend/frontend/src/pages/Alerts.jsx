@@ -1,65 +1,7 @@
 import { useEffect, useState } from "react";
-import { getAlert } from "../services/alertService";
-import { getTrainById } from "../services/trainService";
+import { getTrains } from "../services/trainService";
+import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
-
-const initialAlerts = [
-  {
-    id: 1,
-    title: "Train 12951 delayed",
-    type: "Train Delay",
-    severity: "HIGH",
-    location: "Surat",
-    time: "2 min ago",
-    description:
-      "Mumbai Rajdhani is currently running 18 minutes behind schedule.",
-    status: "ACTIVE",
-  },
-  {
-    id: 2,
-    title: "Platform congestion",
-    type: "Platform",
-    severity: "MEDIUM",
-    location: "New Delhi",
-    time: "8 min ago",
-    description:
-      "Increased platform occupancy detected at New Delhi station.",
-    status: "ACTIVE",
-  },
-  {
-    id: 3,
-    title: "Signal issue detected",
-    type: "Signal",
-    severity: "CRITICAL",
-    location: "Kota",
-    time: "14 min ago",
-    description:
-      "Signal irregularity detected on the active railway corridor.",
-    status: "ACTIVE",
-  },
-  {
-    id: 4,
-    title: "Train 12002 minor delay",
-    type: "Train Delay",
-    severity: "LOW",
-    location: "Agra",
-    time: "22 min ago",
-    description:
-      "Bhopal Shatabdi is running approximately 3 minutes behind schedule.",
-    status: "RESOLVED",
-  },
-  {
-    id: 5,
-    title: "Traffic density increased",
-    type: "Traffic",
-    severity: "MEDIUM",
-    location: "Jaipur",
-    time: "31 min ago",
-    description:
-      "Higher than normal train traffic detected around the Jaipur corridor.",
-    status: "ACTIVE",
-  },
-];
 
 function Alerts() {
   const [alerts, setAlerts] = useState([]);
@@ -73,44 +15,66 @@ function Alerts() {
   const canManageAlerts =
     user?.role === "STAFF" || user?.role === "ADMIN";
 
+  const [loadError, setLoadError] = useState("");
+
   useEffect(() => {
-    const loadAlert = async () => {
+    // Read the alerts the backend has stored. The previous version asked for
+    // one hardcoded train id, and that endpoint does not read an alert -- it
+    // creates one -- so opening this page wrote a row every time.
+    const loadAlerts = async () => {
       try {
         setLoading(true);
+        setLoadError("");
 
-        const trainId = "6a9d5a64a663314c1afeaa69";
-
-        const [alertResponse, trainResponse] = await Promise.all([
-          getAlert(trainId),
-          getTrainById(trainId),
+        const [alertsResponse, trainsResponse] = await Promise.all([
+          api.get("/alerts"),
+          getTrains(),
         ]);
 
-        const backendAlert = alertResponse.data;
-        const train = trainResponse.data;
+        const trainsById = new Map(
+          (trainsResponse.data || []).map((train) => [
+            String(train._id),
+            train,
+          ])
+        );
 
-        const formattedAlert = {
-          id: backendAlert._id,
-          title: `Train ${train.trainNumber} delayed`,
-          type: backendAlert.alertType,
-          severity: backendAlert.severity,
-          location: backendAlert.affectedSection,
-          time: new Date(
-            backendAlert.createdAt
-          ).toLocaleTimeString(),
-          description: backendAlert.message,
-          status: "ACTIVE",
-        };
+        const formatted = (alertsResponse.data || []).map((alert) => {
+          const train = trainsById.get(String(alert.trainId));
 
-        setAlerts([formattedAlert]);
+          return {
+            id: alert._id,
+            title: train
+              ? `Train ${train.trainNumber} delayed`
+              : "Train delay detected",
+            type: alert.alertType || "ALERT",
+            severity: alert.severity || "LOW",
+            location:
+              alert.affectedSection ||
+              train?.currentStation ||
+              train?.source ||
+              "Unknown",
+            time: alert.createdAt
+              ? new Date(alert.createdAt).toLocaleTimeString()
+              : "Unknown",
+            description: alert.message || "",
+            status: "ACTIVE",
+          };
+        });
+
+        setAlerts(formatted);
       } catch (error) {
-        console.error("Failed to load alert:", error);
+        console.error("Failed to load alerts:", error);
+        setLoadError(
+          error.response?.data?.message ||
+          "Alerts could not be loaded from the backend."
+        );
         setAlerts([]);
       } finally {
         setLoading(false);
       }
     };
 
-    loadAlert();
+    loadAlerts();
   }, []);
 
   /* ---------------------------------------------
@@ -379,7 +343,33 @@ function Alerts() {
 
         {/* ALERTS */}
 
-        {filteredAlerts.length === 0 ? (
+        {loading ? (
+
+          <div className="p-12 text-center">
+
+            <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-orange-200 border-t-orange-500" />
+
+            <p className="mt-4 text-sm text-slate-500">
+              Loading alerts...
+            </p>
+
+          </div>
+
+        ) : loadError ? (
+
+          <div className="p-12 text-center">
+
+            <p className="font-semibold text-red-600">
+              {loadError}
+            </p>
+
+            <p className="mt-1 text-sm text-slate-400">
+              Check that the API is running, then reload the page.
+            </p>
+
+          </div>
+
+        ) : filteredAlerts.length === 0 ? (
 
           <div className="p-12 text-center">
 
