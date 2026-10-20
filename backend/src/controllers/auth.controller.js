@@ -155,10 +155,18 @@ const login = async (req, res) => {
 // ===============================
 
 const getMe = async (req, res) => {
-  return res.json({
-    message: "Authenticated user",
-    user: req.user,
-  });
+  try {
+    const user = await authService.getUserById(req.user.userId);
+
+    return res.json({
+      message: "Authenticated user",
+      user,
+    });
+  } catch (error) {
+    return res.status(error.statusCode || 500).json({
+      message: error.message || "Could not load the current user",
+    });
+  }
 };
 
 // ===============================
