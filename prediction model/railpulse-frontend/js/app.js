@@ -130,6 +130,17 @@ async function renderPage(role, page) {
         if (page === 'dashboard') return renderAdminDashboard(content).then(() => mountDemoPanel(role));
         if (page === 'system') return renderAdminSystem(content);
     }
+    // Below here are the generic fallbacks. Reaching them by role block is
+    // impossible for dashboard/train/history/alerts, but a hash typed by hand
+    // -- #/passenger/simulation, say -- lands here, and a PASSENGER was being
+    // served the staff simulation form. FastAPI refuses the data either way;
+    // the surface should not render either.
+    if (['simulation', 'capabilities'].includes(page) && role !== 'STAFF' && role !== 'ADMIN') {
+        return renderNotFound(content);
+    }
+    if (page === 'system' && role !== 'ADMIN') {
+        return renderNotFound(content);
+    }
     if (page === 'dashboard') return renderDashboard(content, role);
     if (page === 'train') return renderTrain(content, role);
     if (page === 'history') return renderHistory(content);
