@@ -37,6 +37,11 @@ function CommandCenter() {
   const [recoveryData, setRecoveryData] = useState(null);
   const [networkLoad, setNetworkLoad] = useState(0);
 
+  // Which train the risk, bottleneck, propagation and recovery panels describe.
+  // It used to be one id written into the source, so the panels described the
+  // same train no matter which one was on screen.
+  const [operationsTrainId, setOperationsTrainId] = useState(null);
+
   useEffect(() => {
     const loadTrainData = async () => {
       try {
@@ -129,6 +134,7 @@ function CommandCenter() {
 
           return {
             id: train.trainNumber,
+            trainId: String(train._id),
             name: train.trainName,
             type: train.trainType || "UNKNOWN",
             status:
@@ -147,6 +153,10 @@ function CommandCenter() {
         });
 
         setTrains(mapTrains);
+
+        if (mapTrains.length > 0) {
+          setOperationsTrainId((current) => current || mapTrains[0].trainId);
+        }
       } catch (error) {
         console.error("Failed to load train data:", error);
       }
@@ -156,11 +166,13 @@ function CommandCenter() {
   }, []);
 
   useEffect(() => {
+    if (!operationsTrainId) {
+      return;
+    }
+
     const loadRisk = async () => {
       try {
-        const response = await getRisk(
-          "6a9d5a64a663314c1afeaa69"
-        );
+        const response = await getRisk(operationsTrainId);
 
         setRiskData(response.data);
       } catch (error) {
@@ -170,14 +182,16 @@ function CommandCenter() {
     };
 
     loadRisk();
-  }, []);
+  }, [operationsTrainId]);
 
   useEffect(() => {
+    if (!operationsTrainId) {
+      return;
+    }
+
     const loadBottleneck = async () => {
       try {
-        const response = await getBottleneck(
-          "6a9d5a64a663314c1afeaa69"
-        );
+        const response = await getBottleneck(operationsTrainId);
 
         setBottleneckData(response.data);
       } catch (error) {
@@ -187,14 +201,16 @@ function CommandCenter() {
     };
 
     loadBottleneck();
-  }, []);
+  }, [operationsTrainId]);
 
   useEffect(() => {
+    if (!operationsTrainId) {
+      return;
+    }
+
     const loadPropagation = async () => {
       try {
-        const response = await getPropagation(
-          "6a9d5a64a663314c1afeaa69"
-        );
+        const response = await getPropagation(operationsTrainId);
 
         setPropagationData(response.data);
       } catch (error) {
@@ -204,14 +220,16 @@ function CommandCenter() {
     };
 
     loadPropagation();
-  }, []);
+  }, [operationsTrainId]);
 
   useEffect(() => {
+    if (!operationsTrainId) {
+      return;
+    }
+
     const loadRecovery = async () => {
       try {
-        const response = await getRecovery(
-          "6a9d5a64a663314c1afeaa69"
-        );
+        const response = await getRecovery(operationsTrainId);
 
         setRecoveryData(response.data);
       } catch (error) {
@@ -221,10 +239,15 @@ function CommandCenter() {
     };
 
     loadRecovery();
-  }, []);
+  }, [operationsTrainId]);
 
   const [trainFilter, setTrainFilter] = useState("ALL");
   const [incidentFilter, setIncidentFilter] = useState("ALL");
+
+  const operationsTrainName = (() => {
+    const train = trains.find((item) => item.trainId === operationsTrainId);
+    return train ? `Train ${train.id}` : "This train";
+  })();
 
   const activeIncidents = incidents.filter(
     (incident) => incident.status !== "RESOLVED"
@@ -324,6 +347,7 @@ function CommandCenter() {
 
         return {
           id: train.trainNumber,
+          trainId: String(train._id),
           name: train.trainName,
           type: train.trainType || "UNKNOWN",
           status:
@@ -505,7 +529,10 @@ function CommandCenter() {
 
                     <td className="px-5 py-4">
                       <button
-                        onClick={() => setSelectedTrain(train)}
+                        onClick={() => {
+                          setSelectedTrain(train);
+                          setOperationsTrainId(train.trainId);
+                        }}
                         className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
                       >
                         Details
@@ -644,7 +671,7 @@ function CommandCenter() {
             title="Delay Risk"
             text={
               riskData
-                ? `Train 12951 has ${riskData.riskLevel.toLowerCase()} delay risk with a risk score of ${riskData.riskScore}.`
+                ? `${operationsTrainName} has ${riskData.riskLevel.toLowerCase()} delay risk with a risk score of ${riskData.riskScore}.`
                 : "Risk data unavailable."
             }
           />
