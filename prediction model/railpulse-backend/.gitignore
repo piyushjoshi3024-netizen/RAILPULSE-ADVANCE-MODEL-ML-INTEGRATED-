@@ -51,3 +51,9 @@ dist/
 data/processed/
 data/raw/
 models/
+
+# Per-row evaluation export, rewritten by every training run (Phase 4 / gate D3).
+# Only this one file: reports/eda.md, reports/model_comparison.md and
+# reports/figures/ stay tracked. GET /api/v1/model/evaluation returns
+# 404 evaluation_unavailable when it is absent.
+reports/evaluation.json

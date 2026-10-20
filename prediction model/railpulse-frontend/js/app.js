@@ -12,6 +12,7 @@ import {
 import {
     renderStaffCapabilities, renderStaffSimulation, runScenarioComparison,
 } from './pages/operations.js';
+import { renderAdminDashboard, renderAdminSystem } from './pages/admin.js';
 
 const app = document.querySelector('#app');
 let healthTimer;
@@ -112,14 +113,22 @@ async function renderPage(role, page) {
         if (page === 'history') return renderPassengerHistory(content);
         if (page === 'alerts') return renderPassengerAlerts(content);
     }
-    // ADMIN keeps the existing renderers until Phase 4; only STAFF moves here.
-    if (role === 'STAFF') {
-        if (page === 'dashboard') return renderStaffDashboard(content);
+    // Staff and admin share the operational pages; admin additionally gets the
+    // model and evaluation surface, and its own service-state dashboard.
+    if (role === 'STAFF' || role === 'ADMIN') {
         if (page === 'train') return renderStaffTrains(content);
         if (page === 'history') return renderStaffHistory(content);
         if (page === 'alerts') return renderStaffAlerts(content);
         if (page === 'simulation') return renderStaffSimulation(content);
         if (page === 'capabilities') return renderStaffCapabilities(content);
+    }
+    if (role === 'STAFF' && page === 'dashboard') {
+        // The demo controls lived on the old shared dashboard; staff keep them.
+        return renderStaffDashboard(content).then(() => mountDemoPanel(role));
+    }
+    if (role === 'ADMIN') {
+        if (page === 'dashboard') return renderAdminDashboard(content).then(() => mountDemoPanel(role));
+        if (page === 'system') return renderAdminSystem(content);
     }
     if (page === 'dashboard') return renderDashboard(content, role);
     if (page === 'train') return renderTrain(content, role);
@@ -129,6 +138,19 @@ async function renderPage(role, page) {
     if (page === 'capabilities') return renderCapabilities(content);
     if (page === 'system') return renderSystem(content);
     renderNotFound(content);
+}
+
+/**
+ * Mount the existing demo-data controls into the admin dashboard.
+ *
+ * These are pre-existing, server-role-guarded controls (seed and refresh are
+ * STAFF+, reset is ADMIN only) and are kept exactly as they were; only their
+ * host page changed.
+ */
+async function mountDemoPanel(role) {
+    const mount = document.querySelector('#admin-demo-panel');
+    if (!mount) return;
+    mount.innerHTML = await demoEnvironmentPanel(role);
 }
 
 async function renderDashboard(content, role) {

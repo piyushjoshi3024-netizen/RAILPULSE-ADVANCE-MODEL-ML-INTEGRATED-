@@ -5,7 +5,7 @@ Resume point for a fresh session. One phase per message; do not start the next p
 - Branch: `feature/ml-dashboards` (created from `feature/real-data-ml` @ `381fa84`)
 - Scratch dir (not committed): `/tmp/claude-1000/-home-ritik-Desktop-RAILPULSE-ADVANCE-MODEL-ML-INTEGRATED-/0e8d691c-1dc1-45d6-9435-d07e942d7053/scratchpad`
   - `metrics_before.json`, `metadata_run1.json`, `metadata_run2.json`, `fixtures/*.json` (real API responses), `openapi_before.json`
-- Last updated: 2026-10-20 — end of Phase 3
+- Last updated: 2026-10-20 — end of Phase 4
 
 ---
 
@@ -16,8 +16,8 @@ Resume point for a fresh session. One phase per message; do not start the next p
 | 0 Inspect, baseline, plan | Done (commit `9af23ee`) |
 | 1 Foundations | Done (commit `4b1395d`) |
 | 2 Passenger | Done (commit `9bcd472`) |
-| 3 Staff | **Done (this commit)** |
-| 4 Admin + D3 | Not started |
+| 3 Staff | Done (commit `09872d7`) |
+| 4 Admin + D3 | **Done (this commit)** |
 | 5 Verification + report | Not started |
 
 ---
@@ -819,3 +819,146 @@ Per-train held-out error and the calibration curve come from the public `/health
 D3. If D3 proceeds: implement the evaluation export plus the ADMIN-only endpoint, apply the one-line
 `.gitignore` change shown above, then prove `metadata["metrics"]` is byte-identical before and after
 (not `artifact_sha256`, which is not reproducible) and that `openapi.json` differs only by the new route.
+
+
+---
+
+## Phase 4 — admin experience and gate D3 (done)
+
+### D3 — implemented as proposed
+
+**(a) `training/trainer.py`** gains `_write_evaluation_export`, called from `run()` after the
+metadata is built. It only reads arrays the evaluation already produced; nothing is fitted, scored or
+re-ordered. A write failure is logged and swallowed, so a reporting convenience can never cost a
+completed training run. Output: `reports/evaluation.json` — dataset, split, model, the aggregates
+verbatim, the 15-row candidate table, and 111 per-row records
+`{journey_date, train_number, season, run_frequency, actual_delay_minutes, p10, p50, p90,
+p_delay_gt_15, residual_minutes}`.
+
+**(b) `app/api/routes/model.py`** — `GET /api/v1/model/evaluation`, ADMIN only, read-only, returns
+the file as-is or `404 {"detail": "evaluation_unavailable"}`. One line added to `app/main.py`.
+
+**`.gitignore`** — the reviewed one-line change applied. `reports/evaluation.json` (48,700 bytes) is
+now present on disk and absent from `git status`; all 7 tracked files under `reports/` remain tracked.
+
+#### Proof 1 — training metrics unchanged
+
+```
+Phase 0 metrics sha256 : 5b3b842f829f73832398d3daa2b23b417227f238109df341c9eafbebb793a57d
+Phase 4 metrics sha256 : 5b3b842f829f73832398d3daa2b23b417227f238109df341c9eafbebb793a57d
+BYTE-IDENTICAL         : True
+export aggregates match metadata metrics: True
+```
+
+Compared against `metrics_before.json` captured in Phase 0, *before any change in this branch*.
+As specified, the comparison targets `metadata["metrics"]`, not `artifact_sha256`, which is not
+byte-reproducible.
+
+Independent check that the exported rows are the real held-out predictions, not a re-derivation:
+
+```
+recomputed P10-P90 coverage from the 111 rows : 0.7027027027
+aggregates.test_intervals.coverage            : 0.7027027027   MATCH
+residual == p50 - actual for every row        : True
+test_rows (111) == metadata split.test_rows (111)
+```
+
+#### Proof 2 — OpenAPI differs only by the new route
+
+```
+paths added    : ['/api/v1/model/evaluation']
+paths removed  : none
+existing paths changed   : none
+schemas added/removed/changed : none / none / none
+tags added     : ['Model Evaluation']
+rest of the document identical : True
+VERDICT: PASS - additive only
+```
+
+#### Proof 3 — authorisation, measured against the running service
+
+| Caller | Result |
+|---|---|
+| anonymous | **401** `Authentication required` |
+| PASSENGER | **403** `Insufficient permissions` |
+| STAFF | **403** `Insufficient permissions` |
+| ADMIN | **200**, 111 test rows, 15 candidates |
+| ADMIN, export moved aside | **404** `{"detail": "evaluation_unavailable"}` |
+
+Also checked from the browser: a signed-in PASSENGER fetching `/model/evaluation` with their own
+token gets **403**. Role gating here is server-side, not a hidden link.
+
+9 new tests in `tests/test_model_evaluation.py` cover the 401/403/200 matrix, the absent and
+corrupt-file cases (which must be indistinguishable and must leak neither a path nor a stack trace),
+that authorisation is checked before the file is read, that the route rejects POST/PUT/DELETE/PATCH,
+and that serving the file does not modify it. **Backend suite: 140 → 149 passing.**
+
+### The admin surface
+
+`js/pages/admin.js` (650 lines), two pages; the operational pages (`train`, `history`, `alerts`,
+`simulation`, `capabilities`) are shared with STAFF, so admin is staff **plus** the model surface.
+
+**The one structural idea:** *Live* and *Historical evaluation* are different objects on the page,
+not just differently worded. Different background, different border style, a coloured inset rule and
+a badge in each heading. A measured MAE sitting beside live counters reads as live accuracy, and it
+is not: nothing on this system ever compares a prediction against a real arrival after the fact, and
+the historical block says so.
+
+- **Live:** service / database / model status, train-state counts, active version, artifact presence,
+  load error, environment.
+- **Historical:** dataset and training provenance (including dataset SHA-256, training age, split
+  sizes and test start), shipped-vs-baseline on the same split with the verdict in plain words,
+  interval coverage against its nominal target, per-train and per-frequency error with the bias sign
+  explained, probability calibration, and — from D3 — predicted-against-actual scatter with an
+  identity line, residual histogram with a zero reference, error over journey date, and the 15-row
+  candidate table with the shipped model marked.
+- **Fallback and failed-request counts:** an explicit *Not available*. This backend keeps no request
+  counters, and the FastAPI service has no fallback path at all — it returns 503 rather than
+  substituting a rule-based answer. The card names the missing endpoint rather than showing a zero.
+- **Feature importance:** *Not available*, with the reason that inventing a ranking from measured
+  error would be a guess presented as a finding. Beside it, the feature contract that *does* exist:
+  the 15 features read, the excluded ones with the trainer's own reasons, and the 13 accepted-but-
+  ignored request fields.
+- **Station-level error:** stated as unavailable at any granularity, with the reason.
+
+The scatter is worth noting: predictions cluster in a 5–50 minute band while actual delays span
+0–180, which is what an R² of 0.07 looks like. The page does not flatter the model.
+
+### A Phase 3 regression, found and fixed here
+
+`renderStaffDashboard` had replaced the old shared dashboard, and **staff lost the demo-data
+controls** in Phase 3. Restored on both dashboards with their original server-side guards intact —
+measured: staff see seed and refresh and no clear button; admin see all three.
+
+### Verification — commands run and real results
+
+| Check | Result |
+|---|---|
+| Admin portal at 1280 / 768 / 360 / 360+reduced-motion | **PASS** — 7 charts, 0 console errors, 0 page errors, no horizontal scroll, 1 live block + 1 historical block, no visible HTML entities, 0 reveal elements under reduced motion |
+| Demo controls | staff: seed+refresh, no clear. admin: all three. Guards unchanged |
+| All-role regression (4 + 6 + 7 pages) | **PASS** — 0 console errors, 0 page errors |
+| PASSENGER fetching `/model/evaluation` from the browser | **403** |
+| `npm test` (ML frontend) | 174 tests, 0 fail |
+| `pytest -q` | **149 passed** (140 before + 9 new) |
+| `cd backend && npm test` | 14/14 (untouched) |
+| `cd frontend/frontend && npm run build` | pass, 498 ms (untouched) |
+| `cd frontend/frontend && npm run lint` | **13 problems (11 errors, 2 warnings) — identical to the Phase 0 baseline** |
+| greps: fabrication / hardcoded metrics / bare `Number(` | no matches |
+
+### Note for Phase 5
+
+**Full-page Playwright screenshots of very tall pages render charts incorrectly** — on an 8,741px
+admin page the bar and scatter charts appeared crushed, while a direct DOM measurement showed correct
+geometry (`gridX2=778`, 12 x-ticks) and per-element screenshots rendered perfectly. This misled me in
+Phase 1 as well. **Phase 5 must capture per-element screenshots, or treat full-page captures as
+indicative only.**
+
+---
+
+## Next: Phase 5 (verification and report) — not started
+
+Rerun every baseline command with before/after output. Extend `scripts/ui_smoke.py` to log in as all
+three roles, visit every changed route at 360/768/1280, assert zero console errors and no horizontal
+scroll, capture screenshots into `reports/figures/ui/`, tab through each page and emulate
+`prefers-reduced-motion`. State tests: degraded model (move `models/` aside), stale data, empty
+history, API timeout, 401/403 handling, role isolation. Chart-data audit table. Final report.

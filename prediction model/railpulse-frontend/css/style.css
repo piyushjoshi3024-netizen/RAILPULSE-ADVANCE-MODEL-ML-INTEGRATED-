@@ -2361,3 +2361,104 @@ td {
         min-width: 104px
     }
 }
+
+/* ==========================================================================
+   Admin portal (Phase 4). Appended only.
+
+   The Live and Historical blocks are deliberately different objects on the
+   page. A measured MAE sitting beside live counters reads as live accuracy,
+   so the two are separated by a rule, a heading badge and a background, not
+   just by wording.
+   ========================================================================== */
+
+.rp-section-heading {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 9px;
+    margin: 0 0 4px;
+    font-family: var(--display);
+    font-size: 1.12rem;
+    color: var(--ink)
+}
+
+.rp-section-copy {
+    margin: 0 0 16px;
+    max-width: 68ch;
+    font-size: .87rem;
+    line-height: 1.6;
+    color: var(--muted)
+}
+
+.rp-live-block,
+.rp-historical-block {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 26px;
+    padding: 18px;
+    border-radius: var(--radius)
+}
+
+.rp-live-block {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    box-shadow: inset 4px 0 0 var(--green)
+}
+
+/* A different ground and a different edge, so the eye never mixes a measured
+   figure with a live one. */
+.rp-historical-block {
+    background: var(--sand);
+    border: 1px dashed var(--line);
+    box-shadow: inset 4px 0 0 var(--chart-scheduled)
+}
+
+.rp-live-block > .metric-grid,
+.rp-historical-block > .panel {
+    margin: 0
+}
+
+.rp-status-ok .rp-tile-value {
+    color: var(--green)
+}
+
+.rp-status-bad .rp-tile-value {
+    color: var(--red)
+}
+
+.rp-status-neutral .rp-tile-value {
+    color: var(--ink)
+}
+
+.rp-excluded {
+    padding: 10px 12px;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 12px
+}
+
+.chart-table tr.is-selected th[scope="row"] {
+    box-shadow: inset 3px 0 0 var(--orange)
+}
+
+.chart-table tr.is-selected td {
+    font-weight: 600
+}
+
+.rp-note code {
+    padding: 1px 5px;
+    font-size: .78rem;
+    color: var(--ink);
+    background: var(--sand-dark);
+    border-radius: 4px;
+    white-space: nowrap
+}
+
+@media (max-width:560px) {
+
+    .rp-live-block,
+    .rp-historical-block {
+        padding: 14px 12px
+    }
+}

@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import (
-    alerts, auth, demo, docs, health, network, predictions, reference, simulation, trains,
+    alerts, auth, demo, docs, health, model, network, predictions, reference, simulation, trains,
 )
 from app.core.config import get_settings
 from app.core.exceptions import register_exception_handlers
@@ -29,6 +29,7 @@ TAGS_METADATA = [
     {"name": "Network Intelligence", "description": "Capabilities that need data the dataset does not contain."},
     {"name": "Alerts", "description": "Stored operational alerts."},
     {"name": "Capability Documentation", "description": "What this backend can and cannot do, and why."},
+    {"name": "Model Evaluation", "description": "Held-out evaluation export for the registered model. ADMIN only."},
 ]
 
 
@@ -93,6 +94,7 @@ def create_app() -> FastAPI:
     application.include_router(network.router, prefix=prefix + "/network", tags=["Network Intelligence"])
     application.include_router(alerts.router, prefix=prefix + "/alerts", tags=["Alerts"])
     application.include_router(docs.router, prefix=prefix + "/docs", tags=["Capability Documentation"])
+    application.include_router(model.router, prefix=prefix + "/model", tags=["Model Evaluation"])
 
     return application
 

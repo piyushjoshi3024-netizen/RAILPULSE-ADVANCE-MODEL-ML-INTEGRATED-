@@ -214,6 +214,8 @@ function overviewView(health, snapshot) {
 
     <div id="staff-alerts"></div>
 
+    <div id="admin-demo-panel"></div>
+
     <div class="split-grid">
         <div class="rp-chart-mount" id="band-chart" style="min-height:290px"></div>
         <div class="rp-chart-mount" id="fleet-delay-chart" style="min-height:290px"></div>
