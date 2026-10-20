@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { getTrains } from "../services/trainService";
 import { getTrainEvents } from "../services/trainEventService";
 import api from "../services/api";
@@ -172,6 +173,8 @@ function createTrainIcon(status, selected = false) {
 // --------------------------------------------------
 
 function Dashboard() {
+  const navigate = useNavigate();
+
   const [trains, setTrains] = useState([]);
   const [selectedTrain, setSelectedTrain] = useState(null);
   const [networkData, setNetworkData] = useState(null);
@@ -343,7 +346,11 @@ function Dashboard() {
               </p>
             </div>
 
-            <button className="rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600">
+            <button
+              type="button"
+              onClick={() => navigate("/map")}
+              className="rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600"
+            >
               View Map
             </button>
 

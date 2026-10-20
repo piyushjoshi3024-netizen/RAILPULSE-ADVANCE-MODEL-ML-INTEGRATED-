@@ -647,7 +647,6 @@ function CommandCenter() {
                 ? `Train 12951 has ${riskData.riskLevel.toLowerCase()} delay risk with a risk score of ${riskData.riskScore}.`
                 : "Risk data unavailable."
             }
-            action="Review recovery options"
           />
 
           <InsightCard
@@ -657,7 +656,6 @@ function CommandCenter() {
                 ? recoveryData.recoveryAction
                 : "Recovery data unavailable."
             }
-            action="Review recovery plan"
           />
 
           <InsightCard
@@ -667,7 +665,6 @@ function CommandCenter() {
                 ? `${bottleneckData.section} has ${bottleneckData.severity.toLowerCase()} bottleneck severity with a score of ${bottleneckData.score}.`
                 : "Bottleneck data unavailable."
             }
-            action="Monitor affected section"
           />
 
           <InsightCard
@@ -677,7 +674,6 @@ function CommandCenter() {
                 ? `${propagationData.totalAffectedStations} stations may be affected downstream from ${propagationData.fromStation}, with an estimated delay of ${propagationData.affectedStations[0]?.estimatedDelayMinutes ?? 0} minutes.`
                 : "Propagation data unavailable."
             }
-            action="Review affected stations"
           />
         </div>
       </section>
@@ -820,7 +816,7 @@ function KpiCard({
   );
 }
 
-function InsightCard({ title, text, action }) {
+function InsightCard({ title, text }) {
   return (
     <div className="rounded-xl border border-slate-200 bg-slate-50 p-5">
       <p className="text-sm font-bold text-slate-900">{title}</p>
@@ -828,10 +824,6 @@ function InsightCard({ title, text, action }) {
       <p className="mt-2 text-sm leading-6 text-slate-500">
         {text}
       </p>
-
-      <button className="mt-4 text-xs font-bold text-orange-600 hover:text-orange-700">
-        {action} →
-      </button>
     </div>
   );
 }
