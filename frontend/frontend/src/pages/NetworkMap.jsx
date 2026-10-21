@@ -10,10 +10,16 @@ import {
 
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import { useEffect, useState } from "react";
 
-import { getTrains } from "../services/trainService";
-import { getTrainEvents } from "../services/trainEventService";
+import {
+  useCorridors,
+  useStations,
+  useTrainEvents,
+  useTrains,
+} from "../hooks";
+
+import Loading from "../components/state/Loading";
+import ErrorState from "../components/state/ErrorState";
 
 /* =========================================================
    LEAFLET ICON FIX
@@ -32,172 +38,16 @@ L.Icon.Default.mergeOptions({
 
 
 /* =========================================================
-   STATIONS
-   PHASE 3 STATIC DATA
+   STATIONS, CORRIDORS AND TRAINS
+
+   All three were written out here, and Dashboard.jsx carried its own
+   diverging copy of the first two. They come from GET /api/stations,
+   GET /api/corridors, GET /api/trains and GET /api/train-events now.
+
+   The six-train array mattered most: the map rendered *it*, merging in
+   whatever the API happened to know about those six numbers. A train the
+   database had and the array did not simply never appeared.
 ========================================================= */
-
-const stations = [
-  {
-    name: "New Delhi",
-    code: "NDLS",
-    position: [28.6139, 77.2090],
-  },
-  {
-    name: "Gurugram",
-    code: "GGN",
-    position: [28.4595, 77.0266],
-  },
-  {
-    name: "Rewari",
-    code: "RE",
-    position: [28.1990, 76.6190],
-  },
-  {
-    name: "Jaipur",
-    code: "JP",
-    position: [26.9124, 75.7873],
-  },
-  {
-    name: "Kota",
-    code: "KOTA",
-    position: [25.2138, 75.8648],
-  },
-  {
-    name: "Agra",
-    code: "AGC",
-    position: [27.1767, 78.0081],
-  },
-  {
-    name: "Bhopal",
-    code: "BPL",
-    position: [23.2599, 77.4126],
-  },
-  {
-    name: "Kanpur",
-    code: "CNB",
-    position: [26.4499, 80.3319],
-  },
-  {
-    name: "Prayagraj",
-    code: "PRYJ",
-    position: [25.4358, 81.8463],
-  },
-  {
-    name: "Kolkata",
-    code: "HWH",
-    position: [22.5726, 88.3639],
-  },
-  {
-    name: "Surat",
-    code: "ST",
-    position: [21.1702, 72.8311],
-  },
-  {
-    name: "Vadodara",
-    code: "BRC",
-    position: [22.3072, 73.1812],
-  },
-  {
-    name: "Mumbai Central",
-    code: "MMCT",
-    position: [19.0760, 72.8777],
-  },
-];
-
-
-/* =========================================================
-   RAILWAY CORRIDORS
-========================================================= */
-
-const corridors = [
-  {
-    id: "delhi-mumbai",
-    name: "Delhi–Mumbai Main Corridor",
-    positions: [
-      [28.6139, 77.2090],
-      [27.1767, 78.0081],
-      [25.2138, 75.8648],
-      [23.2599, 77.4126],
-      [22.3072, 73.1812],
-      [21.1702, 72.8311],
-      [19.0760, 72.8777],
-    ],
-  },
-
-  {
-    id: "delhi-jaipur",
-    name: "Delhi–Jaipur Corridor",
-    positions: [
-      [28.6139, 77.2090],
-      [28.4595, 77.0266],
-      [28.1990, 76.6190],
-      [26.9124, 75.7873],
-    ],
-  },
-
-  {
-    id: "delhi-kolkata",
-    name: "Delhi–Kolkata East Corridor",
-    positions: [
-      [28.6139, 77.2090],
-      [27.1767, 78.0081],
-      [26.4499, 80.3319],
-      [25.4358, 81.8463],
-      [22.5726, 88.3639],
-    ],
-  },
-
-  {
-    id: "jaipur-mumbai",
-    name: "Jaipur–Mumbai Corridor",
-    positions: [
-      [26.9124, 75.7873],
-      [25.2138, 75.8648],
-      [23.2599, 77.4126],
-      [22.3072, 73.1812],
-      [21.1702, 72.8311],
-      [19.0760, 72.8777],
-    ],
-  },
-];
-
-
-/* =========================================================
-   TRAINS
-========================================================= */
-const trains = [
-  {
-    number: "17002",
-    position: [25.2138, 75.8648],
-    corridor: "delhi-mumbai",
-  },
-  {
-    number: "16003",
-    position: [25.2138, 75.8648],
-    corridor: "delhi-mumbai",
-  },
-  {
-    number: "16001",
-    position: [28.6139, 77.2090],
-    corridor: "delhi-mumbai",
-  },
-  {
-    number: "12961",
-    position: [21.1702, 72.8311],
-    corridor: "delhi-mumbai",
-  },
-  {
-    number: "12952",
-    position: [25.2138, 75.8648],
-    corridor: "delhi-mumbai",
-  },
-  {
-    number: "12951",
-    position: [21.1702, 72.8311],
-    corridor: "delhi-mumbai",
-  },
-];
-
 /* =========================================================
    TRAIN ICON
 ========================================================= */
@@ -227,59 +77,21 @@ function createTrainIcon(status) {
 
 
 /* =========================================================
-   MOVING TRAIN
+   TRAIN MARKER
+
+   This used to be MovingTrain: a setInterval that slid the marker along a
+   corridor by 0.008 of a segment every second. Nothing measured that motion.
+   It was an animation of an invented position, and it looked exactly like a
+   tracked one.
+
+   The marker now sits at the station the train's latest event reports, and a
+   train whose station has no recorded coordinate is not drawn at all.
 ========================================================= */
 
-function MovingTrain({ train, index }) {
-  const corridor = corridors.find(
-    (item) => item.id === train.corridor
-  );
-
-  const [position, setPosition] = useState(train.position);
-
-  useEffect(() => {
-    if (train.status !== "RUNNING") {
-      return;
-    }
-
-    let segment = index % (corridor.positions.length - 1);
-    let progress = 0;
-
-    const timer = setInterval(() => {
-      progress += 0.008;
-
-      if (progress >= 1) {
-        progress = 0;
-        segment =
-          (segment + 1) %
-          (corridor.positions.length - 1);
-      }
-
-      const start =
-        corridor.positions[segment];
-
-      const end =
-        corridor.positions[segment + 1];
-
-      const lat =
-        start[0] +
-        (end[0] - start[0]) *
-        progress;
-
-      const lng =
-        start[1] +
-        (end[1] - start[1]) *
-        progress;
-
-      setPosition([lat, lng]);
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [train.status, train.corridor, index]);
-
+function TrainMarker({ train }) {
   return (
     <Marker
-      position={position}
+      position={train.position}
       icon={createTrainIcon(train.status)}
     >
       <Tooltip
@@ -375,78 +187,78 @@ function MovingTrain({ train, index }) {
 ========================================================= */
 
 function NetworkMap() {
-  const [backendMapTrains, setBackendMapTrains] = useState([]);
-  const [loading, setLoading] = useState(true);
+  // Stations and corridors are static reference data, fetched once. Trains and
+  // their events poll every fifteen seconds and pause while the tab is hidden.
+  const stationsResource = useStations();
+  const corridorsResource = useCorridors(stationsResource);
+  const trainsResource = useTrains();
+  const eventsResource = useTrainEvents();
 
-  useEffect(() => {
-    const loadTrainData = async () => {
-      try {
-        const [trainsResponse, eventsResponse] = await Promise.all([
-          getTrains(),
-          getTrainEvents(),
-        ]);
+  const { latestByTrain } = eventsResource;
+  const { byName, positionOf } = stationsResource;
 
-        const backendTrains = trainsResponse.data;
-        const backendEvents = eventsResponse.data;
+  // Every train the database has, not the six that were listed here. The map
+  // shape is built the same way the Dashboard builds it.
+  const allTrains = trainsResource.trains.map((train) => {
+    const event = latestByTrain.get(String(train._id));
 
-        const latestEvents = new Map();
-
-        backendEvents.forEach((event) => {
-          const trainId = String(event.trainId);
-
-          if (!latestEvents.has(trainId)) {
-            latestEvents.set(trainId, event);
-          }
-        });
-        const mapTrains = backendTrains.map((train) => {
-          const event = latestEvents.get(String(train._id));
-
-          return {
-            number: train.trainNumber,
-            name: train.trainName,
-            type: train.trainType || "UNKNOWN",
-            status: train.status || "RUNNING",
-            speed: event?.speed || 0,
-            delay: event?.delayMinutes || 0,
-            currentStation: event?.station || train.currentStation || "Unknown",
-            destination: train.destination,
-            eventLocation: event?.location || null,
-          };
-        });
-        setBackendMapTrains(mapTrains);
-
-      } catch (error) {
-        console.error("Failed to load map data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadTrainData();
-  }, []);
-  const updatedTrains = trains.map((train) => {
-    const backendTrain = backendMapTrains.find(
-      (item) => item.number === train.number
-    );
-
-    if (!backendTrain) {
-      return train;
-    }
+    const currentStation =
+      event?.station ||
+      train.currentStation ||
+      train.source ||
+      "Unknown";
 
     return {
-      ...train,
-      name: backendTrain.name,
-      type: backendTrain.type,
-      speed: backendTrain.speed,
-      delay: backendTrain.delay,
-      status: backendTrain.status,
-      currentStation: backendTrain.currentStation,
-      destination: backendTrain.destination,
+      number: train.trainNumber,
+      name: train.trainName,
+      type: train.trainType || "UNKNOWN",
+      status: event?.delayMinutes > 0 ? "DELAYED" : train.status || "RUNNING",
+      speed: event?.speed || 0,
+      delay: event?.delayMinutes || 0,
+      currentStation,
+      destination: train.destination,
+      position: positionOf(byName.get(currentStation)),
     };
   });
 
+  const mappableTrains = allTrains.filter((train) => train.position);
+  const unmappedCount = allTrains.length - mappableTrains.length;
+
+  const loading =
+    stationsResource.loading || corridorsResource.loading || trainsResource.loading;
+
+  const error =
+    stationsResource.error ||
+    corridorsResource.error ||
+    trainsResource.error ||
+    eventsResource.error;
+
+  const retry = () => {
+    stationsResource.refetch();
+    corridorsResource.refetch();
+    trainsResource.refetch();
+    eventsResource.refetch();
+  };
+
   return (
     <div className="relative h-full w-full">
+
+      {loading ? (
+
+        <Loading label="Loading the network map..." className="py-32" />
+
+      ) : error ? (
+
+        <ErrorState
+          message={error}
+          hint="The map needs the station list, the corridors and the trains. Check that the API is running."
+          onRetry={retry}
+          className="py-28"
+        />
+
+      ) : (
+
+      <>
 
       <MapContainer
         center={[24.5, 78.0]}
@@ -466,9 +278,9 @@ function NetworkMap() {
             RAILWAY CORRIDORS
         ================================================= */}
 
-        {corridors.map((corridor) => (
+        {corridorsResource.corridors.map((corridor) => (
           <Polyline
-            key={corridor.id}
+            key={corridor.corridorId}
             positions={corridor.positions}
             pathOptions={{
               color: "#f97316",
@@ -489,10 +301,10 @@ function NetworkMap() {
             STATIONS
         ================================================= */}
 
-        {stations.map((station) => (
+        {stationsResource.stations.map((station) => (
           <CircleMarker
             key={station.code}
-            center={station.position}
+            center={[station.lat, station.lng]}
             radius={4}
             pathOptions={{
               color: "#334155",
@@ -532,11 +344,10 @@ function NetworkMap() {
             TRAINS
         ================================================= */}
 
-        {updatedTrains.map((train, index) => (
-          <MovingTrain
+        {mappableTrains.map((train) => (
+          <TrainMarker
             key={train.number}
             train={train}
-            index={index}
           />
         ))}
 
@@ -610,7 +421,18 @@ function NetworkMap() {
           Station
         </div>
 
+        {unmappedCount > 0 && (
+          <div className="mt-2 max-w-[200px] border-t border-slate-200 pt-2 text-slate-500">
+            {unmappedCount} train{unmappedCount === 1 ? "" : "s"} not shown: no
+            coordinate is recorded for the station it is at.
+          </div>
+        )}
+
       </div>
+
+      </>
+
+      )}
 
     </div>
   );
