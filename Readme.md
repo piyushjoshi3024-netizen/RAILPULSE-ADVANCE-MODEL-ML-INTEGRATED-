@@ -101,6 +101,16 @@ The admin and staff accounts are seeded from these values at FastAPI startup.
 **Staff accounts cannot be self-registered** — the old staff registration and
 OTP endpoints answer `410 Gone` by design. Passengers register themselves.
 
+> **A note on `MONGODB_DB`.** The example uses `railpulse`, which keeps FastAPI
+> (auth + ML) and Express (the main site's data) in one database. Some setups
+> run FastAPI against `railpulse_eta_ml` instead; then auth and the ML app's
+> data live there, while the **main site's** trains, stations, corridors and
+> alerts always live in the database `backend/.env`'s `MONGO_URI` points at
+> (`railpulse`) — which is where `scripts/seed-demo.js` writes. Either is fine;
+> the only rule is that the seed and the Express API read the same database.
+> If the main site shows no data after seeding, this mismatch is the first
+> thing to check.
+
 ### 5. Install and start, in this order
 
 ```bash
@@ -184,7 +194,7 @@ write, and changes nothing. To write it:
 cd backend && node scripts/seed-demo.js --apply
 ```
 
-It writes 13 stations, 4 corridors, 12 trains, 12 train events, 3 alerts and 12
+It writes 20 stations, 4 corridors, 12 trains, 12 train events, 3 alerts and 12
 Redis live-state keys. It is idempotent, it never touches `users`, `main_users`,
 `live_train_state`, `reference_trains`, `predictions` or FastAPI's `alerts`, and
 it creates no accounts. `--apply --reset` removes only rows it wrote
@@ -207,10 +217,43 @@ curl -fsS -X POST http://localhost:8000/api/v1/reference/load -H "Authorization:
 | ML API health | <http://localhost:8000/api/v1/health/> |
 | ML API docs | <http://localhost:8000/docs> |
 
-Register a passenger on the main site, or sign in with the admin or staff
-username from step 4. The same token works in both applications: the sidebar's
-**ETA prediction using ML model** hands the session to the ML frontend, and
-signing out of the main site ends both.
+Register a passenger on the main site, or sign in as admin or staff. The same
+token works in both applications: the sidebar's **ETA prediction using ML
+model** hands the session to the ML frontend, and signing out of the main site
+ends both.
+
+### Signing in
+
+| Role | Username | Password | How to get it |
+|---|---|---|---|
+| Admin | `admin` | `ADMIN_PASSWORD` from the FastAPI `.env` (the example uses `change-me-admin`) | seeded at FastAPI startup |
+| Staff | `staff` | `STAFF_PASSWORD` from the FastAPI `.env` (the example uses `change-me-staff`) | seeded at FastAPI startup |
+| Passenger | your choice | your choice | **Register** on the main site; staff/admin cannot be self-registered |
+
+> **If admin or staff sign-in returns 401** with *"Invalid username or
+> password… please register again"*: the account is seeded **only once, when it
+> is first absent**, so changing `ADMIN_PASSWORD`/`STAFF_PASSWORD` in `.env`
+> after the first startup does **not** update an existing account. Reset the
+> stored password to the `.env` value with the service's own hasher (no restart
+> needed):
+>
+> ```bash
+> cd "prediction model/railpulse-backend"
+> .venv/bin/python - <<'RESET'
+> import pymongo
+> from app.core.security import password_service
+> from app.core.config import get_settings
+> s = get_settings()
+> db = pymongo.MongoClient(s.MONGODB_URI)[s.MONGODB_DB]["users"]
+> for name, pw in [("admin", s.ADMIN_PASSWORD), ("staff", s.STAFF_PASSWORD)]:
+>     db.update_one({"username": name}, {"$set": {"password_hash": password_service.hash(pw)}})
+>     print("reset", name)
+> RESET
+> ```
+>
+> Then sign in with the `.env` values. (This reads the DB name and credentials
+> straight from your `.env`, so it works whether `MONGODB_DB` is `railpulse` or
+> `railpulse_eta_ml` — see the note in step 4.)
 
 ---
 
@@ -224,11 +267,30 @@ curl -fsS http://localhost:8000/api/v1/health/ | head -c 80
 ```
 
 The network summary should report 12 trains once the seed is applied. On the
-Dashboard you should see 12 active trains, 3 alerts, five train markers on the
-map and the line *"7 trains not shown: no coordinate is recorded for the station
-it is at."* — that message is correct, not a bug. See **Known honest limits**.
+Dashboard you should see 12 active trains, 3 alerts and **all 12 trains on the
+map**, over 20 stations. (Earlier builds mapped only 5 and showed a
+*"7 trains not shown"* note; the seed now carries coordinates for every station
+those trains sit at, so each one is placed. The note still appears, correctly,
+only if a train is ever at a station with no coordinate.)
 
 ---
+
+## Using the main site
+
+A few things the UI does that are worth knowing:
+
+- **Light / dark theme.** A toggle sits in the top bar (or press `\`). The
+  choice is remembered, and the app follows your OS preference on first visit.
+- **Keyboard shortcuts.** Press `?` for the full list. Navigation is a chord:
+  `g` then a letter (`g d` Dashboard, `g t` Trains, `g m` Map, and so on).
+- **Live, but polled.** Every page refreshes on a 15-second poll and shows a
+  "last updated" time with a manual **Refresh** button in its header.
+- **Honest empty, loading and error states.** A page that has no data says so
+  and offers a way forward; it never fills a gap with invented rows.
+
+See [docs/UNIFY_PROGRESS.md](docs/UNIFY_PROGRESS.md) for the full record of the
+UI work (a shared component set, motion, the map, page polish and these
+showcase touches), newest last.
 
 ## Troubleshooting
 
@@ -239,6 +301,8 @@ it is at."* — that message is correct, not a bug. See **Known honest limits**.
 | ETA says `rule-based` / `ml_unreachable` | the `ml-bridge` account does not exist, or FastAPI is down | step 6, and check `ML_BASE_URL` |
 | ETA returns `404 Live state not found` | no Redis live state for that train | `node scripts/seed-demo.js --apply`, or `PUT /api/trains/:id/live-state` |
 | Dashboard shows zeroes and "No trains to show" | the seed was never applied | step 7 |
+| Map says "No stations are recorded" or Alerts is empty, even after seeding | the main site's data DB (`railpulse`) was cleared, or the seed targeted a different DB than the Express API reads | re-run `node scripts/seed-demo.js --apply` in `backend/`, and check the `MONGODB_DB` note in step 4 |
+| Admin or staff sign-in returns 401 | the account was seeded once with a different password; changing `.env` does not update it | run the password reset in **Signing in** above |
 | Staff registration or OTP returns `410` | by design (one identity provider) | an admin creates staff accounts |
 | CORS error in the browser console | the origin is not in `CORS_ORIGINS` | add it, restart FastAPI |
 
@@ -262,12 +326,19 @@ cd "prediction model/railpulse-backend" && .venv/bin/python -m pytest -q
 
 ## Data layout
 
-One database, `railpulse`. FastAPI owns `users`, `alerts`, `predictions`,
-`reference_trains`, `live_train_state` and `simulation_states`. Express owns
-`trains`, `trainevents`, `journeys`, `simulations`, `etapredictions`,
-`riskassessments`, `bottlenecks`, `propagations`, `recoveries`, plus
-`main_users`, `main_alerts`, `main_stations` and `main_corridors` — the `main_`
-prefix exists because those four names would otherwise collide with FastAPI's.
+The unified design is **one database, `railpulse`**, holding both sets of
+collections. FastAPI owns `users`, `alerts`, `predictions`, `reference_trains`,
+`live_train_state` and `simulation_states`. Express owns `trains`,
+`trainevents`, `journeys`, `simulations`, `etapredictions`, `riskassessments`,
+`bottlenecks`, `propagations`, `recoveries`, plus `main_users`, `main_alerts`,
+`main_stations` and `main_corridors` — the `main_` prefix exists because those
+four names would otherwise collide with FastAPI's.
+
+When FastAPI's `MONGODB_DB` is set to `railpulse_eta_ml` (see the note in step
+4), its collections live in that database instead, and only the `main_*`,
+`trains`, `trainevents` and the other Express-owned collections remain in
+`railpulse`. The main website reads `railpulse` for its data either way, which
+is where the seed writes.
 
 `railpulse_node` is the database Express used before the services were unified.
 Nothing reads or writes it; it is kept as a backup and is a pending cleanup
@@ -286,10 +357,12 @@ docker exec railpulse-mongo mongodump --uri="mongodb://127.0.0.1:27017" --out=/t
 - **Not live tracking.** The main site polls every 15 seconds and pauses while
   the browser tab is hidden. The server emits Socket.IO events that no client
   listens to yet.
-- **Seven of twelve demo trains have no map marker.** This repository holds
-  coordinates for 13 stations only, and those trains run between stations it has
-  no coordinate for. They appear in every list and count, and the map says how
-  many are missing and why. No coordinate is guessed.
+- **All twelve demo trains are mapped.** The seed carries coordinates for 20
+  stations, which covers every station the demo trains sit at; the seven added
+  stations were looked up on OpenStreetMap (see
+  [docs/UNIFY_PROGRESS.md](docs/UNIFY_PROGRESS.md)). If a train is ever at a
+  station with no coordinate, the map still leaves it off and says how many and
+  why, rather than guessing a point.
 - **A seeded train's route has two stops**, its real source and destination from
   the dataset. The dataset contains no intermediate stop sequence, so none is
   invented, and route progress therefore reads 0% until a train moves.
