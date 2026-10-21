@@ -1,70 +1,19 @@
-import { useEffect, useState } from "react";
-import { getAlert } from "../services/alertService";
-import { getTrainById } from "../services/trainService";
+import { useState } from "react";
+
+import { useAlerts, useTrains } from "../hooks";
+import Loading from "../components/state/Loading";
+import PageHeader from "../components/ui/PageHeader";
+import Badge from "../components/ui/Badge";
+import EmptyState from "../components/state/EmptyState";
+import ErrorState from "../components/state/ErrorState";
 import { useAuth } from "../context/AuthContext";
 
-const initialAlerts = [
-  {
-    id: 1,
-    title: "Train 12951 delayed",
-    type: "Train Delay",
-    severity: "HIGH",
-    location: "Surat",
-    time: "2 min ago",
-    description:
-      "Mumbai Rajdhani is currently running 18 minutes behind schedule.",
-    status: "ACTIVE",
-  },
-  {
-    id: 2,
-    title: "Platform congestion",
-    type: "Platform",
-    severity: "MEDIUM",
-    location: "New Delhi",
-    time: "8 min ago",
-    description:
-      "Increased platform occupancy detected at New Delhi station.",
-    status: "ACTIVE",
-  },
-  {
-    id: 3,
-    title: "Signal issue detected",
-    type: "Signal",
-    severity: "CRITICAL",
-    location: "Kota",
-    time: "14 min ago",
-    description:
-      "Signal irregularity detected on the active railway corridor.",
-    status: "ACTIVE",
-  },
-  {
-    id: 4,
-    title: "Train 12002 minor delay",
-    type: "Train Delay",
-    severity: "LOW",
-    location: "Agra",
-    time: "22 min ago",
-    description:
-      "Bhopal Shatabdi is running approximately 3 minutes behind schedule.",
-    status: "RESOLVED",
-  },
-  {
-    id: 5,
-    title: "Traffic density increased",
-    type: "Traffic",
-    severity: "MEDIUM",
-    location: "Jaipur",
-    time: "31 min ago",
-    description:
-      "Higher than normal train traffic detected around the Jaipur corridor.",
-    status: "ACTIVE",
-  },
-];
-
 function Alerts() {
-  const [alerts, setAlerts] = useState([]);
-  const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+
+  // Polls every fifteen seconds and pauses while the tab is hidden.
+  const alertsResource = useAlerts();
+  const trainsResource = useTrains();
 
   const [severityFilter, setSeverityFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -73,45 +22,48 @@ function Alerts() {
   const canManageAlerts =
     user?.role === "STAFF" || user?.role === "ADMIN";
 
-  useEffect(() => {
-    const loadAlert = async () => {
-      try {
-        setLoading(true);
+  // Resolving an alert is session-local: the stored alert has no status field
+  // (see models/Alert.js), so there is nothing to PATCH. It is kept as a set
+  // of ids rather than inside the alert objects because those are rebuilt from
+  // the API every poll, which would otherwise wipe a resolution every fifteen
+  // seconds. It still does not survive a reload, and nothing here pretends it
+  // does.
+  const [resolvedIds, setResolvedIds] = useState(() => new Set());
 
-        const trainId = "6a9d5a64a663314c1afeaa69";
+  const loading = alertsResource.loading || trainsResource.loading;
+  const loadError = alertsResource.error || trainsResource.error;
 
-        const [alertResponse, trainResponse] = await Promise.all([
-          getAlert(trainId),
-          getTrainById(trainId),
-        ]);
+  const retry = () => {
+    alertsResource.refetch();
+    trainsResource.refetch();
+  };
 
-        const backendAlert = alertResponse.data;
-        const train = trainResponse.data;
+  const trainsById = new Map(
+    trainsResource.trains.map((train) => [String(train._id), train])
+  );
 
-        const formattedAlert = {
-          id: backendAlert._id,
-          title: `Train ${train.trainNumber} delayed`,
-          type: backendAlert.alertType,
-          severity: backendAlert.severity,
-          location: backendAlert.affectedSection,
-          time: new Date(
-            backendAlert.createdAt
-          ).toLocaleTimeString(),
-          description: backendAlert.message,
-          status: "ACTIVE",
-        };
+  const alerts = alertsResource.alerts.map((alert) => {
+    const train = trainsById.get(String(alert.trainId));
 
-        setAlerts([formattedAlert]);
-      } catch (error) {
-        console.error("Failed to load alert:", error);
-        setAlerts([]);
-      } finally {
-        setLoading(false);
-      }
+    return {
+      id: alert._id,
+      title: train
+        ? `Train ${train.trainNumber} delayed`
+        : "Train delay detected",
+      type: alert.alertType || "ALERT",
+      severity: alert.severity || "LOW",
+      location:
+        alert.affectedSection ||
+        train?.currentStation ||
+        train?.source ||
+        "Unknown",
+      time: alert.createdAt
+        ? new Date(alert.createdAt).toLocaleTimeString()
+        : "Unknown",
+      description: alert.message || "",
+      status: resolvedIds.has(alert._id) ? "RESOLVED" : "ACTIVE",
     };
-
-    loadAlert();
-  }, []);
+  });
 
   /* ---------------------------------------------
      FILTER ALERTS
@@ -175,40 +127,28 @@ function Alerts() {
       return;
     }
 
-    setAlerts((currentAlerts) =>
-      currentAlerts.map((alert) => {
-        if (alert.id !== id) {
-          return alert;
-        }
+    setResolvedIds((current) => {
+      const next = new Set(current);
 
-        return {
-          ...alert,
-          status:
-            alert.status === "ACTIVE"
-              ? "RESOLVED"
-              : "ACTIVE",
-        };
-      })
-    );
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+
+      return next;
+    });
   };
 
   return (
-    <div className="space-y-8 p-8">
+    // `p-8` removed: <main> already applies p-4 sm:p-8, so this page was
+    // double-padded and lost width on a phone.
+    <div className="space-y-8">
 
-      {/* =========================================
-          PAGE HEADER
-      ========================================== */}
-
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900">
-          Alerts
-        </h1>
-
-        <p className="mt-2 text-slate-500">
-          Monitor operational alerts and incidents across
-          the railway network.
-        </p>
-      </div>
+      <PageHeader
+        title="Alerts"
+        subtitle="Monitor operational alerts and incidents across the railway network."
+        updatedAt={alertsResource.updatedAt}
+        onRefresh={alertsResource.refetch}
+        refreshing={alertsResource.loading}
+      />
 
 
       {/* =========================================
@@ -379,27 +319,28 @@ function Alerts() {
 
         {/* ALERTS */}
 
-        {filteredAlerts.length === 0 ? (
+        {loading ? (
 
-          <div className="p-12 text-center">
+          <Loading label="Loading alerts..." />
 
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
+        ) : loadError ? (
 
-              <span className="text-lg text-slate-400">
-                ✓
-              </span>
+          <ErrorState
+            message={loadError}
+            hint="Check that the API is running, then try again."
+            onRetry={retry}
+          />
 
-            </div>
+        ) : filteredAlerts.length === 0 ? (
 
-            <p className="mt-4 font-semibold text-slate-700">
-              No alerts found
-            </p>
-
-            <p className="mt-1 text-sm text-slate-400">
-              Try changing your search or filters.
-            </p>
-
-          </div>
+          <EmptyState
+            title={alerts.length === 0 ? "No alerts recorded" : "No alerts found"}
+            hint={
+              alerts.length === 0
+                ? "The API has no alerts stored for this environment."
+                : "Try changing your search or filters."
+            }
+          />
 
         ) : (
 
@@ -452,7 +393,7 @@ function AlertStat({
         {value}
       </p>
 
-      <p className="mt-2 text-sm text-slate-400">
+      <p className="mt-2 text-sm text-slate-500">
         {description}
       </p>
 
@@ -522,13 +463,9 @@ function AlertRow({
                 {alert.title}
               </h3>
 
-              <SeverityBadge
-                severity={alert.severity}
-              />
+              <Badge status={alert.severity} />
 
-              <StatusBadge
-                status={alert.status}
-              />
+              <Badge status={alert.status} />
 
             </div>
 
@@ -538,7 +475,7 @@ function AlertRow({
             <p
               className={`mt-2 text-sm ${
                 isResolved
-                  ? "text-slate-400"
+                  ? "text-slate-500"
                   : "text-slate-600"
               }`}
             >
@@ -548,7 +485,7 @@ function AlertRow({
 
             {/* META */}
 
-            <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-xs text-slate-400">
+            <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-xs text-slate-500">
 
               <span>
                 Type:{" "}
@@ -604,53 +541,12 @@ function AlertRow({
    SEVERITY BADGE
 ========================================================= */
 
-function SeverityBadge({ severity }) {
-
-  const styles = {
-    CRITICAL:
-      "bg-red-100 text-red-700",
-
-    HIGH:
-      "bg-orange-100 text-orange-700",
-
-    MEDIUM:
-      "bg-yellow-100 text-yellow-700",
-
-    LOW:
-      "bg-slate-100 text-slate-600",
-  };
-
-  return (
-    <span
-      className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-        styles[severity] ||
-        "bg-slate-100 text-slate-600"
-      }`}
-    >
-      {severity}
-    </span>
-  );
-}
 
 
 /* =========================================================
    STATUS BADGE
 ========================================================= */
 
-function StatusBadge({ status }) {
-
-  return (
-    <span
-      className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-        status === "ACTIVE"
-          ? "bg-red-50 text-red-600"
-          : "bg-green-50 text-green-600"
-      }`}
-    >
-      {status}
-    </span>
-  );
-}
 
 
 export default Alerts;

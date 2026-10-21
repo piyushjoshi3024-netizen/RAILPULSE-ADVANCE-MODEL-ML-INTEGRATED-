@@ -1,19 +1,30 @@
-import {
-  MapContainer,
-  TileLayer,
-  CircleMarker,
-  Marker,
-  Popup,
-  Polyline,
-  Tooltip,
-} from "react-leaflet";
+import { useCallback, useMemo, useState } from "react";
+import { ChevronDown } from "lucide-react";
+import { MapContainer, TileLayer } from "react-leaflet";
 
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import { useEffect, useState } from "react";
 
-import { getTrains } from "../services/trainService";
-import { getTrainEvents } from "../services/trainEventService";
+import { useCorridors, useStations, useTrainEvents, useTrains } from "../hooks";
+
+import ErrorState from "../components/state/ErrorState";
+import EmptyState from "../components/state/EmptyState";
+import { SkeletonMap } from "../components/ui/Skeleton";
+import PageHeader from "../components/ui/PageHeader";
+
+import TrainMarker from "../components/map/TrainMarker";
+import StationMarker from "../components/map/StationMarker";
+import CorridorLine from "../components/map/CorridorLine";
+import UnmappedTrains from "../components/map/UnmappedTrains";
+import {
+  FitToNetwork,
+  FlyToTrain,
+  Legend,
+  MapButtons,
+  StatusFilter,
+  TrainSearch,
+} from "../components/map/MapControls";
+import { corridorStatusFor, trainStatusFor } from "../components/map/mapStyle";
 
 /* =========================================================
    LEAFLET ICON FIX
@@ -30,589 +41,393 @@ L.Icon.Default.mergeOptions({
     "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
-
 /* =========================================================
-   STATIONS
-   PHASE 3 STATIC DATA
-========================================================= */
+   NETWORK MAP
 
-const stations = [
-  {
-    name: "New Delhi",
-    code: "NDLS",
-    position: [28.6139, 77.2090],
-  },
-  {
-    name: "Gurugram",
-    code: "GGN",
-    position: [28.4595, 77.0266],
-  },
-  {
-    name: "Rewari",
-    code: "RE",
-    position: [28.1990, 76.6190],
-  },
-  {
-    name: "Jaipur",
-    code: "JP",
-    position: [26.9124, 75.7873],
-  },
-  {
-    name: "Kota",
-    code: "KOTA",
-    position: [25.2138, 75.8648],
-  },
-  {
-    name: "Agra",
-    code: "AGC",
-    position: [27.1767, 78.0081],
-  },
-  {
-    name: "Bhopal",
-    code: "BPL",
-    position: [23.2599, 77.4126],
-  },
-  {
-    name: "Kanpur",
-    code: "CNB",
-    position: [26.4499, 80.3319],
-  },
-  {
-    name: "Prayagraj",
-    code: "PRYJ",
-    position: [25.4358, 81.8463],
-  },
-  {
-    name: "Kolkata",
-    code: "HWH",
-    position: [22.5726, 88.3639],
-  },
-  {
-    name: "Surat",
-    code: "ST",
-    position: [21.1702, 72.8311],
-  },
-  {
-    name: "Vadodara",
-    code: "BRC",
-    position: [22.3072, 73.1812],
-  },
-  {
-    name: "Mumbai Central",
-    code: "MMCT",
-    position: [19.0760, 72.8777],
-  },
-];
-
-
-/* =========================================================
-   RAILWAY CORRIDORS
-========================================================= */
-
-const corridors = [
-  {
-    id: "delhi-mumbai",
-    name: "Delhi–Mumbai Main Corridor",
-    positions: [
-      [28.6139, 77.2090],
-      [27.1767, 78.0081],
-      [25.2138, 75.8648],
-      [23.2599, 77.4126],
-      [22.3072, 73.1812],
-      [21.1702, 72.8311],
-      [19.0760, 72.8777],
-    ],
-  },
-
-  {
-    id: "delhi-jaipur",
-    name: "Delhi–Jaipur Corridor",
-    positions: [
-      [28.6139, 77.2090],
-      [28.4595, 77.0266],
-      [28.1990, 76.6190],
-      [26.9124, 75.7873],
-    ],
-  },
-
-  {
-    id: "delhi-kolkata",
-    name: "Delhi–Kolkata East Corridor",
-    positions: [
-      [28.6139, 77.2090],
-      [27.1767, 78.0081],
-      [26.4499, 80.3319],
-      [25.4358, 81.8463],
-      [22.5726, 88.3639],
-    ],
-  },
-
-  {
-    id: "jaipur-mumbai",
-    name: "Jaipur–Mumbai Corridor",
-    positions: [
-      [26.9124, 75.7873],
-      [25.2138, 75.8648],
-      [23.2599, 77.4126],
-      [22.3072, 73.1812],
-      [21.1702, 72.8311],
-      [19.0760, 72.8777],
-    ],
-  },
-];
-
-
-/* =========================================================
-   TRAINS
-========================================================= */
-const trains = [
-  {
-    number: "17002",
-    position: [25.2138, 75.8648],
-    corridor: "delhi-mumbai",
-  },
-  {
-    number: "16003",
-    position: [25.2138, 75.8648],
-    corridor: "delhi-mumbai",
-  },
-  {
-    number: "16001",
-    position: [28.6139, 77.2090],
-    corridor: "delhi-mumbai",
-  },
-  {
-    number: "12961",
-    position: [21.1702, 72.8311],
-    corridor: "delhi-mumbai",
-  },
-  {
-    number: "12952",
-    position: [25.2138, 75.8648],
-    corridor: "delhi-mumbai",
-  },
-  {
-    number: "12951",
-    position: [21.1702, 72.8311],
-    corridor: "delhi-mumbai",
-  },
-];
-
-/* =========================================================
-   TRAIN ICON
-========================================================= */
-
-function createTrainIcon(status) {
-  const color =
-    status === "DELAYED"
-      ? "#dc2626"
-      : "#16a34a";
-
-  return L.divIcon({
-    className: "train-marker",
-    html: `
-      <div style="
-        width: 18px;
-        height: 18px;
-        border-radius: 50%;
-        background: ${color};
-        border: 3px solid white;
-        box-shadow: 0 1px 6px rgba(0,0,0,0.45);
-      "></div>
-    `,
-    iconSize: [18, 18],
-    iconAnchor: [9, 9],
-  });
-}
-
-
-/* =========================================================
-   MOVING TRAIN
-========================================================= */
-
-function MovingTrain({ train, index }) {
-  const corridor = corridors.find(
-    (item) => item.id === train.corridor
-  );
-
-  const [position, setPosition] = useState(train.position);
-
-  useEffect(() => {
-    if (train.status !== "RUNNING") {
-      return;
-    }
-
-    let segment = index % (corridor.positions.length - 1);
-    let progress = 0;
-
-    const timer = setInterval(() => {
-      progress += 0.008;
-
-      if (progress >= 1) {
-        progress = 0;
-        segment =
-          (segment + 1) %
-          (corridor.positions.length - 1);
-      }
-
-      const start =
-        corridor.positions[segment];
-
-      const end =
-        corridor.positions[segment + 1];
-
-      const lat =
-        start[0] +
-        (end[0] - start[0]) *
-        progress;
-
-      const lng =
-        start[1] +
-        (end[1] - start[1]) *
-        progress;
-
-      setPosition([lat, lng]);
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [train.status, train.corridor, index]);
-
-  return (
-    <Marker
-      position={position}
-      icon={createTrainIcon(train.status)}
-    >
-      <Tooltip
-        direction="top"
-        offset={[0, -8]}
-        opacity={0.95}
-      >
-        <strong>
-          {train.number}
-        </strong>{" "}
-        • {train.name}
-      </Tooltip>
-
-      <Popup>
-        <div className="min-w-[220px]">
-
-          <div className="flex items-center justify-between">
-
-            <div>
-              <h3 className="font-bold text-slate-900">
-                {train.name}
-              </h3>
-
-              <p className="text-xs text-slate-500">
-                Train {train.number}
-              </p>
-            </div>
-
-            <span
-              style={{
-                background:
-                  train.status === "DELAYED"
-                    ? "#fee2e2"
-                    : "#dcfce7",
-                color:
-                  train.status === "DELAYED"
-                    ? "#b91c1c"
-                    : "#15803d",
-              }}
-              className="rounded-full px-2 py-1 text-xs font-semibold"
-            >
-              {train.status}
-            </span>
-
-          </div>
-
-          <div className="mt-3 space-y-1 text-sm">
-
-            <p>
-              <strong>Type:</strong>{" "}
-              {train.type}
-            </p>
-
-            <p>
-              <strong>Speed:</strong>{" "}
-              {train.speed} km/h
-            </p>
-
-            <p>
-              <strong>Current:</strong>{" "}
-              {train.currentStation}
-            </p>
-
-            <p>
-              <strong>Destination:</strong>{" "}
-              {train.destination}
-            </p>
-
-            <p>
-              <strong>Delay:</strong>{" "}
-              <span
-                className={
-                  train.delay > 0
-                    ? "font-semibold text-red-600"
-                    : "font-semibold text-green-600"
-                }
-              >
-                {train.delay} min
-              </span>
-            </p>
-
-          </div>
-
-        </div>
-      </Popup>
-    </Marker>
-  );
-}
-
-
-/* =========================================================
-   MAP
+   Stations, corridors and trains all come from the API:
+   GET /api/stations, /api/corridors, /api/trains, /api/train-events.
+   Nothing on this map is drawn from a coordinate this file invented. A
+   train whose station has no recorded coordinate is not placed at a
+   plausible-looking point -- it is left off and counted in the note at the
+   bottom of the panel, which now opens to name those trains.
 ========================================================= */
 
 function NetworkMap() {
-  const [backendMapTrains, setBackendMapTrains] = useState([]);
-  const [loading, setLoading] = useState(true);
+  // Stations and corridors are static reference data, fetched once. Trains and
+  // their events poll every fifteen seconds and pause while the tab is hidden.
+  const stationsResource = useStations();
+  const corridorsResource = useCorridors(stationsResource);
+  const trainsResource = useTrains();
+  const eventsResource = useTrainEvents();
 
-  useEffect(() => {
-    const loadTrainData = async () => {
-      try {
-        const [trainsResponse, eventsResponse] = await Promise.all([
-          getTrains(),
-          getTrainEvents(),
-        ]);
+  const { latestByTrain } = eventsResource;
+  const { byName, positionOf } = stationsResource;
 
-        const backendTrains = trainsResponse.data;
-        const backendEvents = eventsResponse.data;
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [search, setSearch] = useState("");
+  const [selectedNumber, setSelectedNumber] = useState(null);
+  const [fitKey, setFitKey] = useState(0);
+  const [flyKey, setFlyKey] = useState(0);
+  const [fullscreen, setFullscreen] = useState(false);
+  // Below sm the panel would cover most of a 360px-tall map, so it collapses
+  // to its one-line summary and the two buttons. From sm up it is always
+  // open and this flag is ignored.
+  const [panelOpen, setPanelOpen] = useState(false);
 
-        const latestEvents = new Map();
+  // Every train the database has, shaped for the map. `position` is the
+  // coordinate of the station the latest event names, or null -- never a
+  // substitute.
+  const allTrains = useMemo(
+    () =>
+      trainsResource.trains.map((train) => {
+        const event = latestByTrain.get(String(train._id));
 
-        backendEvents.forEach((event) => {
-          const trainId = String(event.trainId);
+        const currentStation =
+          event?.station || train.currentStation || train.source || "";
 
-          if (!latestEvents.has(trainId)) {
-            latestEvents.set(trainId, event);
-          }
-        });
-        const mapTrains = backendTrains.map((train) => {
-          const event = latestEvents.get(String(train._id));
+        const station = byName.get(currentStation);
 
-          return {
-            number: train.trainNumber,
-            name: train.trainName,
-            type: train.trainType || "UNKNOWN",
-            status: train.status || "RUNNING",
-            speed: event?.speed || 0,
-            delay: event?.delayMinutes || 0,
-            currentStation: event?.station || train.currentStation || "Unknown",
-            destination: train.destination,
-            eventLocation: event?.location || null,
-          };
-        });
-        setBackendMapTrains(mapTrains);
+        return {
+          number: train.trainNumber,
+          name: train.trainName,
+          type: train.trainType || "UNKNOWN",
+          delay: event?.delayMinutes ?? 0,
+          speed: typeof event?.speed === "number" ? event.speed : null,
+          currentStation,
+          stationCode: station?.code || null,
+          destination: train.destination,
+          position: positionOf(station),
+        };
+      }),
+    [trainsResource.trains, latestByTrain, byName, positionOf]
+  );
 
-      } catch (error) {
-        console.error("Failed to load map data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const mappableTrains = useMemo(
+    () => allTrains.filter((train) => train.position),
+    [allTrains]
+  );
 
-    loadTrainData();
+  const unmappedTrains = useMemo(
+    () => allTrains.filter((train) => !train.position),
+    [allTrains]
+  );
+
+  const statusCounts = useMemo(() => {
+    const counts = { ALL: mappableTrains.length, ON_TIME: 0, DELAYED: 0, CRITICAL: 0 };
+    mappableTrains.forEach((train) => {
+      counts[trainStatusFor(train.delay).key] += 1;
+    });
+    return counts;
+  }, [mappableTrains]);
+
+  const visibleTrains = useMemo(
+    () =>
+      statusFilter === "ALL"
+        ? mappableTrains
+        : mappableTrains.filter((train) => trainStatusFor(train.delay).key === statusFilter),
+    [mappableTrains, statusFilter]
+  );
+
+  const searchMatches = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    if (!term) return [];
+
+    return mappableTrains
+      .filter(
+        (train) =>
+          train.number.toLowerCase().includes(term) ||
+          train.name.toLowerCase().includes(term)
+      )
+      .slice(0, 8);
+  }, [mappableTrains, search]);
+
+  /** Trains standing at each station, keyed by station code. */
+  const trainsByStation = useMemo(() => {
+    const map = new Map();
+    mappableTrains.forEach((train) => {
+      if (!train.stationCode) return;
+      map.set(train.stationCode, [...(map.get(train.stationCode) || []), train]);
+    });
+    return map;
+  }, [mappableTrains]);
+
+  /** Trains on each corridor: those whose current station is one of its stops. */
+  const trainsByCorridor = useMemo(() => {
+    const map = new Map();
+
+    corridorsResource.corridors.forEach((corridor) => {
+      const codes = new Set(corridor.stations || []);
+      map.set(
+        corridor.corridorId,
+        mappableTrains.filter((train) => train.stationCode && codes.has(train.stationCode))
+      );
+    });
+
+    return map;
+  }, [corridorsResource.corridors, mappableTrains]);
+
+  const corridorCounts = useMemo(() => {
+    const counts = {};
+    corridorsResource.corridors.forEach((corridor) => {
+      const key = corridorStatusFor(trainsByCorridor.get(corridor.corridorId)).key;
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    return counts;
+  }, [corridorsResource.corridors, trainsByCorridor]);
+
+  /** Everything the map draws, for fit-to-network. */
+  const allPoints = useMemo(
+    () => [
+      ...stationsResource.stations
+        .map((station) => positionOf(station))
+        .filter(Boolean),
+      ...mappableTrains.map((train) => train.position),
+    ],
+    [stationsResource.stations, positionOf, mappableTrains]
+  );
+
+  const selectedTrain = useMemo(
+    () => mappableTrains.find((train) => train.number === selectedNumber) || null,
+    [mappableTrains, selectedNumber]
+  );
+
+  const handlePick = useCallback((number) => {
+    setSelectedNumber(number);
+    setSearch("");
+    setFlyKey((key) => key + 1);
   }, []);
-  const updatedTrains = trains.map((train) => {
-    const backendTrain = backendMapTrains.find(
-      (item) => item.number === train.number
+
+  const loading =
+    stationsResource.loading || corridorsResource.loading || trainsResource.loading;
+
+  const error =
+    stationsResource.error ||
+    corridorsResource.error ||
+    trainsResource.error ||
+    eventsResource.error;
+
+  const retry = () => {
+    stationsResource.refetch();
+    corridorsResource.refetch();
+    trainsResource.refetch();
+    eventsResource.refetch();
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <PageTitle />
+        <SkeletonMap className="h-[60vh] min-h-[380px]" />
+      </div>
     );
+  }
 
-    if (!backendTrain) {
-      return train;
-    }
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <PageTitle />
+        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <ErrorState
+            message={error}
+            hint="The map needs the station list, the corridors and the trains. Check that the API is running."
+            onRetry={retry}
+          />
+        </div>
+      </div>
+    );
+  }
 
-    return {
-      ...train,
-      name: backendTrain.name,
-      type: backendTrain.type,
-      speed: backendTrain.speed,
-      delay: backendTrain.delay,
-      status: backendTrain.status,
-      currentStation: backendTrain.currentStation,
-      destination: backendTrain.destination,
-    };
-  });
+  // The API answered and there is nothing to draw. Not an error, and not a
+  // reason to show an empty grey rectangle with no explanation.
+  if (stationsResource.stations.length === 0) {
+    return (
+      <div className="space-y-6">
+        <PageTitle />
+        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <EmptyState
+            title="No stations are recorded"
+            hint="The map is drawn from the station list, and the API returned none. There is nothing to place trains or corridors against."
+            icon="∅"
+            actionLabel="Try again"
+            onAction={retry}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="relative h-full w-full">
+    <div className={fullscreen ? "fixed inset-0 z-[1400] bg-slate-50 p-3" : "space-y-6"}>
 
-      <MapContainer
-        center={[24.5, 78.0]}
-        zoom={5}
-        scrollWheelZoom={true}
-        className="h-full w-full"
-      >
-
-        {/* Base map */}
-        <TileLayer
-          attribution="&copy; OpenStreetMap contributors"
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      {!fullscreen ? (
+        <PageTitle
+          updatedAt={trainsResource.updatedAt}
+          onRefresh={retry}
+          refreshing={trainsResource.loading}
         />
-
-
-        {/* =================================================
-            RAILWAY CORRIDORS
-        ================================================= */}
-
-        {corridors.map((corridor) => (
-          <Polyline
-            key={corridor.id}
-            positions={corridor.positions}
-            pathOptions={{
-              color: "#f97316",
-              weight: 4,
-              opacity: 0.75,
-              lineCap: "round",
-              lineJoin: "round",
-            }}
-          >
-            <Tooltip sticky>
-              {corridor.name}
-            </Tooltip>
-          </Polyline>
-        ))}
-
-
-        {/* =================================================
-            STATIONS
-        ================================================= */}
-
-        {stations.map((station) => (
-          <CircleMarker
-            key={station.code}
-            center={station.position}
-            radius={4}
-            pathOptions={{
-              color: "#334155",
-              fillColor: "#ffffff",
-              fillOpacity: 1,
-              weight: 2,
-            }}
-          >
-            <Tooltip
-              direction="top"
-              offset={[0, -4]}
-            >
-              <strong>
-                {station.name}
-              </strong>
-              <br />
-              {station.code}
-            </Tooltip>
-
-            <Popup>
-              <div className="min-w-[150px]">
-                <h3 className="font-bold text-slate-900">
-                  {station.name}
-                </h3>
-
-                <p className="text-sm text-slate-500">
-                  Station Code: {station.code}
-                </p>
-              </div>
-            </Popup>
-
-          </CircleMarker>
-        ))}
-
-
-        {/* =================================================
-            TRAINS
-        ================================================= */}
-
-        {updatedTrains.map((train, index) => (
-          <MovingTrain
-            key={train.number}
-            train={train}
-            index={index}
-          />
-        ))}
-
-      </MapContainer>
-
-
-      {/* =================================================
-          MAP LEGEND
-      ================================================= */}
+      ) : null}
 
       <div
-        className="
-          absolute
-          bottom-3
-          left-3
-          z-[1000]
-          rounded-lg
-          bg-white/95
-          px-3
-          py-2
-          text-xs
-          shadow-md
-        "
+        className={`relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm ${fullscreen
+          ? "h-full"
+          : "h-[64vh] min-h-[400px] sm:h-[calc(100vh-15rem)] sm:min-h-[460px]"
+          }`}
       >
-
-        <div className="mb-2 font-semibold text-slate-700">
-          Network Status
-        </div>
-
-        <div className="flex items-center gap-2 text-slate-700">
-          <span
-            className="h-3 w-3 rounded-full"
-            style={{
-              background: "#16a34a",
-            }}
+        <MapContainer
+          center={[24.5, 78.0]}
+          zoom={5}
+          // On a dedicated map page the wheel belongs to the map. The
+          // Dashboard's embedded map turns this off so the page can scroll.
+          scrollWheelZoom
+          // Two-finger pinch zooms; one finger pans. `tap` is left on so a
+          // marker responds to a tap rather than needing a click event that
+          // a touch screen never sends.
+          touchZoom
+          tap
+          className="rp-map h-full w-full"
+        >
+          <TileLayer
+            attribution="&copy; OpenStreetMap contributors"
+            // Standard OSM tiles. A pale third-party basemap would suit the
+            // theme better, but every one worth having (Carto Positron,
+            // Stadia/Stamen) now wants an API key, and a map stamped "API
+            // KEY REQUIRED" is worse than a busy one. The `.rp-map` class in
+            // index.css desaturates these tiles in CSS instead, which costs
+            // no key and no request, and leaves the orange, amber, green and
+            // red of the network legible on top.
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-          Running Train
-        </div>
 
-        <div className="mt-1 flex items-center gap-2 text-slate-700">
-          <span
-            className="h-3 w-3 rounded-full"
-            style={{
-              background: "#dc2626",
-            }}
-          />
-          Delayed Train
-        </div>
+          <FitToNetwork points={allPoints} fitKey={fitKey} />
+          <FlyToTrain position={selectedTrain?.position} flyKey={flyKey} />
 
-        <div className="mt-1 flex items-center gap-2 text-slate-700">
-          <span
-            className="h-[3px] w-4"
-            style={{
-              background: "#f97316",
-            }}
-          />
-          Railway Corridor
-        </div>
+          {corridorsResource.corridors.map((corridor) => (
+            <CorridorLine
+              key={corridor.corridorId}
+              corridor={corridor}
+              trains={trainsByCorridor.get(corridor.corridorId) || []}
+            />
+          ))}
 
-        <div className="mt-1 flex items-center gap-2 text-slate-700">
-          <span
-            className="
-              h-2.5
-              w-2.5
-              rounded-full
-              border-2
-              border-slate-700
-              bg-white
-            "
-          />
-          Station
-        </div>
+          {stationsResource.stations.map((station) => (
+            <StationMarker
+              key={station.code}
+              station={station}
+              trains={trainsByStation.get(station.code) || []}
+              onSelectTrain={handlePick}
+            />
+          ))}
 
+          {visibleTrains.map((train) => (
+            <TrainMarker
+              key={train.number}
+              train={train}
+              selected={train.number === selectedNumber}
+              onSelect={setSelectedNumber}
+            />
+          ))}
+        </MapContainer>
+
+        {/* CONTROL PANEL
+            Above the tiles but below Leaflet's own popups. On a phone it
+            sits across the top so it never covers the map's centre; from sm
+            up it is a panel in the corner. */}
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-[1000] p-2 sm:inset-x-auto sm:left-3 sm:top-3 sm:w-64 sm:p-0">
+          <div className="pointer-events-auto rounded-xl border border-slate-200 bg-white/95 p-3 shadow-lg backdrop-blur-sm">
+
+            <div className="flex items-start justify-between gap-2">
+              <button
+                type="button"
+                onClick={() => setPanelOpen((current) => !current)}
+                aria-expanded={panelOpen}
+                className="rp-press flex items-center gap-1.5 rounded text-xs font-semibold text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 sm:pointer-events-none sm:cursor-default"
+              >
+                <ChevronDown
+                  size={13}
+                  className={`shrink-0 transition-transform sm:hidden ${panelOpen ? "rotate-180" : ""}`}
+                  aria-hidden="true"
+                />
+                {visibleTrains.length} of {mappableTrains.length} trains shown
+              </button>
+
+              <MapButtons
+                onFit={() => setFitKey((key) => key + 1)}
+                isFullscreen={fullscreen}
+                onToggleFullscreen={() => setFullscreen((current) => !current)}
+              />
+            </div>
+
+            <div className={panelOpen ? "block" : "hidden sm:block"}>
+
+            <div className="mt-2.5">
+              <TrainSearch
+                value={search}
+                onChange={setSearch}
+                matches={searchMatches}
+                onPick={handlePick}
+              />
+            </div>
+
+            <div className="mt-2.5">
+              <StatusFilter
+                value={statusFilter}
+                onChange={setStatusFilter}
+                counts={statusCounts}
+              />
+            </div>
+
+            {/* The legend is a lot of rows on a phone; it is collapsed into
+                a details element below sm rather than taking half the map. */}
+            <details className="mt-2.5 sm:hidden">
+              <summary className="cursor-pointer text-xs font-semibold text-slate-800">
+                Legend
+              </summary>
+              <div className="mt-2">
+                <Legend corridorCounts={corridorCounts} />
+              </div>
+            </details>
+
+            <div className="mt-2.5 hidden sm:block">
+              <Legend corridorCounts={corridorCounts} />
+            </div>
+
+            <div className="mt-2.5">
+              <UnmappedTrains trains={unmappedTrains} />
+            </div>
+
+            {/* The filter can empty the map. Say so, rather than leaving the
+                user looking at corridors and wondering where the trains went. */}
+            {visibleTrains.length === 0 && mappableTrains.length > 0 ? (
+              <p className="mt-2.5 border-t border-slate-200 pt-2 text-xs text-slate-700">
+                No train matches this filter.{" "}
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter("ALL")}
+                  className="font-semibold text-orange-600 underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"
+                >
+                  Show all
+                </button>
+              </p>
+            ) : null}
+
+            </div>
+
+          </div>
+        </div>
       </div>
-
     </div>
+  );
+}
+
+function PageTitle({ updatedAt = null, onRefresh = null, refreshing = false }) {
+  return (
+    <PageHeader
+      title="Network Map"
+      subtitle="Live train positions, stations and corridors across the network."
+      updatedAt={updatedAt}
+      onRefresh={onRefresh}
+      refreshing={refreshing}
+    />
   );
 }
 

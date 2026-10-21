@@ -1,0 +1,553 @@
+Train_id,Train_name,Train_no,Source,Destitnation,Date,Distance(Km),Sc_arr__time,Act_arr_time,Dealy_min,Season,Run_frequency
+RP0001,Shatabdi Express,12002,New Delhi,RANI KAMLAPATI,22-01-2023 00:00,707,06:00:00,06:25:00,00:25:00,Winter,Daliy
+RP0002,Shatabdi Express,12002,New Delhi,RANI KAMLAPATI,27-02-2023 00:00,707,06:00:00,06:42:00,00:42:00,Winter,Daliy
+RP0003,Shatabdi Express,12002,New Delhi, RANI KAMLAPATI,24-03-2023 00:00,707,06:00:00,06:00:00,00:00:00,Summer,Daliy
+RP0004,Shatabdi Express,12002,New Delhi,RANI KAMLAPATI,12-04-2023 00:00,707,06:00:00,06:00:00,00:00:00,Summer,Daliy
+RP0005,Shatabdi Express,12002,New Delhi,RANI KAMLAPATI,22-05-2023 00:00,707,06:00:00,06:05:00,00:05:00,Summer,Daliy
+RP0006,Shatabdi Express,12002,New Delhi,RANI KAMLAPATI,13-06-2023 00:00,707,06:00:00,06:26:00,00:26:00,Monsoon,Daliy
+RP0007,Shatabdi Express,12002,New Delhi,RANI KAMLAPATI,14-07-2023 00:00,707,06:00:00,06:16:00,00:16:00,Monsoon,Daliy
+RP0008,Shatabdi Express,12002,New Delhi,RANI KAMLAPATI,21-08-2023 00:00,707,06:00:00,06:02:00,00:02:00,Monsoon,Daliy
+RP0009,Shatabdi Express,12002,New Delhi,RANI KAMLAPATI,16-09-2023 00:00,707,06:00:00,06:06:00,00:06:00,Monsoon,Daliy
+RP0010,Shatabdi Express,12002,New Delhi,RANI KAMLAPATI,06-10-2023 00:00,707,06:00:00,06:01:00,00:01:00,Autumn,Daliy
+RP0011,Shatabdi Express,12002,New Delhi,RANI KAMLAPATI,23-11-2023 00:00,707,06:00:00,06:02:00,00:02:00,Autumn,Daliy
+RP0012,Shatabdi Express,12002,New Delhi,RANI KAMLAPATI,19-12-2023 00:00,707,06:00:00,06:19:00,00:19:00,Winter,Daliy
+RP0013,Shatabdi Express,12002,New Delhi,RANI KAMLAPATI,30-01-2024 00:00,707,06:00:00,06:01:00,00:01:00,Winter,Daliy
+RP0014,Shatabdi Express,12002,New Delhi,RANI KAMLAPATI,19-02-2024 00:00,707,06:00:00,06:20:00,00:20:00,Winter,Daliy
+RP0015,Shatabdi Express,12002,New Delhi,RANI KAMLAPATI,03-03-2024 00:00,707,06:00:00,06:00:00,00:00:00,Summer,Daliy
+RP0016,Shatabdi Express,12002,New Delhi,RANI KAMLAPATI,23-04-2024 00:00,707,06:00:00,06:07:00,00:07:00,Summer,Daliy
+RP0017,Shatabdi Express,12002,New Delhi,RANI KAMLAPATI,06-05-2024 00:00,707,06:00:00,06:02:00,00:02:00,Summer,Daliy
+RP0018,Shatabdi Express,12002,New Delhi,RANI KAMLAPATI,26-06-2024 00:00,707,06:00:00,06:14:00,00:14:00,Monsoon,Daliy
+RP0019,Shatabdi Express,12002,New Delhi,RANI KAMLAPATI,07-07-2024 00:00,707,06:00:00,06:12:00,00:12:00,Monsoon,Daliy
+RP0020,Shatabdi Express,12002,New Delhi,RANI KAMLAPATI,15-08-2024 00:00,707,06:00:00,06:10:00,00:10:00,Monsoon,Daliy
+RP0021,Shatabdi Express,12002,New Delhi,RANI KAMLAPATI,03-09-2024 00:00,707,06:00:00,06:36:00,00:36:00,Monsoon,Daliy
+RP0022,Shatabdi Express,12002,New Delhi,RANI KAMLAPATI,16-10-2024 00:00,707,06:00:00,06:11:00,00:11:00,Autumn,Daliy
+RP0023,Shatabdi Express,12002,New Delhi,RANI KAMLAPATI,03-11-2024 00:00,707,06:00:00,06:08:00,00:08:00,Autumn,Daliy
+RP0024,Shatabdi Express,12002,New Delhi,RANI KAMLAPATI,30-12-2024 00:00,707,06:00:00,07:04:00,01:04:00,Winter,Daliy
+RP0025,Shatabdi Express,12002,New Delhi,RANI KAMLAPATI,06-01-2025 00:00,707,06:00:00,06:02:00,00:02:00,Winter,Daliy
+RP0026,Shatabdi Express,12002,New Delhi,RANI KAMLAPATI,26-02-2025 00:00,707,06:00:00,06:02:00,00:02:00,Winter,Daliy
+RP0027,Shatabdi Express,12002,New Delhi,RANI KAMLAPATI,17-03-2025 00:00,707,06:00:00,06:13:00,00:13:00,Summer,Daliy
+RP0028,Shatabdi Express,12002,New Delhi,RANI KAMLAPATI,26-04-2025 00:00,707,06:00:00,06:00:00,00:00:00,Summer,Daliy
+RP0029,Shatabdi Express,12002,New Delhi,RANI KAMLAPATI,25-05-2025 00:00,707,06:00:00,06:00:00,00:00:00,Summer,Daliy
+RP0030,Shatabdi Express,12002,New Delhi,RANI KAMLAPATI,17-06-2025 00:00,707,06:00:00,06:01:00,00:01:00,Monsoon,Daliy
+RP0031,Shatabdi Express,12002,New Delhi,RANI KAMLAPATI,11-07-2025 00:00,707,06:00:00,06:12:00,00:12:00,Monsoon,Daliy
+RP0032,Shatabdi Express,12002,New Delhi,RANI KAMLAPATI,09-08-2025 00:00,707,06:00:00,06:10:00,00:10:00,Monsoon,Daliy
+RP0033,Shatabdi Express,12002,New Delhi,RANI KAMLAPATI,13-09-2025 00:00,707,06:00:00,06:00:00,00:00:00,Monsoon,Daliy
+RP0034,Shatabdi Express,12002,New Delhi,RANI KAMLAPATI,17-10-2025 00:00,707,06:00:00,06:06:00,00:06:00,Autumn,Daliy
+RP0035,Shatabdi Express,12002,New Delhi,RANI KAMLAPATI,15-11-2025 00:00,707,06:00:00,06:02:00,00:02:00,Autumn,Daliy
+RP0036,Shatabdi Express,12002,New Delhi,RANI KAMLAPATI,26-11-2025 00:00,707,06:00:00,06:37:00,00:37:00,Autumn,Daliy
+RP0037,Shatabdi Express,12002,New Delhi,RANI KAMLAPATI,10-12-2025 00:00,707,06:00:00,06:10:00,00:10:00,Winter,Daliy
+RP0038,Shatabdi Express,12002,New Delhi,RANI KAMLAPATI,14-01-2026 00:00,707,06:00:00,06:06:00,00:06:00,Winter,Daliy
+RP0039,Shatabdi Express,12002,New Delhi,RANI KAMLAPATI,10-02-2026 00:00,707,06:00:00,06:25:00,00:25:00,Winter,Daliy
+RP0040,Shatabdi Express,12002,New Delhi,RANI KAMLAPATI,08-03-2026 00:00,707,06:00:00,06:00:00,00:00:00,Summer,Daliy
+RP0041,Shatabdi Express,12002,New Delhi,RANI KAMLAPATI,23-04-2026 00:00,707,06:00:00,06:00:00,00:00:00,Summer,Daliy
+RP0042,Shatabdi Express,12002,New Delhi,RANI KAMLAPATI,15-05-2026 00:00,707,06:00:00,06:00:00,00:00:00,Summer,Daliy
+RP0043,Shatabdi Express,12002,New Delhi,RANI KAMLAPATI,15-06-2026 00:00,707,06:00:00,06:15:00,00:15:00,Monsoon,Daliy
+RP0044,Shatabdi Express,12002,New Delhi,RANI KAMLAPATI,19-07-2026 00:00,707,06:00:00,06:14:00,00:14:00,Monsoon,Daliy
+RP0045,Shatabdi Express,12002,New Delhi,RANI KAMLAPATI,30-08-2026 00:00,707,06:00:00,06:03:00,00:03:00,Monsoon,Daliy
+RP0046,Shatabdi Express,12002,New Delhi,RANI KAMLAPATI,26-09-2026 00:00,707,06:00:00,06:06:00,00:06:00,Monsoon,Daliy
+RP0047,Lucknow Mail,12229,Lucknow,New Delhi,16-01-2023 00:00,491,10:00:00,10:18:00,00:18:00,Winter,Daliy
+RP0048,Lucknow Mail,12229,Lucknow,New Delhi,13-02-2023 00:00,491,10:00:00,10:53:00,00:53:00,Winter,Daliy
+RP0049,Lucknow Mail,12229,Lucknow,New Delhi,01-03-2023 00:00,491,10:00:00,10:06:00,00:06:00,Summer,Daliy
+RP0050,Lucknow Mail,12229,Lucknow,New Delhi,23-04-2023 00:00,491,10:00:00,10:17:00,00:17:00,Summer,Daliy
+RP0051,Lucknow Mail,12229,Lucknow,New Delhi,06-05-2023 00:00,491,10:00:00,10:16:00,00:16:00,Summer,Daliy
+RP0052,Lucknow Mail,12229,Lucknow,New Delhi,22-06-2023 00:00,491,10:00:00,10:19:00,00:19:00,Monsoon, Daliy
+RP0053,Lucknow Mail,12229,Lucknow,New Delhi,01-07-2023 00:00,491,10:00:00,10:12:00,00:12:00,Monsoon,Daliy
+RP0054,Lucknow Mail,12229,Lucknow,New Delhi,24-08-2023 00:00,491,10:00:00,10:08:00,00:08:00,Monsoon,Daliy
+RP0055,Lucknow Mail,12229,Lucknow,New Delhi,25-09-2023 00:00,491,10:00:00,10:07:00,00:07:00,Monsoon,Daliy
+RP0056,Lucknow Mail,12229,Lucknow,New Delhi,21-10-2023 00:00,491,10:00:00,10:12:00,00:12:00,Autumn,Daliy
+RP0057,Lucknow Mail,12229,Lucknow,New Delhi,29-11-2023 00:00,491,10:00:00,10:22:00,00:22:00,Autumn,Daliy
+RP0058,Lucknow Mail,12229,Lucknow,New Delhi,23-12-2023 00:00,491,10:00:00,10:43:00,00:43:00,Winter,Daliy
+RP0059,Lucknow Mail,12229,Lucknow,New Delhi,06-01-2024 00:00,491,10:00:00,11:08:00,01:08:00,Winter,Daliy
+RP0060,Lucknow Mail,12229,Lucknow,New Delhi,29-02-2024 00:00,491,10:00:00,10:21:00,00:21:00,Winter,Daliy
+RP0061,Lucknow Mail,12229,Lucknow,New Delhi,22-03-2024 00:00,491,10:00:00,10:00:00,00:00:00,Summer,Daliy
+RP0062,Lucknow Mail,12229,Lucknow,New Delhi,29-04-2024 00:00,491,10:00:00,10:10:00,00:10:00,Summer,Daliy
+RP0063,Lucknow Mail,12229,Lucknow,New Delhi,06-05-2024 00:00,491,10:00:00,10:04:00,00:04:00,Summer,Daliy
+RP0064,Lucknow Mail,12229,Lucknow,New Delhi,30-06-2024 00:00,491,10:00:00,10:19:00,00:19:00,Monsoon,Daliy
+RP0065,Lucknow Mail,12229,Lucknow ,New Delhi,27-07-2024 00:00,491,10:00:00,10:12:00,00:12:00,Monsoon,Daliy
+RP0066,Lucknow Mail,12229,Lucknow,New Delhi,06-08-2024 00:00,491,10:00:00,10:03:00,00:03:00,Monsoon,Daliy
+RP0067,Lucknow Mail,12229,Lucknow,New Delhi,06-09-2024 00:00,491,10:00:00,10:11:00,00:14:00,Monsoon,Daliy
+RP0068,Lucknow Mail,12229,Lucknow,New Delhi,20-10-2024 00:00,491,10:00:00,10:23:00,00:23:00,Autumn,Daliy
+RP0069,Lucknow Mail,12229,Lucknow,New Delhi,06-11-2024 00:00,491,10:00:00,10:10:00,00:10:00,Autumn,Daliy
+RP0070,Lucknow Mail,12229,Lucknow,New Delhi,08-12-2024 00:00,491,10:00:00,10:19:00,00:19:00,Winter,Daliy
+RP0071,Lucknow Mail,12229,Lucknow,New Delhi,06-01-2025 00:00,491,10:00:00,11:19:00,01:19:00,Winter,Daliy
+RP0072,Lucknow Mail,12229,Lucknow,New Delhi,04-02-2025 00:00,491,10:00:00,10:08:00,00:08:00,Winter,Daliy
+RP0073,Lucknow Mail,12229,Lucknow,New Delhi,09-03-2025 00:00,491,10:00:00,10:00:00,00:00:00,Summer,Daliy
+RP0074,Lucknow Mail,12229,Lucknow,New Delhi,08-04-2025 00:00,491,10:00:00,10:08:00,00:08:00,Summer,Daliy
+RP0075,Lucknow Mail,12229,Lucknow,New Delhi,11-05-2025 00:00,491,10:00:00,10:03:00,00:03:00,Summer,Daliy
+RP0076,Lucknow Mail,12229,Lucknow,New Delhi,23-06-2025 00:00,491,10:00:00,10:08:00,00:08:00,Monsoon,Daliy
+RP0077,Lucknow Mail,12229,Lucknow,New Delhi,11-07-2025 00:00,491,10:00:00,10:29:00,00:29:00,Monsoon,Daliy
+RP0078,Lucknow Mail,12229,Lucknow,New Delhi,26-07-2025 00:00,491,10:00:00,10:23:00,00:23:00,Monsoon,Daliy
+RP0079,Lucknow Mail,12229,Lucknow,New Delhi,26-08-2025 00:00,491,10:00:00,10:01:00,00:01:00,Monsoon,Daliy
+RP0080,Lucknow Mail,12229,Lucknow,New Delhi,16-09-2025 00:00,491,10:00:00,10:32:00,00:32:00,Monsoon,Daliy
+RP0081,Lucknow Mail,12229,Lucknow,New Delhi,06-10-2025 00:00,491,10:00:00,10:13:00,00:13:00,Autumn,Daliy
+RP0082,Lucknow Mail,12229,Lucknow,New Delhi,08-11-2025 00:00,491,10:00:00,10:13:00,00:13:00,Autumn,Daliy
+RP0083,Lucknow Mail,12229,Lucknow,New Delhi,31-12-2025 00:00,491,10:00:00,10:27:00,00:27:00,Winter,Daliy
+RP0084,Lucknow Mail,12229,Lucknow,New Delhi,23-01-2026 00:00,491,10:00:00,10:06:00,00:06:00,Winter,Daliy
+RP0085,Lucknow Mail,12229,Lucknow,New Delhi,08-02-2026 00:00,491,10:00:00,10:20:00,00:20:00,Winter,Daliy
+RP0086,Lucknow Mail,12229,Lucknow,New Delhi,01-03-2026 00:00,491,10:00:00,10:05:00,00:05:00,Summer,Daliy
+RP0087,Lucknow Mail,12229,Lucknow,New Delhi,03-04-2026 00:00,491,10:00:00,10:58:00,00:58:00,Summer,Daliy
+RP0088,Lucknow Mail,12229,Lucknow,New Delhi,14-05-2026 00:00,491,10:00:00,10:53:00,00:53:00,Summer,Daliy
+RP0089,Lucknow Mail,12229,Lucknow,New Delhi,13-06-2026 00:00,491,10:00:00,10:33:00,00:33:00,Monsoon,Daliy
+RP0090,Lucknow Mail,12229,Lucknow,New Delhi,08-07-2026 00:00,491,10:00:00,10:42:00,00:42:00,Monsoon,Daliy
+RP0091,Lucknow Mail,12229,Lucknow,New Delhi,31-08-2026 00:00,491,10:00:00,10:07:00,00:07:00,Monsoon,Daliy
+RP0092,Lucknow Mail,12229,Lucknow,New Delhi,16-09-2026 00:00,491,10:00:00,10:05:00,00:05:00,Monsoon,Daliy
+RP0093,Begampura Express,12238,Varanasi,Jammu,11-01-2023 00:00,1260,06:30:00,07:04:00,00:34:00,Winter,Daliy
+RP0094,Begampura Express,12238,Varanasi,Jammu,08-02-2023 00:00,1260,06:30:00,06:30:00,00:00:00,Winter,Daliy
+RP0095,Begampura Express,12238,Varanasi,Jammu,20-03-2023 00:00,1260,06:30:00,06:42:00,00:12:00,Summer,Daliy
+RP0096,Begampura Express,12238,Varanasi,Jammu,23-04-2023 00:00,1260,06:30:00,07:28:00,00:58:00,Summer,Daliy
+RP0097,Begampura Express,12238,Varanasi,Jammu,15-05-2023 00:00,1260,06:30:00,06:37:00,00:07:00,Summer,Daliy
+RP0098,Begampura Express,12238,Varanasi,Jammu,05-06-2023 00:00,1260,06:30:00,06:51:00,00:21:00,Monsoon,Daliy
+RP0099,Begampura Express,12238,Varanasi,Jammu,03-07-2023 00:00,1260,06:30:00,07:31:00,01:01:00,Monsoon,Daliy
+RP0100,Begampura Express,12238,Varanasi,Jammu,17-08-2023 00:00,1260,06:30:00,07:19:00,00:49:00,Monsoon,Daliy
+RP0101,Begampura Express,12238,Varanasi,Jammu,08-09-2023 00:00,1260,06:30:00,06:48:00,00:18:00,Monsoon,Daliy
+RP0102,Begampura Express,12238,Varanasi,Jammu,13-10-2023 00:00,1260,06:30:00,06:49:00,00:19:00,Autumn,Daliy
+RP0103,Begampura Express,12238,Varanasi,Jammu,06-11-2023 00:00,1260,06:30:00,06:46:00,00:16:00,Autumn,Daliy
+RP0104,Begampura Express,12238,Varanasi,Jammu,30-12-2023 00:00,1260,06:30:00,06:39:00,00:09:00,Winter,Daliy
+RP0105,Begampura Express,12238,Varanasi,Jammu,19-01-2024 00:00,1260,01-01-1900 06:30,06:35:00,00:05:00,Winter,Daliy
+RP0106,Begampura Express,12238,Varanasi,Jammu,28-02-2024 00:00,1260,06:30:00,06:46:00,00:16:00,Winter,Daliy
+RP0107,Begampura Express,12238,Varanasi,Jammu,12-03-2024 00:00,1260,06:30:00,06:30:00,00:00:00,Summer,Daliy
+RP0108,Begampura Express,12238,Varanasi,Jammu,09-04-2024 00:00,1260,06:30:00,06:44:00,00:14:00,Summer,Daliy
+RP0109,Begampura Express,12238,Varanasi,Jammu,06-05-2024 00:00,1260,06:30:00,06:43:00,00:13:00,Summer,Daliy
+RP0110,Begampura Express,12238,Varanasi,Jammu,24-06-2024 00:00,1260,06:30:00,06:41:00,00:11:00,Monsoon,Daliy
+RP0111,Begampura Express,12238,Varanasi,Jammu,28-07-2024 00:00,1260,06:30:00,07:22:00,00:52:00,Monsoon,Daliy
+RP0112,Begampura Express,12238,Varanasi,Jammu,13-08-2024 00:00,1260,06:30:00,10:28:00,03:58:00,Monsoon,Daliy
+RP0113,Begampura Express,12238,Varanasi,Jammu,28-09-2024 00:00,1260,06:30:00,07:35:00,01:05:00,Monsoon,Daliy
+RP0114,Begampura Express,12238,Varanasi,Jammu,16-10-2024 00:00,1260,06:30:00,06:36:00,00:06:00,Autumn,Daliy
+RP0115,Begampura Express,12238,Varanasi,Jammu,03-11-2024 00:00,1260,06:30:00,06:56:00,00:26:00,Autumn,Daliy
+RP0116,Begampura Express,12238,Varanasi,Jammu ,05-12-2024 00:00,1260,06:30:00,07:19:00,00:49:00,Winter,Daliy
+RP0117,Begampura Express,12238,Varanasi,Jammu,27-01-2025 00:00,1260,06:30:00,07:16:00,00:46:00,Winter,Daliy
+RP0118,Begampura Express,12238,Varanasi,Jammu,09-02-2025 00:00,1260,06:30:00,07:33:00,01:03:00,Winter,Daliy 
+RP0119,Begampura Express,12238,Varanasi,Jammu,11-02-2025 00:00,1260,06:30:00,07:01:00,00:31:00,Winter,Daliy
+RP0120,Begampura Express,12238,Varanasi,Jammu,29-03-2025 00:00,1260,06:30:00,06:41:00,00:11:00,Summer,Daliy
+RP0121,Begampura Express,12238,Varanasi, Jammu,11-04-2025 00:00,1260,06:30:00,01-01-1900 07:34,01:04:00,Summer,Daliy
+RP0122,Begampura Express,12238,Varanasi,Jammu,20-05-2025 00:00,1260,06:30:00,06:37:00,00:07:00,Summer,Daliy
+RP0123,Begampura Express,12238,Varanasi,Jammu,16-06-2025 00:00,1260,06:30:00,07:11:00,00:41:00,Monsoon,Daliy
+RP0124,Begampura Express,12238,Varanasi,Jammu,03-07-2025 00:00,1260,06:30:00,06:55:00,00:25:00,Monsoon,Daliy
+RP0125,Begampura Express,12238,Varanasi,Jammu,18-08-2025 00:00,1260,06:30:00,06:59:00,00:29:00,Monsoon,Daliy
+RP0126,Begampura Express,12238,Varanasi,Jammu,15-09-2025 00:00,1260,06:30:00,06:54:00,00:24:00,Monsoon,Daliy
+RP0127,Begampura Express,12238,Varanasi,Jammu,29-10-2025 00:00,1260,06:30:00,06:50:00,00:20:00,Autumn,Daliy
+RP0128,Begampura Express,12238,Varanasi,Jammu,24-11-2025 00:00,1260,06:30:00,07:12:00,00:42:00,Autumn,Daliy
+RP0129,Begampura Express,12238,Varanasi,Jammu,14-12-2025 00:00,1260,06:30:00,07:10:00,00:40:00,Winter,Daliy
+RP0130,Begampura Express,12238,Varanasi,Jammu,21-01-2026 00:00,1260,06:30:00,07:10:00,00:40:00,Winter,Daliy
+RP0131,Begampura Express,12238,Varanasi,Jammu,06-02-2026 00:00,1260,06:30:00,07:19:00,00:49:00,Winter,Daliy
+RP0132,Begampura Express,12238,Varanasi,Jammu,12-03-2026 00:00,1260,06:30:00,08:36:00,02:06:00,Summer,Daliy
+RP0133,Begampura Express,12238,Varanasi,Jammu,09-04-2026 00:00,1260,06:30:00,06:32:00,00:02:00,Summer,Daliy
+RP0134,Begampura Express,12238,Varanasi,Jammu,17-05-2026 00:00,1260,06:30:00,06:36:00,00:06:00,Summer,Daliy
+RP0135,Begampura Express,12238,Varanasi,Jammu,08-06-2026 00:00,1260,06:30:00,06:36:00,00:06:00,Monsoon,Daliy
+RP0136,Begampura Express,12238,Varanasi,Jammu,14-07-2026 00:00,1260,06:30:00,07:22:00,00:52:00,Monsoon,Daliy
+RP0137,Begampura Express,12238,Varanasi,Jammu,15-08-2026 00:00,1260,06:30:00,09:24:00,02:54:00,Monsoon,Daliy
+RP0138,Begampura Express,12238,Varanasi,Jammu,22-09-2026 00:00,1260,06:30:00,07:56:00,01:26:00,Monsoon,Daliy
+RP0139,Rajdhani Express,12301,Howrah,New Delhi,06-01-2023 00:00,1450,10:00:00,10:34:00,00:34:00,Winter,Daliy
+RP0140,Rajdhani Express,12301,Howrah,New Delhi,07-02-2023 00:00,1450,10:00:00,10:11:00,00:11:00,Winter,Daliy
+RP0141,Rajdhani Express,12301,Howrah,New Delhi,08-03-2023 00:00,1450,10:00:00,10:01:00,00:01:00,Summer,Daliy
+RP0142,Rajdhani Express,12301,Howrah,New Delhi,09-04-2023 00:00,1450,10:00:00,10:19:00,00:19:00,Summer,Daliy
+RP0143,Rajdhani Express,12301,Howrah,New Delhi,14-04-2023 00:00,1450,10:00:00,10:00:00,00:00:00,Summer,Daliy 
+RP0144,Rajdhani Express,12301,Howrah,New Delhi,12-05-2023 00:00,1450,10:00:00,10:18:00,00:18:00,Summer,Daliy
+RP0145,Rajdhani Express,12301,Howrah,New Delhi,07-06-2023 00:00,1450,10:00:00,10:22:00,00:22:00,Monsoon,Daliy
+RP0146,Rajdhani Express,12301,Howrah,New Delhi,21-07-2023 00:00,1450,10:00:00,10:44:00,00:44:00,Monsoon,Daliy
+RP0147,Rajdhani Express,12301,Howrah,New Delhi,25-08-2023 00:00,1450,10:00:00,11:48:00,01:48:00,Monsoon,Daliy
+RP0148,Rajdhani Express,12301,Howrah,New Delhi,10-09-2023 00:00,1450,10:00:00,11:17:00,01:17:00,Monsoon,Daliy
+RP0149,Rajdhani Express,12301,Howrah,New Delhi,26-10-2023 00:00,1450,10:00:00,10:03:00,00:03:00,Autumn,Daliy
+RP0150,Rajdhani Express,12301,Howrah,New Delhi ,04-11-2023 00:00,1450,10:00:00,10:31:00,00:31:00,Autumn,Daliy
+RP0151,Rajdhani Express,12301,Howrah,New Delhi,28-12-2023 00:00,1450,10:00:00,10:40:00,00:40:00,Winter,Daliy
+RP0152,Rajdhani Express,12301,Howrah,New Delhi,27-01-2024 00:00,1450,10:00:00,10:26:00,00:26:00,Winter,Daliy
+RP0153,Rajdhani Express,12301,Howrah,New Delhi,05-02-2024 00:00,1450,10:00:00,10:02:00,00:02:00,Winter,Daliy
+RP0154,Rajdhani Express,12301,Howrah,New Delhi,22-03-2024 00:00,1450,10:00:00,10:12:00,00:12:00,Summer,Daliy
+RP0155,Rajdhani Express,12301,Howrah,New Delhi,08-04-2024 00:00,1450,10:00:00,10:00:00,00:00:00,Summer,Daliy
+RP0156,Rajdhani Express,12301,Howrah,New Delhi,04-05-2024 00:00,1450,10:00:00,10:00:00,00:00:00,Summer,Daliy
+RP0157,Rajdhani Express,12301,Howrah,New Delhi,28-06-2024 00:00,1450,10:00:00,10:32:00,00:32:00,Monsoon,Daliy
+RP0158,Rajdhani Express,12301,Howrah,New Delhi,26-07-2024 00:00,1450,10:00:00,10:05:00,00:05:00,Monsoon,Daliy
+RP0159,Rajdhani Express,12301,Howrah,New Delhi,06-08-2024 00:00,1450,10:00:00,10:08:00,00:08:00,Monsoon,Daliy
+RP0160,Rajdhani Express,12301,Howrah,New Delhi,10-09-2024 00:00,1450,10:00:00,10:05:00,00:05:00,Monsoon,Daliy
+RP0161,Rajdhani Express,12301,Howrah,New Delhi,01-10-2024 00:00,1450,10:00:00,10:16:00,00:16:00,Autumn,Daliy
+RP0162,Rajdhani Express,12301,Howrah ,New Delhi,26-11-2024 00:00,1450,10:00:00,10:35:00,00:35:00,Autumn,Daliy
+RP0163,Rajdhani Express,12301,Howrah,New Delhi,14-12-2024 00:00,1450,10:00:00,10:43:00,00:43:00,Winter,Daliy
+RP0164,Rajdhani Express,12301,Howrah,New Delhi,17-01-2025 00:00,1450,10:00:00,13:06:00,03:06:00,Winter,Daliy
+RP0165,Rajdhani Express,12301,Howrah,New Delhi,03-02-2025 00:00,1450,10:00:00,10:27:00,00:27:00,Winter,Daliy
+RP0166,Rajdhani Express,12301,Howrah,New Delhi,27-03-2025 00:00,1450,10:00:00,10:12:00,00:12:00,Summer,Daliy
+RP0167,Rajdhani Express,12301,Howrah,New Delhi,03-04-2025 00:00,1450,10:00:00,11:45:00,01:45:00,Summer,Daliy
+RP0168,Rajdhani Express,12301,Howrah,New Delhi,21-05-2025 00:00,1450,10:00:00,10:01:00,00:01:00,Summer,Daliy
+RP0169,Rajdhani Express,12301,Howrah,New Delhi,25-06-2025 00:00,1450,10:00:00,10:42:00,00:42:00,Monsoon, Daliy
+RP0170,Rajdhani Express,12301,Howrah,New Delhi,14-07-2025 00:00,1450,10:00:00,10:26:00,00:26:00,Monsoon,Daliy
+RP0171,Rajdhani Express,12301,Howrah,New Delhi,05-08-2025 00:00,1450,10:00:00,10:26:00,00:26:00,Monsoon,Daliy
+RP0172,Rajdhani Express,12301,Howrah,New Delhi,19-09-2025 00:00,1450,10:00:00,10:13:00,00:13:00,Monsoon,Daliy
+RP0173,Rajdhani Express,12301,Howrah,New Delhi,28-10-2025 00:00,1450,10:00:00,10:41:00,00:41:00,Autumn,Daliy
+RP0174,Rajdhani Express,12301,Howrah,New Delhi,05-11-2025 00:00,1450,10:00:00,10:13:00,00:13:00,Autumn,Daliy
+RP0175,Rajdhani Express,12301,Howrah,New Delhi,28-12-2025 00:00,1450,10:00:00,10:27:00,00:27:00,Winter,Daliy
+RP0176,Rajdhani Express,12301,Howrah,New Delhi,25-01-2026 00:00,1450,10:00:00,10:34:00,00:34:00,Winter,Daliy
+RP0177,Rajdhani Express,12301,Howrah,New Delhi,07-02-2026 00:00,1450,10:00:00,11:29:00,01:29:00,Winter,Daliy
+RP0178,Rajdhani Express,12301,Howrah,New Delhi,22-03-2026 00:00,1450,10:00:00,10:24:00,00:24:00,Summer,Daliy
+RP0179,Rajdhani Express,12301,Howrah,New Delhi,29-04-2026 00:00,1450,10:00:00,10:06:00,00:06:00,Summer,Daliy
+RP0180,Rajdhani Express,12301,Howrah,New Delhi,13-05-2026 00:00,1450,10:00:00,12:01:00,02:01:00,Summer,Daliy
+RP0181,Rajdhani Express,12301,Howrah,New Delhi,16-06-2026 00:00,1450,10:00:00,10:41:00,00:41:00,Monsoon,Daliy
+RP0182,Rajdhani Express,12301,Howrah,New Delhi,08-07-2026 00:00,1450,10:00:00,10:24:00,00:24:00,Monsoon,Daliy
+RP0183,Rajdhani Express,12301,Howrah,New Delhi,27-08-2026 00:00,1450,10:00:00,10:38:00,00:38:00,Monsoon,Daliy
+RP0184,Rajdhani Express,12301,Howrah,New Delhi,08-09-2026 00:00,1450,10:00:00,10:04:00,00:04:00,Monsoon,Daliy
+RP0185,Garib Rath Express,12377,Kolkata,New Delhi,04-01-2023 00:00,1318,08:00:00,09:30:00,01:30:00,Winter,Tri-Weekly
+RP0186,Garib Rath Express,12377,Kolkata,New Delhi,27-02-2023 00:00,1318,08:00:00,08:42:00,00:42:00,Winter,Tri-Weekly
+RP0187,Garib Rath Express,12377,Kolkata,New Delhi,03-03-2023 00:00,1318,08:00:00,08:16:00,00:16:00,Summer,Tri-Weekly
+RP0188,Garib Rath Express,12377,Kolkata,New Delhi,17-04-2023 00:00,1318,08:00:00,08:25:00,00:25:00,Summer,Tri-Weekly
+RP0189,Garib Rath Express,12377,Kolkata,New Delhi,26-04-2023 00:00,1318,08:00:00,08:26:00,00:26:00,Summer,Tri-Weekly
+RP0190,Garib Rath Express,12377,Kolkata,New Delhi,17-05-2023 00:00,1318,08:00:00,08:04:00,00:04:00,Summer,Tri-Weekly
+RP0191,Garib Rath Express,12377,Kolkata,New Delhi,05-06-2023 00:00,1318,08:00:00,08:30:00,00:30:00,Monsoon,Tri-Weekly
+RP0192,Garib Rath Express,12377,Kolkata,New Delhi,26-07-2023 00:00,1318,08:00:00,08:14:00,00:14:00,Monsoon,Tri-Weekly
+RP0193,Garib Rath Express,12377,Kolkata,New Delhi,09-08-2023 00:00,1318,08:00:00,08:23:00,00:23:00,Monsoon,Tri-Weekly
+RP0194,Garib Rath Express,12377,Kolkata,New Delhi,01-09-2023 00:00,1318,08:00:00,08:47:00,00:47:00,Monsoon,Tri-Weekly
+RP0195,Garib Rath Express,12377,Kolkata,New Delhi,25-10-2023 00:00,1318,08:00:00,09:26:00,01:26:00,Autumn,Tri-Weekly
+RP0196,Garib Rath Express,12377,Kolkata,New Delhi,10-11-2023 00:00,1318,08:00:00,08:37:00,00:37:00,Autumn,Tri-Weekly
+RP0197,Garib Rath Express,12377,Kolkata,New Delhi,06-12-2023 00:00,1318,08:00:00,09:04:00,01:04:00,Winter,Tri-Weekly
+RP0198,Garib Rath Express,12377,Kolkata,New Delhi,03-01-2024 00:00,1318,08:00:00,08:12:00,00:12:00,Winter,Tri-Weekly
+RP0199,Garib Rath Express,12377,Kolkata,New Delhi,23-02-2024 00:00,1318,08:00:00,08:51:00,00:51:00,Winter,Tri-Weekly
+RP0200,Garib Rath Express,12377,Kolkata,New Delhi,04-03-2024 00:00,1318,08:00:00,08:20:00,00:20:00,Summer,Tri-Weekly
+RP0201,Garib Rath Express,12377,Kolkata,New Delhi,15-04-2024 00:00,1318,08:00:00,08:41:00,00:41:00,Summer,Tri-Weekly
+RP0202,Garib Rath Express,12377,Kolkata,New Delhi,01-05-2024 00:00,1318,08:00:00,08:25:00,00:25:00,Summer,Tri-Weekly
+RP0203,Garib Rath Express,12377,Kolkata,New Delhi,05-06-2024 00:00,1318,08:00:00,08:21:00,00:21:00,Monsoon,Tri-Weekly
+RP0204,Garib Rath Express,12377,Kolkata,New Delhi,31-07-2024 00:00,1318,08:00:00,08:30:00,00:30:00,Monsoon,Tri-Weekly
+RP0205,Garib Rath Express,12377,Kolkata,New Delhi,19-08-2024 00:00,1318,08:00:00,08:31:00,00:31:00,Monsoon,Tri-Weekly
+RP0206,Garib Rath Express,12377,Kolkata,New Delhi,11-09-2024 00:00,1318,08:00:00,08:07:00,00:07:00,Monsoon,Tri-Weekly
+RP0207,Garib Rath Express,12377,Kolkata,New Delhi,02-10-2024 00:00,1318,08:00:00,08:15:00,00:15:00,Autumn,Tri-Weekly
+RP0208,Garib Rath Express,12377,Kolkata,New Delhi,22-11-2024 00:00,1318,08:00:00,08:07:00,00:07:00,Autumn,Tri-Weekly
+RP0209,Garib Rath Express,12377,Kolkata,New Delhi,13-12-2024 00:00,1318,08:00:00,08:14:00,00:14:00,Winter,Tri-Weekly
+RP0210,Garib Rath Express,12377,Kolkata,New Delhi,06-01-2025 00:00,1318,08:00:00,09:06:00,01:06:00,Winter,Tri-Weekly
+RP0211,Garib Rath Express,12377,Kolkata,New Delhi,24-02-2025 00:00,1318,08:00:00,08:34:00,00:34:00,Winter,Tri-Weekly
+RP0212,Garib Rath Express,12377,Kolkata,New Delhi,26-03-2025 00:00,1318,08:00:00,08:06:00,00:06:00,Summer,Tri-Weekly
+RP0213,Garib Rath Express,12377,Kolkata,New Delhi,21-04-2025 00:00,1318,08:00:00,08:14:00,00:14:00,Summer,Tri-Weekly
+RP0214,Garib Rath Express,12377,Kolkata,New Delhi,05-05-2025 00:00,1318,08:00:00,08:18:00,00:18:00,Summer,Tri-Weekly
+RP0215,Garib Rath Express,12377,Kolkata,New Delhi,30-06-2025 00:00,1318,08:00:00,08:28:00,00:28:00,Monsoon,Tri-Weekly
+RP0216,Garib Rath Express,12377,Kolkata,New Delhi,04-07-2025 00:00,1318,08:00:00,08:25:00,00:25:00,Monsoon,Tri-Weekly
+RP0217,Garib Rath Express,12377,Kolkata,New Delhi,27-08-2025 00:00,1318,08:00:00,09:54:00,20-01-1900 01:54,Monsoon,Tri-Weekly
+RP0218,Garib Rath Express,12377,Kolkata,New Delhi,12-09-2025 00:00,1318,08:00:00,08:09:00,00:09:00,Monsoon,Tri-Weekly
+RP0219,Garib Rath Express,12377,Kolkata,New Delhi,15-10-2025 00:00,1318,08:00:00,08:41:00,00:41:00,Autumn,Tri-Weekly
+RP0220,Garib Rath Express,12377,Kolkata,New Delhi,10-11-2025 00:00,1318,08:00:00,08:39:00,00:39:00,Autumn,Tri-Weekly
+RP0221,Garib Rath Express,12377,Kolkata,New Delhi,26-12-2025 00:00,1318,08:00:00,08:15:00,00:15:00,Winter,Tri-Weekly
+RP0222,Garib Rath Express,12377,Kolkata,New Delhi,05-01-2026 00:00,1318,08:00:00,08:13:00,00:13:00,Winter,Tri-Weekly
+RP0223,Garib Rath Express,12377,Kolkata,New Delhi,11-02-2026 00:00,1318,08:00:00,08:10:00,00:10:00,Winter,Tri-Weekly
+RP0224,Garib Rath Express,12377,Kolkata,New Delhi,11-03-2026 00:00,1318,08:00:00,08:04:00,00:04:00,Summer,Tri-Weekly
+RP0225,Garib Rath Express,12377,Kolkata,New Delhi,08-04-2026 00:00,1318,08:00:00,09:04:00,01:04:00,Summer,Tri-Weekly
+RP0226,Garib Rath Express,12377,Kolkata,New Delhi,22-05-2026 00:00,1318,08:00:00,08:36:00,00:36:00,Summer,Tri-Weekly
+RP0227,Garib Rath Express,12377,Kolkata,New Delhi,05-06-2026 00:00,1318,08:00:00,08:26:00,00:26:00,Monsoon,Tri-Weekly
+RP0228,Garib Rath Express,12377,Kolkata,New Delhi,10-07-2026 00:00,1318,08:00:00,08:25:00,00:25:00,Monsoon,Tri-Weekly
+RP0229,Garib Rath Express,12377,Kolkata,New Delhi,26-08-2026 00:00,1318,08:00:00,08:15:00,00:15:00,Monsoon,Tri-Weekly
+RP0230,Garib Rath Express,12377,Kolkata,New Delhi,14-09-2026 00:00,1318,08:00:00,08:52:00,00:52:00,Monsoon,Tri-Weekly
+RP0231,Chennai Express,12604,Mumbai,Chennai,09-01-2023 00:00,1284,09:00:00,11:40:00,02:40:00,Winter,Daliy
+RP0232,Chennai Express,12604,Mumbai,Chennai,04-02-2023 00:00,1284,09:00:00,09:33:00,00:33:00,Winter,Daliy
+RP0233,Chennai Express,12604,Mumbai,Chennai,27-03-2023 00:00,1284,09:00:00,09:02:00,00:02:00,Summer,Daliy
+RP0234,Chennai Express,12604,Mumbai,Chennai,14-04-2023 00:00,1284,09:00:00,09:08:00,00:08:00,Summer,Daliy
+RP0235,Chennai Express,12604,Mumbai,Chennai,14-05-2023 00:00,1284,09:00:00,09:06:00,00:06:00,Summer,Daliy
+RP0236,Chennai Express,12604,Mumbai,Chennai,17-06-2023 00:00,1284,09:00:00,09:08:00,00:08:00,Monsoon,Daliy
+RP0237,Chennai Express,12604,Mumbai,Chennai,18-07-2023 00:00,1284,09:00:00,09:22:00,00:22:00,Monsoon,Daliy
+RP0238,Chennai Express,12604,Mumbai,Chennai,08-08-2023 00:00,1284,09:00:00,09:14:00,00:14:00,Monsoon,Daliy
+RP0239,Chennai Express,12604,Mumbai,Chennai,13-09-2023 00:00,1284,09:00:00,10:45:00,01:45:00,Monsoon,Daliy
+RP0240,Chennai Express,12604,Mumbai,Chennai,04-10-2023 00:00,1284,09:00:00,09:23:00,00:23:00,Autumn,Daliy
+RP0241,Chennai Express,12604,Mumbai,Chennai,02-11-2023 00:00,1284,09:00:00,09:28:00,00:28:00,Autumn,Daliy
+RP0242,Chennai Express,12604,Mumbai,Chennai,21-12-2023 00:00,1284,09:00:00,09:16:00,00:16:00,Winter,Daliy
+RP0243,Chennai Express,12604,Mumbai,Chennai,29-12-2023 00:00,1284,09:00:00,09:34:00,00:34:00,Winter,Daliy
+RP0244,Chennai Express,12604,Mumbai,Chennai,20-01-2024 00:00,1284,09:00:00,09:24:00,00:24:00,Winter,Daliy
+RP0245,Chennai Express,12604,Mumbai,Chennai,26-02-2024 00:00,1284,09:00:00,09:25:00,00:25:00,Winter,Daliy
+RP0246,Chennai Express,12604,Mumbai,Chennai,03-03-2024 00:00,1284,09:00:00,09:12:00,00:12:00,Summer,Daliy
+RP0247,Chennai Express,12604,Mumbai,Chennai,06-04-2024 00:00,1284,09:00:00,09:06:00,00:06:00,Summer,Daliy
+RP0248,Chennai Express,12604,Mumbai,Chennai,26-05-2024 00:00,1284,09:00:00,09:29:00,00:29:00,Summer,Daliy
+RP0249,Chennai Express,12604,Mumbai,Chennai,08-06-2024 00:00,1284,09:00:00,09:27:00,00:27:00,Monsoon,Daliy
+RP0250,Chennai Express,12604,Mumbai,Chennai,24-07-2024 00:00,1284,09:00:00,09:27:00,00:27:00,Monsoon,Daliy
+RP0251,Chennai Express,12604,Mumbai,Chennai,27-08-2024 00:00,1284,09:00:00,10:25:00,01:25:00,Monsoon,Daliy
+RP0252,Chennai Express,12604,Mumbai,Chennai,17-09-2024 00:00,1284,09:00:00,09:12:00,00:12:00,Monsoon,Daliy
+RP0253,Chennai Express,12604,Mumbai,Chennai,31-10-2024 00:00,1284,09:00:00,09:07:00,00:07:00,Autumn,Daliy
+RP0254,Chennai Express,12604,Mumbai,Chennai,09-11-2024 00:00,1284,09:00:00,09:21:00,00:21:00,Autumn,Daliy
+RP0255,Chennai Express,12604,Mumbai,Chennai,16-12-2024 00:00,1284,09:00:00,11:50:00,02:50:00,Winter,Daliy
+RP0256,Chennai Express,12604,Mumbai,Chennai,21-01-2025 00:00,1284,09:00:00,09:32:00,00:32:00,Winter,Daliy
+RP0257,Chennai Express,12604,Mumbai,Chennai,05-02-2025 00:00,1284,09:00:00,09:08:00,00:08:00,Winter,Daliy
+RP0258,Chennai Express,12604,Mumbai,Chennai,25-03-2025 00:00,1284,09:00:00,09:31:00,00:31:00,Summer,Daliy
+RP0259,Chennai Express,12604,Mumbai,Chennai,24-04-2025 00:00,1284,09:00:00,09:14:00,00:14:00,Summer,Daliy
+RP0260,Chennai Express,12604,Mumbai,Chennai,26-05-2025 00:00,1284,09:00:00,09:25:00,00:25:00,Summer,Daliy
+RP0261,Chennai Express,12604,Mumbai,Chennai,17-06-2025 00:00,1284,09:00:00,09:54:00,00:54:00,Monsoon,Daliy
+RP0262,Chennai Express,12604,Mumbai,Chennai,23-07-2025 00:00,1284,09:00:00,09:39:00,00:39:00,Monsoon,Daliy
+RP0263,Chennai Express,12604,Mumbai,Chennai,10-08-2025 00:00,1284,09:00:00,01-01-1900 09:48,00:48:00,Monsoon,Daliy
+RP0264,Chennai Express,12604,Mumbai,Chennai,23-09-2025 00:00,1284,09:00:00,09:28:00,00:28:00,Monsoon,Daliy
+RP0265,Chennai Express,12604,Mumbai,Chennai,31-10-2025 00:00,1284,09:00:00,09:13:00,00:13:00,Autumn,Daliy
+RP0266,Chennai Express,12604,Mumbai,Chennai,07-11-2025 00:00,1284,09:00:00,09:22:00,00:22:00,Autumn,Daliy
+RP0267,Chennai Express,12604,Mumbai,Chennai,21-12-2025 00:00,1284,09:00:00,09:00:00,00:00:00,Winter,Daliy
+RP0268,Chennai Express,12604,Mumbai,Chennai,31-01-2026 00:00,1284,09:00:00,09:09:00,00:09:00,Winter,Daliy
+RP0269,Chennai Express,12604,Mumbai,Chennai,28-02-2026 00:00,1284,09:00:00,09:03:00,00:03:00,Winter,Daliy
+RP0270,Chennai Express,12604,Mumbai,Chennai,21-03-2026 00:00,1284,09:00:00,09:41:00,00:41:00,Summer,Daliy
+RP0271,Chennai Express,12604,Mumbai,Chennai,05-04-2026 00:00,1284,09:00:00,09:09:00,00:09:00,Summer,Daliy
+RP0272,Chennai Express,12604,Mumbai,Chennai,05-05-2026 00:00,1284,09:00:00,09:23:00,00:23:00,Summer,Daliy
+RP0273,Chennai Express,12604,Mumbai,Chennai,27-06-2026 00:00,1284,09:00:00,09:04:00,00:04:00,Monsoon,Daliy
+RP0274,Chennai Express,12604,Mumbai,Chennai,12-07-2026 00:00,1284,01-01-1900 09:00,10:08:00,01:08:00,Monsoon,Daliy
+RP0275,Chennai Express,12604,Mumbai,Chennai,14-08-2026 00:00,1284,09:00:00,09:23:00,00:23:00,Monsoon,Daliy
+RP0276,Chennai Express,12604,Mumbai,Chennai,29-09-2026 00:00,1284,09:00:00,09:59:00,00:59:00,Monsoon,Daliy
+RP0277,Tamil Nadu Express,12621,Chennai Central,New Delhi,20-01-2023 00:00,2182,07:05:00,07:53:00,00:48:00,Winter,Daliy
+RP0278,Tamil Nadu Express,12621,Chennai Central,New Delhi,18-02-2023 00:00,2182,07:05:00,07:35:00,00:30:00,Winter,Daliy
+RP0279,Tamil Nadu Express,12621,Chennai Central,New Delhi,18-03-2023 00:00,2182,07:05:00,07:14:00,00:09:00,Summer,Daliy
+RP0280,Tamil Nadu Express,12621,Chennai Central,New Delhi,23-04-2023 00:00,2182,07:05:00,07:12:00,00:07:00,Summer,Daliy
+RP0281,Tamil Nadu Express,12621,Chennai Central,New Delhi,09-05-2023 00:00,2182,07:05:00,07:20:00,00:15:00,Summer,Daliy
+RP0282,Tamil Nadu Express,12621,Chennai Central,New Delhi,23-06-2023 00:00,2182,07:05:00,07:27:00,00:22:00,Monsoon,Daliy
+RP0283,Tamil Nadu Express,12621,Chennai Central,New Delhi,28-06-2023 00:00,2182,07:05:00,07:18:00,00:13:00,Monsoon,Daliy
+RP0284,Tamil Nadu Express,12621,Chennai Central,New Delhi,21-07-2023 00:00,2182,07:05:00,07:54:00,00:49:00,Monsoon,Daliy
+RP0285,Tamil Nadu Express,12621,Chennai Central,New Delhi,29-08-2023 00:00,2182,07:05:00,07:20:00,00:15:00,Monsoon,Daliy
+RP0286,Tamil Nadu Express,12621,Chennai Central,New Delhi,16-09-2023 00:00,2182,07:05:00,08:17:00,01:12:00,Monsoon,Daliy
+RP0287,Tamil Nadu Express,12621,Chennai Central,New Delhi,16-10-2023 00:00,2182,07:05:00,07:40:00,00:35:00,Autumn,Daliy
+RP0288,Tamil Nadu Express,12621,Chennai Central,New Delhi,01-11-2023 00:00,2182,07:05:00,07:15:00,00:10:00,Autumn,Daliy
+RP0289,Tamil Nadu Express,12621,Chennai Central,New Delhi,14-12-2023 00:00,2182,07:05:00,08:50:00,01:45:00,Winter,Daliy
+RP0290,Tamil Nadu Express,12621,Chennai Central,New Delhi,08-01-2024 00:00,2182,07:05:00,08:35:00,01:30:00,Winter,Daliy
+RP0291,Tamil Nadu Express,12621,Chennai Central,New Delhi,28-02-2024 00:00,2182,07:05:00,07:56:00,00:51:00,Winter,Daliy
+RP0292,Tamil Nadu Express,12621,Chennai Central,New Delhi,08-03-2024 00:00,2182,07:05:00,08:26:00,01:21:00,Summer,Daliy
+RP0293,Tamil Nadu Express,12621,Chennai Central,New Delhi,29-04-2024 00:00,2182,07:05:00,07:22:00,00:17:00,Summer,Daliy
+RP0294,Tamil Nadu Express,12621,Chennai Central,New Delhi,11-05-2024 00:00,2182,07:05:00,07:10:00,00:05:00,Summer,Daliy
+RP0295,Tamil Nadu Express,12621,Chennai Central,New Delhi,03-06-2024 00:00,2182,07:05:00,07:30:00,00:25:00,Monsoon,Daliy
+RP0296,Tamil Nadu Express,12621,Chennai Central,New Delhi,08-07-2024 00:00,2182,07:05:00,07:22:00,00:17:00,Monsoon,Daliy
+RP0297,Tamil Nadu Express,12621,Chennai Central,New Delhi,15-08-2024 00:00,2182,07:05:00,07:17:00,00:12:00,Monsoon,Daliy
+RP0298,Tamil Nadu Express,12621,Chennai Central,New Delhi,10-09-2024 00:00,2182,07:05:00,07:41:00,00:36:00,Monsoon,Daliy
+RP0299,Tamil Nadu Express,12621,Chennai Central,New Delhi,28-10-2024 00:00,2182,07:05:00,07:18:00,00:13:00,Autumn,Daliy
+RP0300,Tamil Nadu Express,12621,Chennai Central,New Delhi,22-11-2024 00:00,2182,07:05:00,07:49:00,00:44:00,Autumn,Daliy
+RP0301,Tamil Nadu Express,12621,Chennai Central,New Delhi,02-12-2024 00:00,2182,07:05:00,07:42:00,00:37:00,Winter,Daliy
+RP0302,Tamil Nadu Express,12621,Chennai Central,New Delhi,15-01-2025 00:00,2182,07:05:00,07:36:00,00:31:00,Winter,Daliy
+RP0303,Tamil Nadu Express,12621,Chennai Central,New Delhi,07-02-2025 00:00,2182,07:05:00,07:17:00,00:12:00,Winter,Daliy
+RP0304,Tamil Nadu Express,12621,Chennai Central,New Delhi,12-03-2025 00:00,2182,07:05:00,07:23:00,00:18:00,Summer,Daliy
+RP0305,Tamil Nadu Express,12621,Chennai Central,New Delhi,27-04-2025 00:00,2182,07:05:00,07:42:00,00:37:00,Summer,Daliy
+RP0306,Tamil Nadu Express,12621,Chennai Central,New Delhi,17-05-2025 00:00,2182,07:05:00,08:01:00,00:56:00,Summer,Daliy
+RP0307,Tamil Nadu Express,12621,Chennai Central,New Delhi,01-06-2025 00:00,2182,07:05:00,07:32:00,00:27:00,Monsoon,Daliy
+RP0308,Tamil Nadu Express,12621,Chennai Central,New Delhi,22-07-2025 00:00,2182,07:05:00,07:56:00,00:51:00,Monsoon,Daliy
+RP0309,Tamil Nadu Express,12621,Chennai Central,New Delhi,01-08-2025 00:00,2182,07:05:00,07:30:00,00:25:00,Monsoon,Daliy
+RP0310,Tamil Nadu Express,12621,Chennai Central,New Delhi,23-09-2025 00:00,2182,07:05:00,07:34:00,00:29:00,Monsoon,Daliy
+RP0311,Tamil Nadu Express,12621,Chennai Central,New Delhi,24-10-2025 00:00,2182,07:05:00,08:16:00,01:11:00,Autumn,Daliy
+RP0312,Tamil Nadu Express,12621,Chennai Central,New Delhi,22-11-2025 00:00,2182,07:05:00,07:14:00,00:09:00,Autumn,Daliy
+RP0313,Tamil Nadu Express,12621,Chennai Central,New Delhi,11-12-2025 00:00,2182,07:05:00,08:29:00,01:24:00,Winter,Daliy
+RP0314,Tamil Nadu Express,12621,Chennai Central,New Delhi,18-01-2026 00:00,2182,07:05:00,09:13:00,02:08:00,Winter,Daliy
+RP0315,Tamil Nadu Express,12621,Chennai Central,New Delhi,23-02-2026 00:00,2182,07:05:00,07:25:00,00:20:00,Winter,Daliy
+RP0316,Tamil Nadu Express,12621,Chennai Central,New Delhi,28-03-2026 00:00,2182,07:05:00,07:10:00,00:05:00,Summer,Daliy
+RP0317,Tamil Nadu Express,12621,Chennai Central,New Delhi,13-04-2026 00:00,2182,07:05:00,07:34:00,00:29:00,Summer,Daliy
+RP0318,Tamil Nadu Express,12621,Chennai Central,New Delhi,11-05-2026 00:00,2182,07:05:00,07:15:00,00:10:00,Summer,Daliy
+RP0319,Tamil Nadu Express,12621,Chennai Central,New Delhi,03-06-2026 00:00,2182,07:05:00,07:20:00,00:15:00,Monsoon,Daliy
+RP0320,Tamil Nadu Express,12621,Chennai Central,New Delhi ,19-07-2026 00:00,2182,07:05:00,07:54:00,00:49:00,Monsoon,Daliy
+RP0321,Tamil Nadu Express,12621,Chennai Central,New Delhi,11-08-2026 00:00,2182,07:05:00,07:21:00,00:16:00,Monsoon,Daliy
+RP0322,Tamil Nadu Express,12621,Chennai Central,New Delhi,10-09-2026 00:00,2182,07:05:00,07:49:00,00:44:00,Monsoon,Daliy
+RP0323,Kerala Express,12625,Thiruvananthapuram,New Delhi,27-01-2023 00:00,3149,23:40:00,23:59:00,00:19:00,Winter,Daliy
+RP0324,Kerala Express,12625,Thiruvananthapuram,New Delhi,04-02-2023 00:00,3149,23:40:00,00:09:00,00:29:00,Winter,Daliy
+RP0325,Kerala Express,12625,Thiruvananthapuram,New Delhi,23-03-2023 00:00,3149,23:40:00,00:05:00,00:25:00,Summer,Daliy
+RP0326,Kerala Express,12625,Thiruvananthapuram,New Delhi,25-04-2023 00:00,3149,23:40:00,23:47:00,00:07:00,Summer,Daliy
+RP0327,Kerala Express,12625,Thiruvananthapuram,New Delhi,02-05-2023 00:00,3149,23:40:00,00:08:00,00:28:00,Summer,Daliy
+RP0328,Kerala Express,12625,Thiruvananthapuram,New Delhi,09-06-2023 00:00,3149,23:40:00,00:19:00,20-01-1900 00:39,Monsoon,Daliy
+RP0329,Kerala Express,12625,Thiruvananthapuram,New Delhi,23-07-2023 00:00,3149,23:40:00,01:10:00,01:30:00,Monsoon,Daliy
+RP0330,Kerala Express,12625,Thiruvananthapuram,New Delhi,10-08-2023 00:00,3149,23:40:00,23:58:00,00:18:00,Monsoon,Daliy
+RP0331,Kerala Express,12625,Thiruvananthapuram,New Delhi,29-08-2023 00:00,3149,23:40:00,01:33:00,01:53:00,Monsoon,Daliy
+RP0332,Kerala Express,12625,Thiruvananthapuram,New Delhi,10-09-2023 00:00,3149,23:40:00,01:42:00,02:02:00,Monsoon,Daliy
+RP0333,Kerala Express,12625,Thiruvananthapuram,New Delhi,21-10-2023 00:00,3149,23:40:00,23:50:00,00:10:00,Autumn,Daliy
+RP0334,Kerala Express,12625,Thiruvananthapuram,New Delhi,20-11-2023 00:00,3149,23:40:00,00:06:00,00:26:00,Autumn,Daliy
+RP0335,Kerala Express,12625,Thiruvananthapuram,New Delhi,20-12-2023 00:00,3149,23:40:00,01:15:00,01:35:00,Winter,Daliy
+RP0336,Kerala Express,12625,Thiruvananthapuram,New Delhi,01-01-2024 00:00,3149,23:40:00,01:04:00,01:24:00,Winter,Daliy
+RP0337,Kerala Express,12625,Thiruvananthapuram,New Delhi,07-02-2024 00:00,3149,23:40:00,00:39:00,00:59:00,Winter,Daliy
+RP0338,Kerala Express,12625,Thiruvananthapuram,New Delhi,01-03-2024 00:00,3149,23:40:00,00:17:00,00:37:00,Summer,Daliy
+RP0339,Kerala Express,12625,Thiruvananthapuram,New Delhi,06-04-2024 00:00,3149,23:40:00,00:20:00,00:40:00,Summer,Daliy
+RP0340,Kerala Express,12625,Thiruvananthapuram,New Delhi,07-05-2024 00:00,3149,23:40:00,23:52:00,00:12:00,Summer,Daliy
+RP0341,Kerala Express,12625,Thiruvananthapuram,New Delhi,16-06-2024 00:00,3149,23:40:00,00:39:00,00:59:00,Monsoon,Daliy
+RP0342,Kerala Express,12625,Thiruvananthapuram,New Delhi,04-07-2024 00:00,3149,23:40:00,00:31:00,00:51:00,Monsoon,Daliy
+RP0343,Kerala Express,12625,Thiruvananthapuram,New Delhi,13-08-2024 00:00,3149,23:40:00,23:53:00,00:13:00,Monsoon,Daliy
+RP0344,Kerala Express,12625,Thiruvananthapuram,New Delhi,14-09-2024 00:00,3149,23:40:00,00:43:00,01:03:00,Monsoon,Daliy
+RP0345,Kerala Express,12625,Thiruvananthapuram,New Delhi,24-10-2024 00:00,3149,23:40:00,00:00:00,00:20:00,Autumn,Daliy
+RP0346,Kerala Express,12625,Thiruvananthapuram,New Delhi,16-11-2024 00:00,3149,23:40:00,01:46:00,02:06:00,Autumn,Daliy
+RP0347,Kerala Express,12625,Thiruvananthapuram,New Delhi,17-12-2024 00:00,3149,23:40:00,01:05:00,01:25:00,Winter,Daliy
+RP0348,Kerala Express,12625,Thiruvananthapuram,New Delhi,29-01-2025 00:00,3149,23:40:00,01:56:00,02:16:00,Winter,Daliy
+RP0349,Kerala Express,12625,Thiruvananthapuram,New Delhi,15-02-2025 00:00,3149,23:40:00,00:24:00,00:44:00,Winter,Daliy
+RP0350,Kerala Express,12625,Thiruvananthapuram, New Delhi,04-03-2025 00:00,3149,23:40:00,23:52:00,00:12:00,Summer,Daliy
+RP0351,Kerala Express,12625,Thiruvananthapuram,New Delhi,02-04-2025 00:00,3149,01-01-1900 23:40,00:12:00,00:32:00,Summer,Daliy
+RP0352,Kerala Express,12625,Thiruvananthapuram,New Delhi,09-05-2025 00:00,3149,23:40:00,00:22:00,00:42:00,Summer,Daliy
+RP0353,Kerala Express,12625,Thiruvananthapuram,New Delhi,17-06-2025 00:00,3149,23:40:00,01:59:00,02:19:00,Monsoon,Daliy
+RP0354,Kerala Express,12625,Thiruvananthapuram,New Delhi,07-07-2025 00:00,3149,23:40:00,00:43:00,01:03:00,Monsoon,Daliy
+RP0355,Kerala Express,12625,Thiruvananthapuram,New Delhi,11-08-2025 00:00,3149,23:40:00,00:15:00,00:35:00,Monsoon,Daliy
+RP0356,Kerala Express,12625,Thiruvananthapuram,New Delhi,09-09-2025 00:00,3149,23:40:00,00:22:00,00:42:00,Monsoon,Daliy
+RP0357,Kerala Express,12625,Thiruvananthapuram,New Delhi,27-10-2025 00:00,3149,23:40:00,00:06:00,00:26:00,Autumn,Daliy
+RP0358,Kerala Express,12625,Thiruvananthapuram,New Delhi,16-11-2025 00:00,3149,23:40:00,01:31:00,01:51:00,Autumn,Daliy
+RP0359,Kerala Express,12625,Thiruvananthapuram,New Delhi,02-12-2025 00:00,3149,23:40:00,00:22:00,00:42:00,Winter,Daliy
+RP0360,Kerala Express,12625,Thiruvananthapuram,New Delhi,07-01-2026 00:00,3149,23:40:00,01:36:00,01:56:00,Winter,Daliy
+RP0361,Kerala Express,12625,Thiruvananthapuram,New Delhi,08-02-2026 00:00,3149,23:40:00,00:43:00,01:03:00,Winter,Daliy
+RP0362,Kerala Express,12625,Thiruvananthapuram,New Delhi,13-03-2026 00:00,3149,23:40:00,00:44:00,01:04:00,Summer,Daliy
+RP0363,Kerala Express,12625,Thiruvananthapuram,New Delhi,01-04-2026 00:00,3149,23:40:00,00:42:00,01:02:00,Summer,Daliy
+RP0364,Kerala Express,12625,Thiruvananthapuram,New Delhi,11-05-2026 00:00,3149,23:40:00,23:58:00,00:18:00,Summer,Daliy
+RP0365,Kerala Express,12625,Thiruvananthapuram,New Delhi,20-06-2026 00:00,3149,23:40:00,01:59:00,02:19:00,Monsoon,Daliy
+RP0366,Kerala Express,12625,Thiruvananthapuram,New Delhi,16-07-2026 00:00,3149,23:40:00,00:24:00,00:44:00,Monsoon,Daliy
+RP0367,Kerala Express,12625,Thiruvananthapuram,New Delhi,25-08-2026 00:00,3149,23:40:00,01:04:00,01:24:00,Monsoon,Daliy
+RP0368,Kerala Express,12625,Thiruvananthapuram,New Delhi,16-09-2026 00:00,3149,23:40:00,23:53:00,00:13:00,Monsoon,Daliy
+RP0369,Kanyakumari Express,12633,Chennai Egmore,Kanyakumari,26-01-2023 00:00,742,17:20:00,17:27:00,00:07:00,Winter,Daliy
+RP0370,Kanyakumari Express,12633,Chennai Egmore,Kanyakumari,04-02-2023 00:00,742,17:20:00,17:41:00,00:21:00,Winter,Daliy
+RP0371,Kanyakumari Express,12633,Chennai Egmore,Kanyakumari,11-03-2023 00:00,742,17:20:00,17:41:00,00:21:00,Summer,Daliy
+RP0372,Kanyakumari Express,12633,Chennai Egmore,Kanyakumari,17-04-2023 00:00,742,17:20:00,17:27:00,00:07:00,Summer,Daliy
+RP0373,Kanyakumari Express,12633,Chennai Egmore,Kanyakumari,06-05-2023 00:00,742,17:20:00,17:30:00,00:10:00,Summer,Daliy
+RP0374,Kanyakumari Express,12633,Chennai Egmore,Kanyakumari,14-06-2023 00:00,742,17:20:00,17:37:00,00:17:00,Monsoon,Daliy
+RP0375,Kanyakumari Express,12633,Chennai Egmore, Kanyakumari,14-07-2023 00:00,742,17:20:00,17:28:00,00:08:00,Monsoon,Daliy
+RP0376,Kanyakumari Express,12633,Chennai Egmore,Kanyakumari,09-08-2023 00:00,742,17:20:00,17:30:00,00:10:00,Monsoon,Daliy
+RP0377,Kanyakumari Express,12633,Chennai Egmore,Kanyakumari,23-09-2023 00:00,742,17:20:00,17:50:00,00:30:00,Monsoon,Daliy
+RP0378,Kanyakumari Express,12633,Chennai Egmore,Kanyakumari,03-10-2023 00:00,742,17:20:00,18:02:00,00:42:00,Autumn,Daliy
+RP0379,Kanyakumari Express,12633,Chennai Egmore,Kanyakumari,25-11-2023 00:00,742,17:20:00,17:35:00,00:15:00,Autumn,Daliy
+RP0380,Kanyakumari Express,12633,Chennai Egmore,Kanyakumari,17-12-2023 00:00,742,17:20:00,17:44:00,00:24:00,Winter,Daliy
+RP0381,Kanyakumari Express,12633,Chennai Egmore,Kanyakumari,01-01-2024 00:00,742,17:20:00,17:59:00,00:39:00,Winter,Daliy
+RP0382,Kanyakumari Express,12633,Chennai Egmore,Kanyakumari,16-02-2024 00:00,742,17:20:00,17:48:00,00:28:00,Winter,Daliy
+RP0383,Kanyakumari Express,12633,Chennai Egmore,Kanyakumari,05-03-2024 00:00,742,17:20:00,17:21:00,00:01:00,Summer,Daliy
+RP0384,Kanyakumari Express,12633,Chennai Egmore, Kanyakumari,22-04-2024 00:00,742,17:20:00,17:24:00,00:04:00,Summer,Daliy
+RP0385,Kanyakumari Express,12633,Chennai Egmore ,Kanyakumari,09-05-2024 00:00,742,17:20:00,17:23:00,00:03:00,Summer,Daliy
+RP0386,Kanyakumari Express,12633,Chennai Egmore,Kanyakumari,18-06-2024 00:00,742,17:20:00,17:22:00,00:02:00,Monsoon,Daliy
+RP0387,Kanyakumari Express,12633,Chennai Egmore,Kanyakumari,17-07-2024 00:00,742,17:20:00,17:42:00,00:22:00,Monsoon,Daliy
+RP0388,Kanyakumari Express,12633,Chennai Egmore,Kanyakumari,23-08-2024 00:00,742,17:20:00,17:53:00,00:33:00,Monsoon,Daliy
+RP0389,Kanyakumari Express,12633,Chennai Egmore,Kanyakumari,13-09-2024 00:00,742,17:20:00,17:33:00,00:13:00,Monsoon,Daliy
+RP0390,Kanyakumari Express,12633,Chennai Egmore,Kanyakumari,01-10-2024 00:00,742,17:20:00,17:21:00,00:01:00,Autumn,Daliy
+RP0391,Kanyakumari Express,12633,Chennai Egmore,Kanyakumari,05-11-2024 00:00,742,17:20:00,17:24:00,00:04:00,Autumn,Daliy
+RP0392,Kanyakumari Express,12633,Chennai Egmore,Kanyakumari,25-12-2024 00:00,742,17:20:00,17:23:00,00:03:00,Winter,Daliy
+RP0393,Kanyakumari Express,12633,Chennai Egmore,Kanyakumari,29-12-2024 00:00,742,17:20:00,17:23:00,00:03:00,Winter,Daliy
+RP0394,Kanyakumari Express,12633,Chennai Egmore,Kanyakumari,30-01-2025 00:00,742,17:20:00,17:42:00,00:22:00,Winter,Daliy 
+RP0395,Kanyakumari Express,12633,Chennai Egmore,Kanyakumari,23-02-2025 00:00,742,17:20:00,20:01:00,02:41:00,Winter,Daliy
+RP0396,Kanyakumari Express,12633,Chennai Egmore,Kanyakumari,11-03-2025 00:00,742,17:20:00,17:32:00,00:12:00,Summer,Daliy
+RP0397,Kanyakumari Express,12633,Chennai Egmore,Kanyakumari,01-04-2025 00:00,742,17:20:00,17:45:00,00:25:00,Summer,Daliy
+RP0398,Kanyakumari Express,12633,Chennai Egmore,Kanyakumari,27-05-2025 00:00,742,01-01-1900 17:20,17:39:00,00:19:00,Summer,Daliy
+RP0399,Kanyakumari Express,12633,Chennai Egmore,Kanyakumari,02-06-2025 00:00,742,17:20:00,17:50:00,00:30:00,Monsoon,Daliy
+RP0400,Kanyakumari Express,12633,Chennai Egmore,Kanyakumari,05-07-2025 00:00,742,17:20:00,17:43:00,00:23:00,Monsoon,Daliy
+RP0401,Kanyakumari Express,12633,Chennai Egmore,Kanyakumari,29-08-2025 00:00,742,17:20:00,17:38:00,00:18:00,Monsoon,Daliy
+RP0402,Kanyakumari Express,12633,Chennai Egmore,Kanyakumari,22-09-2025 00:00,742,17:20:00,18:18:00,00:58:00,Monsoon,Daliy
+RP0403,Kanyakumari Express,12633,Chennai Egmore,Kanyakumari,08-10-2025 00:00,742,17:20:00,17:28:00,00:08:00,Autumn,Daliy
+RP0404,Kanyakumari Express,12633,Chennai Egmore,Kanyakumari,27-11-2025 00:00,742,17:20:00,17:26:00,00:06:00,Autumn,Daliy
+RP0405,Kanyakumari Express,12633,Chennai Egmore,Kanyakumari,03-12-2025 00:00,742,17:20:00,17:50:00,00:30:00,Winter,Daliy
+RP0406,Kanyakumari Express,12633,Chennai Egmore,Kanyakumari,23-01-2026 00:00,742,17:20:00,17:45:00,00:25:00,Winter,Daliy
+RP0407,Kanyakumari Express,12633,Chennai Egmore,Kanyakumari,11-02-2026 00:00,742,17:20:00,17:21:00,00:01:00,Winter,Daliy
+RP0408,Kanyakumari Express,12633,Chennai Egmore,Kanyakumari,20-03-2026 00:00,742,17:20:00,17:20:00,00:00:00,Summer,Daliy
+RP0409,Kanyakumari Express,12633,Chennai Egmore,Kanyakumari,29-04-2026 00:00,742,17:20:00,17:47:00,00:27:00,Summer,Daliy
+RP0410,Kanyakumari Express,12633,Chennai Egmore,Kanyakumari,30-05-2026 00:00,742,17:20:00,17:20:00,00:00:00,Summer,Daliy
+RP0411,Kanyakumari Express,12633,Chennai Egmore,Kanyakumari,04-06-2026 00:00,742,17:20:00,17:31:00,00:11:00,Monsoon,Daliy
+RP0412,Kanyakumari Express,12633,Chennai Egmore,Kanyakumari,07-07-2026 00:00,742,17:20:00,17:42:00,00:22:00,Monsoon,Daliy
+RP0413,Kanyakumari Express,12633,Chennai Egmore,Kanyakumari,16-08-2026 00:00,742,17:20:00,17:50:00,00:30:00,Monsoon,Daliy
+RP0414,Kanyakumari Express,12633,Chennai Egmore,Kanyakumari,08-09-2026 00:00,742,17:20:00,17:35:00,00:15:00,Monsoon,Daliy
+RP0415,Gorakhpur-pune Weekly Express,15029,Gorakhpur,Pune,11-01-2023 00:00,1754,10:00:00,11:49:00,01:49:00,Winter,Weekly
+RP0416,Gorakhpur-pune Weekly Express,15029,Gorakhpur,Pune,15-02-2023 00:00,1754,10:00:00,10:22:00,00:22:00,Winter,Weekly
+RP0417,Gorakhpur-pune Weekly Express,15029,Gorakhpur,Pune,22-03-2023 00:00,1754,10:00:00,10:14:00,00:14:00,Summer,Weekly
+RP0418,Gorakhpur-pune Weekly Express,15029,Gorakhpur,Pune,05-04-2023 00:00,1754,10:00:00,10:33:00,00:33:00,Summer,Weekly
+RP0419,Gorakhpur-pune Weekly Express,15029,Gorakhpur,Pune,17-05-2023 00:00,1754,10:00:00,10:19:00,00:19:00,Summer,Weekly 
+RP0420,Gorakhpur-pune Weekly Express,15029,Gorakhpur,Pune,21-06-2023 00:00,1754,10:00:00,11:03:00,01:03:00,Monsoon,Weekly
+RP0421,Gorakhpur-pune Weekly Express,15029,Gorakhpur,Pune,12-07-2023 00:00,1754,10:00:00,10:56:00,00:56:00,Monsoon,Weekly
+RP0422,Gorakhpur-pune Weekly Express,15029,Gorakhpur,Pune,16-08-2023 00:00,1754,10:00:00,10:18:00,00:18:00,Monsoon,Weekly
+RP0423,Gorakhpur-pune Weekly Express,15029,Gorakhpur,Pune,13-09-2023 00:00,1754,10:00:00,10:04:00,00:04:00,Monsoon,Weekly
+RP0424,Gorakhpur-pune Weekly Express,15029,Gorakhpur,Pune,04-10-2023 00:00,1754,10:00:00,10:27:00,00:27:00,Autumn,Weekly
+RP0425,Gorakhpur-pune Weekly Express,15029,Gorakhpur,Pune,29-11-2023 00:00,1754,10:00:00,10:40:00,00:40:00,Autumn,Weekly
+RP0426,Gorakhpur-pune Weekly Express,15029,Gorakhpur,Pune,06-12-2023 00:00,1754,10:00:00,14:00:00,04:00:00,Winter,Weekly
+RP0427,Gorakhpur-pune Weekly Express,15029,Gorakhpur,Pune,03-01-2024 00:00,1754,10:00:00,12:46:00,02:46:00,Winter,Weekly
+RP0428,Gorakhpur-pune Weekly Express,15029,Gorakhpur,Pune,21-02-2024 00:00,1754,10:00:00,11:09:00,01:09:00,Winter,Weekly
+RP0429,Gorakhpur-pune Weekly Express,15029,Gorakhpur,Pune,13-03-2024 00:00,1754,10:00:00,10:17:00,00:17:00,Summer,Weekly
+RP0430,Gorakhpur-pune Weekly Express,15029,Gorakhpur,Pune,17-04-2024 00:00,1754,10:00:00,10:55:00,00:55:00,Summer,Weekly
+RP0431,Gorakhpur-pune Weekly Express,15029,Gorakhpur,Pune,29-05-2024 00:00,1754,10:00:00,10:38:00,00:38:00,Summer,Weekly
+RP0432,Gorakhpur-pune Weekly Express,15029,Gorakhpur,Pune,05-06-2024 00:00,1754,10:00:00,11:10:00,01:10:00,Monsoon,Weekly
+RP0433,Gorakhpur-pune Weekly Express,15029,Gorakhpur,Pune,10-07-2024 00:00,1754,10:00:00,10:26:00,00:26:00,Monsoon,Weekly
+RP0434,Gorakhpur-pune Weekly Express,15029,Gorakhpur,Pune,21-08-2024 00:00,1754,10:00:00,11:02:00,01:02:00,Monsoon,Weekly
+RP0435,Gorakhpur-pune Weekly Express,15029,Gorakhpur,Pune,11-09-2024 00:00,1754,10:00:00,11:53:00,01:53:00,Monsoon,Weekly
+RP0436,Gorakhpur-pune Weekly Express,15029,Gorakhpur,Pune,16-10-2024 00:00,1754,10:00:00,10:09:00,00:09:00,Autumn,Weekly
+RP0437,Gorakhpur-pune Weekly Express,15029,Gorakhpur,Pune,06-11-2024 00:00,1754,10:00:00,13:29:00,03:29:00,Autumn,Weekly
+RP0438,Gorakhpur-pune Weekly Express,15029,Gorakhpur,Pune,25-12-2024 00:00,1754,10:00:00,11:07:00,01:07:00,Winter,Weekly
+RP0439,Gorakhpur-pune Weekly Express,15029,Gorakhpur,Pune,08-01-2025 00:00,1754,10:00:00,10:20:00,00:20:00,Winter,Weekly
+RP0440,Gorakhpur-pune Weekly Express,15029,Gorakhpur,Pune,05-02-2025 00:00,1754,10:00:00,10:35:00,00:35:00,Winter,Weekly
+RP0441,Gorakhpur-pune Weekly Express,15029,Gorakhpur,Pune,05-03-2025 00:00,1754,10:00:00,10:49:00,00:49:00,Summer,Weekly
+RP0442,Gorakhpur-pune Weekly Express,15029,Gorakhpur,Pune,02-04-2025 00:00,1754,10:00:00,10:10:00,00:10:00,Summer,Weekly
+RP0443,Gorakhpur-pune Weekly Express,15029,Gorakhpur,Pune,14-05-2025 00:00,1754,10:00:00,10:01:00,00:01:00,Summer,Weekly
+RP0444,Gorakhpur-pune Weekly Express,15029,Gorakhpur,Pune,04-06-2025 00:00,1754,10:00:00,10:22:00,00:22:00,Monsoon,Weekly
+RP0445,Gorakhpur-pune Weekly Express,15029,Gorakhpur,Pune,30-07-2025 00:00,1754,10:00:00,10:43:00,00:43:00,Monsoon,Weekly
+RP0446,Gorakhpur-pune Weekly Express,15029,Gorakhpur,Pune,13-08-2025 00:00,1754,10:00:00,11:36:00,01:36:00,Monsoon,Weekly
+RP0447,Gorakhpur-pune Weekly Express,15029,Gorakhpur,Pune,24-09-2025 00:00,1754,10:00:00,11:50:00,01:50:00,Monsoon,Weekly
+RP0448,Gorakhpur-pune Weekly Express,15029,Gorakhpur,Pune,29-10-2025 00:00,1754,10:00:00,11:03:00,01:03:00,Autumn,Weekly
+RP0449,Gorakhpur-pune Weekly Express,15029,Gorakhpur,Pune,05-11-2025 00:00,1754,10:00:00,10:31:00,00:31:00,Autumn,Weekly
+RP0450,Gorakhpur-pune Weekly Express,15029,Gorakhpur,Pune,03-12-2025 00:00,1754,10:00:00,10:33:00,00:33:00,Winter,Weekly
+RP0451,Gorakhpur-pune Weekly Express,15029,Gorakhpur,Pune,28-01-2026 00:00,1754,10:00:00,11:26:00,01:26:00,Winter,Weekly
+RP0452,Gorakhpur-pune Weekly Express,15029,Gorakhpur,Pune,18-02-2026 00:00,1754,10:00:00,10:26:00,00:26:00,Winter,Weekly
+RP0453,Gorakhpur-pune Weekly Express,15029,Gorakhpur,Pune ,11-03-2026 00:00,1754,10:00:00,10:25:00,00:25:00,Summer,Weekly
+RP0454,Gorakhpur-pune Weekly Express,15029,Gorakhpur,Pune,15-04-2026 00:00,1754,10:00:00,10:15:00,00:15:00,Summer,Weekly
+RP0455,Gorakhpur-pune Weekly Express,15029,Gorakhpur,Pune,20-05-2026 00:00,1754,10:00:00,10:03:00,00:03:00,Summer,Weekly
+RP0456,Gorakhpur-pune Weekly Express,15029,Gorakhpur,Pune,17-06-2026 00:00,1754,10:00:00,10:57:00,00:57:00,Monsoon,Weekly
+RP0457,Gorakhpur-pune Weekly Express,15029,Gorakhpur,Pune,22-07-2026 00:00,1754,10:00:00,11:03:00,01:03:00,Monsoon,Weekly
+RP0458,Gorakhpur-pune Weekly Express,15029,Gorakhpur,Pune,29-07-2026 00:00,1754,10:00:00,10:19:00,00:19:00,Monsoon,Weekly
+RP0459,Gorakhpur-pune Weekly Express,15029,Gorakhpur,Pune,12-08-2026 00:00,1754,10:00:00,10:17:00,00:17:00,Monsoon,Weekly
+RP0460,Gorakhpur-pune Weekly Express,15029,Gorakhpur,Pune,23-09-2026 00:00,1754,10:00:00,10:30:00,00:30:00,Monsoon,Weekly
+RP0461,Vivek Express,15906,Dibrugarh,Kanyakumari,21-01-2023 00:00,4198,19:25:00,19:50:00,00:25:00,Winter,Weekly
+RP0462,Vivek Express,15906,Dibrugarh,Kanyakumari,18-02-2023 00:00,4198,19:25:00,19:28:00,00:03:00,Winter,Weekly
+RP0463,Vivek Express,15906,Dibrugarh,Kanyakumari,18-03-2023 00:00,4198,19:25:00,19:41:00,00:16:00,Summer,Weekly
+RP0464,Vivek Express,15906,Dibrugarh,Kanyakumari,01-04-2023 00:00,4198,19:25:00,19:48:00,00:23:00,Summer,Weekly
+RP0465,Vivek Express,15906,Dibrugarh,Kanyakumari,27-05-2023 00:00,4198,19:25:00,20:15:00,00:50:00,Summer,Weekly
+RP0466,Vivek Express,15906,Dibrugarh,Kanyakumari,24-06-2023 00:00,4198,19:25:00,20:24:00,00:59:00,Monsoon,Weekly
+RP0467,Vivek Express,15906,Dibrugarh,Kanyakumari,08-07-2023 00:00,4198,19:25:00,21:16:00,01:51:00,Monsoon,Weekly
+RP0468,Vivek Express,15906,Dibrugarh,Kanyakumari,19-08-2023 00:00,4198,19:25:00,20:40:00,01:15:00,Monsoon,Weekly
+RP0469,Vivek Express,15906,Dibrugarh,Kanyakumari,02-09-2023 00:00,4198,19:25:00,20:35:00,01:10:00,Monsoon,Weekly
+RP0470,Vivek Express,15906,Dibrugarh,Kanyakumari,14-10-2023 00:00,4198,19:25:00,19:56:00,00:31:00,Autumn,Weekly
+RP0471,Vivek Express,15906,Dibrugarh,Kanyakumari,25-11-2023 00:00,4198,19:25:00,19:57:00,00:32:00,Autumn,Weekly
+RP0472,Vivek Express,15906,Dibrugarh,Kanyakumari,02-12-2023 00:00,4198,19:25:00,20:04:00,00:39:00,Winter,Weekly
+RP0473,Vivek Express,15906,Dibrugarh,Kanyakumari,13-01-2024 00:00,4198,19:25:00,21:06:00,01:41:00,Winter,Weekly
+RP0474,Vivek Express,15906,Dibrugarh,Kanyakumari,03-02-2024 00:00,4198,19:25:00,20:50:00,01:26:00,Winter,Weekly
+RP0475,Vivek Express,15906,Dibrugarh,Kanyakumari,16-03-2024 00:00,4198,19:25:00,19:52:00,00:27:00,Summer,Weekly
+RP0476,Vivek Express,15906,Dibrugarh,Kanyakumari,27-04-2024 00:00,4198,19:25:00,19:35:00,00:10:00,Summer,Weekly
+RP0477,Vivek Express,15906,Dibrugarh,Kanyakumari,04-05-2024 00:00,4198,19:25:00,21:18:00,01:53:00,Summer,Weekly
+RP0478,Vivek Express,15906,Dibrugarh,Kanyakumari,08-06-2024 00:00,4198,19:25:00,20:12:00,00:47:00,Monsoon,Weekly
+RP0479,Vivek Express,15906,Dibrugarh,Kanyakumari,06-07-2024 00:00,4198,19:25:00,20:38:00,01:13:00,Monsoon,Weekly
+RP0480,Vivek Express,15906,Dibrugarh,Kanyakumari,10-08-2024 00:00,4198,19:25:00,20:27:00,01:02:00,Monsoon,Weekly
+RP0481,Vivek Express,15906,Dibrugarh,Kanyakumari,21-09-2024 00:00,4198,19:25:00,22:54:00,03:29:00,Monsoon,Weekly
+RP0482,Vivek Express,15906,Dibrugarh,Kanyakumari,19-10-2024 00:00,4198,19:25:00,20:53:00,01:28:00,Autumn,Weekly
+RP0483,Vivek Express,15906,Dibrugarh,Kanyakumari,02-11-2024 00:00,4198,19:25:00,20:15:00,00:50:00,Autumn,Weekly
+RP0484,Vivek Express,15906,Dibrugarh,Kanyakumari,14-12-2024 00:00,4198,19:25:00,20:44:00,01:19:00,Winter,Weekly
+RP0485,Vivek Express,15906,Dibrugarh,Kanyakumari,25-01-2025 00:00,4198,19:25:00,21:04:00,01:39:00,Winter,Weekly
+RP0486,Vivek Express,15906,Dibrugarh,Kanyakumari,08-02-2025 00:00,4198,19:25:00,20:27:00,01:02:00,Winter,Weekly
+RP0487,Vivek Express,15906,Dibrugarh,Kanyakumari,22-03-2025 00:00,4198,19:25:00,19:32:00,00:07:00,Summer,Weekly
+RP0488,Vivek Express,15906,Dibrugarh,Kanyakumari,19-04-2025 00:00,4198,19:25:00,20:02:00,00:37:00,Summer,Weekly
+RP0489,Vivek Express,15906,Dibrugarh,Kanyakumari,31-05-2025 00:00,4198,19:25:00,19:27:00,00:02:00,Summer,Weekly
+RP0490,Vivek Express,15906,Dibrugarh,Kanyakumari,07-06-2025 00:00,4198,19:25:00,19:42:00,00:17:00,Monsoon,Weekly
+RP0491,Vivek Express,15906,Dibrugarh,Kanyakumari,26-07-2025 00:00,4198,19:25:00,19:57:00,00:32:00,Monsoon,Weekly
+RP0492,Vivek Express,15906,Dibrugarh,Kanyakumari,02-08-2025 00:00,4198,19:25:00,20:42:00,01:17:00,Monsoon,Weekly
+RP0493,Vivek Express,15906,Dibrugarh,Kanyakumari,20-09-2025 00:00,4198,19:25:00,20:16:00,00:51:00,Monsoon,Weekly
+RP0494,Vivek Express,15906,Dibrugarh,Kanyakumari,11-10-2025 00:00,4198,19:25:00,19:54:00,00:29:00,Autumn,Weekly
+RP0495,Vivek Express,15906,Dibrugarh,Kanyakumari,18-10-2025 00:00,4198,19:25:00,20:45:00,01:20:00,Autumn,Weekly
+RP0496,Vivek Express,15906,Dibrugarh,Kanyakumari,01-11-2025 00:00,4198,19:25:00,20:16:00,00:51:00,Autumn,Weekly
+RP0497,Vivek Express,15906,Dibrugarh,Kanyakumari,06-12-2025 00:00,4198,19:25:00,19:32:00,00:07:00,Winter,Weekly
+RP0498,Vivek Express,15906,Dibrugarh,Kanyakumari,10-01-2026 00:00,4198,19:25:00,19:44:00,00:19:00,Winter,Weekly
+RP0499,Vivek Express,15906,Dibrugarh,Kanyakumari,07-02-2026 00:00,4198,19:25:00,20:15:00,00:50:00,Winter,Weekly
+RP0500,Vivek Express,15906,Dibrugarh,Kanyakumari,14-03-2026 00:00,4198,19:25:00,19:59:00,00:34:00,Summer,Weekly
+RP0501,Vivek Express,15906,Dibrugarh,Kanyakumari,18-04-2026 00:00,4198,19:25:00,19:35:00,00:10:00,Summer,Weekly
+RP0502,Vivek Express,15906,Dibrugarh,Kanyakumari,09-05-2026 00:00,4198,19:25:00,20:06:00,00:41:00,Summer,Weekly
+RP0503,Vivek Express,15906,Dibrugarh,Kanyakumari,20-06-2026 00:00,4198,19:25:00,20:25:00,01:00:00,Monsoon,Weekly
+RP0504,Vivek Express,15906,Dibrugarh,Kanyakumari,18-07-2026 00:00,4198,19:25:00,20:05:00,00:40:00,Monsoon,Weekly
+RP0505,Vivek Express,15906,Dibrugarh,Kanyakumari,08-08-2026 00:00,4198,19:25:00,20:14:00,00:49:00,Monsoon,Weekly
+RP0506,Vivek Express,15906,Dibrugarh,Kanyakumari,05-09-2026 00:00,4198,19:25:00,19:48:00,00:23:00,Monsoon,Weekly
+RP0507,Yesvantpur–Howrah Express,22832,Yesvantpur Jn,Howrah,16-01-2023 00:00,1915,04:30:00,05:50:00,01:20:00,Winter,Daliy
+RP0508,Yesvantpur–Howrah Express,22832,Yesvantpur Jn,Howrah,22-02-2023 00:00,1915,04:30:00,05:32:00,01:02:00,Winter,Daliy
+RP0509,Yesvantpur–Howrah Express,22832,Yesvantpur Jn,Howrah,18-03-2023 00:00,1915,04:30:00,06:20:00,01:50:00,Summer,Daliy
+RP0510,Yesvantpur–Howrah Express,22832,Yesvantpur Jn,Howrah,08-04-2023 00:00,1915,04:30:00,05:21:00,00:51:00,Summer,Daliy
+RP0511,Yesvantpur–Howrah Express,22832,Yesvantpur Jn,Howrah,28-05-2023 00:00,1915,04:30:00,04:33:00,00:03:00,Summer,Daliy
+RP0512,Yesvantpur–Howrah Express,22832,Yesvantpur Jn,Howrah,22-06-2023 00:00,1915,04:30:00,05:13:00,00:43:00,Monsoon,Daliy
+RP0513,Yesvantpur–Howrah Express,22832,Yesvantpur Jn,Howrah,23-07-2023 00:00,1915,04:30:00,05:03:00,00:33:00,Monsoon,Daliy
+RP0514,Yesvantpur–Howrah Express,22832,Yesvantpur Jn,Howrah,31-08-2023 00:00,1915,04:30:00,05:40:00,01:10:00,Monsoon,Daliy
+RP0515,Yesvantpur–Howrah Express,22832,Yesvantpur Jn,Howrah,03-09-2023 00:00,1915,04:30:00,05:02:00,00:32:00,Monsoon,Daliy
+RP0516,Yesvantpur–Howrah Express,22832,Yesvantpur Jn,Howrah,01-10-2023 00:00,1915,04:30:00,04:39:00,00:09:00,Autumn,Daliy
+RP0517,Yesvantpur–Howrah Express,22832,Yesvantpur Jn,Howrah,09-11-2023 00:00,1915,04:30:00,04:47:00,00:17:00,Autumn,Daliy
+RP0518,Yesvantpur–Howrah Express,22832,Yesvantpur Jn,Howrah,16-12-2023 00:00,1915,04:30:00,05:10:00,00:40:00,Winter,Daliy
+RP0519,Yesvantpur–Howrah Express,22832,Yesvantpur Jn,Howrah,25-01-2024 00:00,1915,04:30:00,05:47:00,01:17:00,Winter,Daliy
+RP0520,Yesvantpur–Howrah Express,22832,Yesvantpur Jn,Howrah,13-02-2024 00:00,1915,04:30:00,05:17:00,00:47:00,Winter,Daliy
+RP0521,Yesvantpur–Howrah Express,22832,Yesvantpur Jn,Howrah,25-03-2024 00:00,1915,04:30:00,05:21:00,00:51:00,Summer,Daliy
+RP0522,Yesvantpur–Howrah Express,22832,Yesvantpur Jn,Howrah,14-04-2024 00:00,1915,04:30:00,07:07:00,02:37:00,Summer,Daliy
+RP0523,Yesvantpur–Howrah Express,22832,Yesvantpur Jn,Howrah,22-05-2024 00:00,1915,04:30:00,04:36:00,00:06:00,Summer,Daliy
+RP0524,Yesvantpur–Howrah Express,22832,Yesvantpur Jn,Howrah,17-06-2024 00:00,1915,04:30:00,04:30:00,00:00:00,Monsoon,Daliy
+RP0525,Yesvantpur–Howrah Express,22832,Yesvantpur Jn,Howrah,28-07-2024 00:00,1915,04:30:00,05:44:00,01:14:00,Monsoon,Daliy
+RP0526,Yesvantpur–Howrah Express,22832,Yesvantpur Jn,Howrah,26-08-2024 00:00,1915,04:30:00,05:41:00,01:11:00,Monsoon,Daliy
+RP0527,Yesvantpur–Howrah Express,22832,Yesvantpur Jn,Howrah,28-09-2024 00:00,1915,04:30:00,04:37:00,00:07:00,Monsoon,Daliy
+RP0528,Yesvantpur–Howrah Express,22832,Yesvantpur Jn,Howrah,20-10-2024 00:00,1915,04:30:00,05:10:00,00:40:00,Autumn,Daliy
+RP0529,Yesvantpur–Howrah Express,22832,Yesvantpur Jn,Howrah,28-11-2024 00:00,1915,04:30:00,04:54:00,00:24:00,Autumn,Daliy
+RP0530,Yesvantpur–Howrah Express,22832,Yesvantpur Jn,Howrah,29-12-2024 00:00,1915,04:30:00,05:37:00,01:07:00,Winter,Daliy
+RP0531,Yesvantpur–Howrah Express,22832,Yesvantpur Jn,Howrah,19-01-2025 00:00,1915,04:30:00,04:58:00,00:28:00,Winter,Daliy
+RP0532,Yesvantpur–Howrah Express,22832,Yesvantpur Jn,Howrah,21-02-2025 00:00,1915,04:30:00,05:09:00,00:39:00,Winter,Daliy
+RP0533,Yesvantpur–Howrah Express,22832,Yesvantpur Jn,Howrah,20-03-2025 00:00,1915,04:30:00,04:41:00,00:11:00,Summer,Daliy
+RP0534,Yesvantpur–Howrah Express,22832,Yesvantpur Jn,Howrah,03-04-2025 00:00,1915,04:30:00,04:40:00,00:14:00,Summer,Daliy
+RP0535,Yesvantpur–Howrah Express,22832,Yesvantpur Jn,Howrah,10-05-2025 00:00,1915,04:30:00,04:32:00,00:02:00,Summer,Daliy
+RP0536,Yesvantpur–Howrah Express,22832,Yesvantpur Jn,Howrah,28-06-2025 00:00,1915,04:30:00,04:55:00,00:25:00,Monsoon,Daliy
+RP0537,Yesvantpur–Howrah Express,22832,Yesvantpur Jn,Howrah,08-07-2025 00:00,1915,04:30:00,05:00:00,00:30:00,Monsoon,Daliy
+RP0538,Yesvantpur–Howrah Express,22832,Yesvantpur Jn,Howrah,07-08-2025 00:00,1915,04:30:00,05:41:00,01:11:00,Monsoon,Daliy
+RP0539,Yesvantpur–Howrah Express,22832,Yesvantpur Jn,Howrah,09-09-2025 00:00,1915,04:30:00,05:14:00,00:44:00,Monsoon,Daliy
+RP0540,Yesvantpur–Howrah Express,22832,Yesvantpur Jn,Howrah,21-09-2025 00:00,1915,04:30:00,05:21:00,00:51:00,Monsoon,Daliy
+RP0541,Yesvantpur–Howrah Express,22832,Yesvantpur Jn,Howrah,15-10-2025 00:00,1915,04:30:00,04:39:00,00:09:00,Autumn,Daliy
+RP0542,Yesvantpur–Howrah Express,22832,Yesvantpur Jn,Howrah,27-11-2025 00:00,1915,04:30:00,04:54:00,00:24:00,Autumn,Daliy
+RP0543,Yesvantpur–Howrah Express,22832,Yesvantpur Jn,Howrah,26-12-2025 00:00,1915,04:30:00,06:09:00,01:39:00,Winter,Daliy
+RP0544,Yesvantpur–Howrah Express,22832,Yesvantpur Jn,Howrah,07-01-2026 00:00,1915,04:30:00,04:59:00,00:29:00,Winter,Daliy
+RP0545,Yesvantpur–Howrah Express,22832,Yesvantpur Jn,Howrah,02-02-2026 00:00,1915,04:30:00,05:40:00,01:10:00,Winter,Daliy
+RP0546,Yesvantpur–Howrah Express,22832,Yesvantpur Jn,Howrah,01-03-2026 00:00,1915,04:30:00,04:49:00,00:19:00,Summer,Daliy
+RP0547,Yesvantpur–Howrah Express,22832,Yesvantpur Jn,Howrah,04-04-2026 00:00,1915,04:30:00,04:41:00,00:11:00,Summer,Daliy
+RP0548,Yesvantpur–Howrah Express,22832,Yesvantpur Jn,Howrah,13-05-2026 00:00,1915,04:30:00,04:36:00,00:06:00,Summer,Daliy
+RP0549,Yesvantpur–Howrah Express,22832,Yesvantpur Jn,Howrah,04-06-2026 00:00,1915,04:30:00,04:57:00,00:27:00,Monsoon,Daliy
+RP0550,Yesvantpur–Howrah Express,22832,Yesvantpur Jn,Howrah,22-07-2026 00:00,1915,04:30:00,05:14:00,00:44:00,Monsoon,Daliy
+RP0551,Yesvantpur–Howrah Express,22832,Yesvantpur Jn,Howrah,15-08-2026 00:00,1915,04:30:00,05:33:00,01:03:00,Monsoon,Daliy
+RP0552,Yesvantpur–Howrah Express,22832,Yesvantpur Jn,Howrah,08-09-2026 00:00,1915,04:30:00,05:24:00,00:54:00,Monsoon,Daliy

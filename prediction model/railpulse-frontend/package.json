@@ -1,0 +1,11 @@
+{
+  "name": "railpulse-frontend",
+  "private": true,
+  "version": "0.0.0",
+  "description": "RailPulse ML frontend: vanilla ES modules, no build step and no runtime dependencies.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/",
+    "serve": "python3 -m http.server 3000"
+  }
+}

@@ -1,9 +1,11 @@
 import api from "./api";
 
-export const getTrains = () => {
-    return api.get("/trains");
+// The optional signal lets useResource abort a request whose answer is no
+// longer wanted -- an unmounted page, or a refetch that superseded it.
+export const getTrains = (signal) => {
+    return api.get("/trains", { signal });
 };
 
-export const getTrainById = (id) => {
-    return api.get(`/trains/${id}`);
+export const getTrainById = (id, signal) => {
+    return api.get(`/trains/${id}`, { signal });
 };

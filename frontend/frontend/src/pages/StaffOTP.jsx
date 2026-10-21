@@ -1,11 +1,17 @@
 import { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { verifyStaffOTP } from "../services/authService";
+
+// Closed with the rest of the Express identity surface; see StaffRegister.
+const STAFF_VERIFICATION_OPEN = false;
 
 const StaffOTP = () => {
     const location = useLocation();
     const navigate = useNavigate();
 
+    // The address arrives in router state from the staff registration step. A
+    // reload or a bookmarked visit loses it, and the page used to go on and
+    // verify an undefined address.
     const email = location.state?.email;
 
     const [otp, setOtp] = useState("");
@@ -14,6 +20,11 @@ const StaffOTP = () => {
 
     const handleVerify = async (e) => {
         e.preventDefault();
+
+        if (!STAFF_VERIFICATION_OPEN) {
+            setError("Staff verification is closed. Ask an administrator to create the account.");
+            return;
+        }
 
         try {
             setLoading(true);
@@ -32,6 +43,32 @@ const StaffOTP = () => {
         }
     };
 
+    if (!email) {
+        return (
+            <div className="min-h-screen bg-white flex items-center justify-center px-4">
+                <div className="w-full max-w-md text-center">
+
+                    <h1 className="text-3xl font-bold mb-2">
+                        Verify Staff Account
+                    </h1>
+
+                    <p className="text-gray-500 mb-8">
+                        This page needs the address the code was sent to, and it
+                        was not carried over. Start from staff registration again.
+                    </p>
+
+                    <Link
+                        to="/register/staff"
+                        className="inline-block w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-lg"
+                    >
+                        Back to staff registration
+                    </Link>
+
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen bg-white flex items-center justify-center px-4">
             <div className="w-full max-w-md">
@@ -40,9 +77,15 @@ const StaffOTP = () => {
                     Verify Staff Account
                 </h1>
 
-                <p className="text-gray-500 text-center mb-8">
-                    Enter the OTP sent to your email
+                <p className="text-gray-500 text-center mb-4">
+                    Enter the OTP sent to {email}
                 </p>
+
+                <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                    Staff verification is closed. Railway staff accounts are
+                    created by an administrator, so this code can no longer be
+                    checked.
+                </div>
 
                 {error && (
                     <div className="bg-red-100 text-red-600 p-3 rounded-lg mb-4">

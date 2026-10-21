@@ -1,5 +1,7 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { HEALTH_STYLES, useServiceHealth } from "../../hooks/useServiceHealth";
+import { getToken, markMlHandoff, mlHandoffUrl } from "../../services/session";
 
 import {
   LayoutDashboard,
@@ -12,12 +14,13 @@ import {
   TriangleAlert,
   Activity,
   LogOut,
+  X,
 } from "lucide-react";
 
 const navigation = [
   {
     name: "Dashboard",
-    path: "/",
+    path: "/dashboard",
     icon: LayoutDashboard,
   },
   {
@@ -57,13 +60,51 @@ const navigation = [
   },
 ];
 
-function Sidebar() {
+/** The ML page each role should land on when it opens the ML app. */
+const ML_LANDING = {
+  PASSENGER: "passenger/train",
+  STAFF: "staff/train",
+  ADMIN: "admin/train",
+};
+
+function Sidebar({ open = false, onClose = () => {} }) {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const health = useServiceHealth();
+  const healthStyle = HEALTH_STYLES[health.state];
 
   const handleLogout = () => {
-    logout();
-    navigate("/login");
+    onClose();
+
+    // Returns false when it has started a cross-app sign-out, which navigates
+    // the page itself; navigating here as well would cancel it.
+    if (logout()) {
+      navigate("/login");
+    }
+  };
+
+  /**
+   * Open the ML app already signed in, on the page this role should see.
+   *
+   * The token travels in the URL fragment, which browsers never send to a
+   * server, and the ML app strips it from the address as soon as it has read
+   * it. It is built at click time rather than rendered into an href, so the
+   * token is not sitting in the DOM. Without a token the link still works --
+   * the ML app simply asks for a sign-in.
+   */
+  const openMlApp = (event) => {
+    event.preventDefault();
+    onClose();
+
+    const token = getToken();
+
+    if (!token) {
+      window.location.assign(mlHandoffUrl("", ""));
+      return;
+    }
+
+    markMlHandoff();
+    window.location.assign(mlHandoffUrl(token, ML_LANDING[user?.role] || ""));
   };
 
   const visibleNavigation = navigation.filter((item) => {
@@ -81,7 +122,15 @@ function Sidebar() {
   });
 
   return (
-    <aside className="w-64 min-h-screen bg-white border-r border-slate-200 flex flex-col">
+    <aside
+      id="main-sidebar"
+      // Off-canvas below md, static from md up. The desktop appearance is
+      // unchanged: the same width, border and background as before.
+      className={`fixed inset-y-0 left-0 z-40 w-64 bg-white border-r border-slate-200 flex flex-col overflow-y-auto transition-transform duration-200 md:static md:min-h-screen md:translate-x-0 ${
+        open ? "translate-x-0" : "-translate-x-full"
+      }`}
+      aria-label="Main navigation"
+    >
 
       {/* Logo */}
       <div className="h-20 px-6 flex items-center border-b border-slate-200">
@@ -91,21 +140,33 @@ function Sidebar() {
         </div>
 
         <div className="ml-3">
-          <h1 className="text-xl font-bold text-slate-900">
+          {/* Not an <h1>: the page's own title is the h1, and two of them
+              per page leaves a screen reader's heading list opening on the
+              brand rather than on where the user is. */}
+          <p className="text-xl font-bold text-slate-900">
             RailPulse
-          </h1>
+          </p>
 
           <p className="text-xs text-slate-500">
             Railway Intelligence
           </p>
         </div>
 
+        <button
+          type="button"
+          onClick={onClose}
+          className="rp-press ml-auto rounded-lg p-2 text-slate-500 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 md:hidden"
+          aria-label="Close navigation"
+        >
+          <X size={20} />
+        </button>
+
       </div>
 
       {/* Navigation */}
       <div className="px-4 py-6">
 
-        <p className="px-3 mb-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+        <p className="px-3 mb-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
           Navigation
         </p>
 
@@ -118,8 +179,9 @@ function Sidebar() {
               <NavLink
                 key={item.path}
                 to={item.path}
+                onClick={onClose}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all ${isActive
+                  `rp-press relative flex items-center gap-3 overflow-hidden rounded-xl px-4 py-3 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 ${isActive
                     ? "bg-orange-500 text-white shadow-sm"
                     : "text-slate-700 hover:bg-orange-50 hover:text-orange-600"
                   }`
@@ -128,6 +190,16 @@ function Sidebar() {
 
                 {({ isActive }) => (
                   <>
+                    {/* The current page is marked by a bar as well as by
+                        fill, so it is not colour alone that says where you
+                        are. */}
+                    {isActive && (
+                      <span
+                        className="absolute inset-y-1.5 left-0 w-1 rounded-r-full bg-white/80"
+                        aria-hidden="true"
+                      />
+                    )}
+
                     <Icon
                       size={19}
                       strokeWidth={isActive ? 2.3 : 2}
@@ -142,8 +214,9 @@ function Sidebar() {
           })}
 
           <a
-            href="http://localhost:3000"
-            className="flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all text-slate-700 hover:bg-orange-50 hover:text-orange-600"
+            href="#ml-app"
+            onClick={openMlApp}
+            className="rp-press flex items-center gap-3 rounded-xl px-4 py-3 font-medium text-slate-700 hover:bg-orange-50 hover:text-orange-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2"
           >
             <Clock3 size={19} strokeWidth={2} />
             <span>ETA prediction using ML model</span>
@@ -172,17 +245,18 @@ function Sidebar() {
 
           <div className="flex items-center gap-2 mt-3">
 
-            {/* Green signal */}
             <span className="relative flex h-3 w-3">
 
-              <span className="absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-40 animate-ping"></span>
+              {health.state === "ok" && (
+                <span className="absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-40 animate-ping"></span>
+              )}
 
-              <span className="relative inline-flex h-3 w-3 rounded-full bg-green-500"></span>
+              <span className={`relative inline-flex h-3 w-3 rounded-full ${healthStyle.dot}`}></span>
 
             </span>
 
-            <span className="text-sm font-semibold text-green-700">
-              Operational
+            <span className={`text-sm font-semibold ${healthStyle.text}`}>
+              {health.label}
             </span>
 
           </div>
@@ -190,7 +264,7 @@ function Sidebar() {
           <button
             type="button"
             onClick={handleLogout}
-            className="w-full mt-4 pt-3 border-t border-slate-200 flex items-center gap-3 text-slate-600 font-medium hover:text-orange-600 transition-all"
+            className="rp-press mt-4 flex w-full items-center gap-3 border-t border-slate-200 pt-3 font-medium text-slate-600 hover:text-orange-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"
           >
 
             <LogOut size={18} />

@@ -47,6 +47,15 @@ const trainSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+
+    // Marks a row written by scripts/seed-demo.js. Mongoose drops unknown
+    // fields in strict mode, so without this the seed's --reset would match
+    // nothing and silently refuse to clean up after itself.
+    dataSource: {
+      type: String,
+      enum: ["SEED", "MANUAL"],
+      default: "MANUAL",
+    },
   },
   { timestamps: true }
 );

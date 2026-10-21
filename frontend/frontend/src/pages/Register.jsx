@@ -1,12 +1,17 @@
 import { useState } from "react";
+
+import Button from "../components/ui/Button";
 import { useNavigate, Link } from "react-router-dom";
 import { TrainFront } from "lucide-react";
+import authApi, { authErrorMessage } from "../services/authApi";
 const Register = () => {
     const navigate = useNavigate();
 
+    // FastAPI identifies people by username, not by email, and accepts an
+    // optional full name. The contract is its UserRegisterRequest.
     const [form, setForm] = useState({
-        name: "",
-        email: "",
+        username: "",
+        full_name: "",
         password: "",
     });
 
@@ -27,28 +32,19 @@ const Register = () => {
             setLoading(true);
             setError("");
 
-            const response = await fetch(
-                "http://localhost:5000/api/auth/register",
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify(form),
-                }
-            );
+            await authApi.post("/auth/register", {
+                username: form.username,
+                password: form.password,
+                full_name: form.full_name || null,
+            });
 
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.message || "Registration failed");
-            }
-
-            alert("Passenger account created successfully!");
-
-            navigate("/login");
+            navigate("/login", {
+                state: {
+                    notice: "Account created. Sign in to continue.",
+                },
+            });
         } catch (error) {
-            setError(error.message);
+            setError(authErrorMessage(error, "Registration failed"));
         } finally {
             setLoading(false);
         }
@@ -149,50 +145,74 @@ const Register = () => {
                         className="space-y-5"
                     >
 
-                        {/* NAME */}
+                        {/* USERNAME */}
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Full Name
+                            <label
+                                htmlFor="register-username"
+                                className="block text-sm font-semibold text-gray-700 mb-2"
+                            >
+                                Username
                             </label>
 
                             <input
+                                id="register-username"
                                 type="text"
-                                name="name"
-                                placeholder="Enter your full name"
-                                value={form.name}
+                                name="username"
+                                autoComplete="username"
+                                placeholder="Letters, numbers, dot, dash or underscore"
+                                pattern="[A-Za-z0-9_.-]+"
+                                minLength={3}
+                                maxLength={64}
+                                title="Letters, numbers, and . _ - only"
+                                value={form.username}
                                 onChange={handleChange}
                                 className="w-full border border-gray-300 rounded-xl px-4 py-3 text-gray-900 bg-white outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
                                 required
                             />
                         </div>
 
-                        {/* EMAIL */}
+                        {/* FULL NAME */}
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Email
+                            <label
+                                htmlFor="register-full-name"
+                                className="block text-sm font-semibold text-gray-700 mb-2"
+                            >
+                                Full Name{" "}
+                                <span className="font-normal text-gray-500">
+                                    (optional)
+                                </span>
                             </label>
 
                             <input
-                                type="email"
-                                name="email"
-                                placeholder="Enter your email"
-                                value={form.email}
+                                id="register-full-name"
+                                type="text"
+                                name="full_name"
+                                autoComplete="name"
+                                maxLength={120}
+                                placeholder="Enter your full name"
+                                value={form.full_name}
                                 onChange={handleChange}
                                 className="w-full border border-gray-300 rounded-xl px-4 py-3 text-gray-900 bg-white outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
-                                required
                             />
                         </div>
 
                         {/* PASSWORD */}
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            <label
+                                htmlFor="register-password"
+                                className="block text-sm font-semibold text-gray-700 mb-2"
+                            >
                                 Password
                             </label>
 
                             <input
+                                id="register-password"
                                 type="password"
                                 name="password"
-                                placeholder="Create a password"
+                                autoComplete="new-password"
+                                minLength={8}
+                                maxLength={128}
+                                placeholder="At least 8 characters"
                                 value={form.password}
                                 onChange={handleChange}
                                 className="w-full border border-gray-300 rounded-xl px-4 py-3 text-gray-900 bg-white outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
@@ -200,29 +220,25 @@ const Register = () => {
                             />
                         </div>
                         {/* REGISTER BUTTON */}
-                        <button
+                        <Button
                             type="submit"
-                            disabled={loading}
-                            className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-lg"
+                            loading={loading}
+                            fullWidth
+                            size="lg"
+                            className="rounded-xl py-3.5"
                         >
                             {loading ? "Creating Account..." : "Register"}
-                        </button>
+                        </Button>
 
                     </form>
 
                     {/* STAFF */}
                     <div className="text-center mt-7">
 
-                        <p className="text-gray-500">
-                            Are you railway staff?
+                        <p className="text-sm text-gray-500">
+                            Railway staff accounts are created by an
+                            administrator, not through this form.
                         </p>
-
-                        <Link
-                            to="/register/staff"
-                            className="text-orange-500 font-semibold hover:underline"
-                        >
-                            Register as Staff
-                        </Link>
 
                     </div>
 

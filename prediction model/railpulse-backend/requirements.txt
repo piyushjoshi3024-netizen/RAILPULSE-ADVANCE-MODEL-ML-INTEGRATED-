@@ -1,17 +1,32 @@
+# Web service
 fastapi
 uvicorn[standard]
 pydantic
 pydantic-settings
+python-dotenv
+
+# Persistence
 pymongo
 motor
-python-dotenv
+
+# Auth
+PyJWT
+pwdlib[argon2]
+
+# Modelling and data
 scikit-learn
+lightgbm
 xgboost
 pandas
 numpy
 joblib
+pyarrow
+
+# Reporting
+matplotlib
+tabulate
+
+# Testing and the end-to-end checker
 pytest
 pytest-asyncio
-PyJWT
-pwdlib[argon2]
-httpx2
+httpx

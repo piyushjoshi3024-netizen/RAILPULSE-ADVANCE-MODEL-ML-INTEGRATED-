@@ -6,26 +6,20 @@ import {
   getRecovery,
 } from "../services/operationsService";
 import { getTrains } from "../services/trainService";
+import { HEALTH_STYLES, useServiceHealth } from "../hooks/useServiceHealth";
 import { getTrainEvents } from "../services/trainEventService";
 import api from "../services/api";
 
+import PageHeader from "../components/ui/PageHeader";
+import Badge from "../components/ui/Badge";
 
-const severityStyles = {
-  CRITICAL: "bg-red-100 text-red-700 border-red-200",
-  HIGH: "bg-orange-100 text-orange-700 border-orange-200",
-  MEDIUM: "bg-yellow-100 text-yellow-700 border-yellow-200",
-  LOW: "bg-slate-100 text-slate-600 border-slate-200",
-};
 
-const statusStyles = {
-  RUNNING: "bg-green-100 text-green-700",
-  DELAYED: "bg-red-100 text-red-700",
-  ACTIVE: "bg-red-100 text-red-700",
-  ACKNOWLEDGED: "bg-yellow-100 text-yellow-700",
-  RESOLVED: "bg-green-100 text-green-700",
-};
+
 
 function CommandCenter() {
+  const health = useServiceHealth();
+  const healthStyle = HEALTH_STYLES[health.state];
+
   const [trains, setTrains] = useState([]);
   const [incidents, setIncidents] = useState([]);
 
@@ -36,6 +30,15 @@ function CommandCenter() {
   const [propagationData, setPropagationData] = useState(null);
   const [recoveryData, setRecoveryData] = useState(null);
   const [networkLoad, setNetworkLoad] = useState(0);
+  // UI-4: when this page last heard from the API, and whether the user's
+  // refresh is still running. Display only -- the same calls, unchanged.
+  const [updatedAt, setUpdatedAt] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Which train the risk, bottleneck, propagation and recovery panels describe.
+  // It used to be one id written into the source, so the panels described the
+  // same train no matter which one was on screen.
+  const [operationsTrainId, setOperationsTrainId] = useState(null);
 
   useEffect(() => {
     const loadTrainData = async () => {
@@ -59,6 +62,7 @@ function CommandCenter() {
         };
 
         setNetworkLoad(loadMap[networkData.networkStatus] ?? 0);
+        setUpdatedAt(new Date());
 
         const backendTrains = trainsResponse.data;
         const backendEvents = eventsResponse.data;
@@ -101,10 +105,12 @@ function CommandCenter() {
                 "Unknown",
               severity: alert.severity,
               status: "ACTIVE",
-              time: new Date(alert.createdAt).toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              }),
+              time: alert.createdAt
+                ? new Date(alert.createdAt).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+                : "Unknown",
               description: alert.message,
             };
           }
@@ -129,6 +135,7 @@ function CommandCenter() {
 
           return {
             id: train.trainNumber,
+            trainId: String(train._id),
             name: train.trainName,
             type: train.trainType || "UNKNOWN",
             status:
@@ -147,6 +154,10 @@ function CommandCenter() {
         });
 
         setTrains(mapTrains);
+
+        if (mapTrains.length > 0) {
+          setOperationsTrainId((current) => current || mapTrains[0].trainId);
+        }
       } catch (error) {
         console.error("Failed to load train data:", error);
       }
@@ -156,11 +167,13 @@ function CommandCenter() {
   }, []);
 
   useEffect(() => {
+    if (!operationsTrainId) {
+      return;
+    }
+
     const loadRisk = async () => {
       try {
-        const response = await getRisk(
-          "6a9d5a64a663314c1afeaa69"
-        );
+        const response = await getRisk(operationsTrainId);
 
         setRiskData(response.data);
       } catch (error) {
@@ -170,14 +183,16 @@ function CommandCenter() {
     };
 
     loadRisk();
-  }, []);
+  }, [operationsTrainId]);
 
   useEffect(() => {
+    if (!operationsTrainId) {
+      return;
+    }
+
     const loadBottleneck = async () => {
       try {
-        const response = await getBottleneck(
-          "6a9d5a64a663314c1afeaa69"
-        );
+        const response = await getBottleneck(operationsTrainId);
 
         setBottleneckData(response.data);
       } catch (error) {
@@ -187,14 +202,16 @@ function CommandCenter() {
     };
 
     loadBottleneck();
-  }, []);
+  }, [operationsTrainId]);
 
   useEffect(() => {
+    if (!operationsTrainId) {
+      return;
+    }
+
     const loadPropagation = async () => {
       try {
-        const response = await getPropagation(
-          "6a9d5a64a663314c1afeaa69"
-        );
+        const response = await getPropagation(operationsTrainId);
 
         setPropagationData(response.data);
       } catch (error) {
@@ -204,14 +221,16 @@ function CommandCenter() {
     };
 
     loadPropagation();
-  }, []);
+  }, [operationsTrainId]);
 
   useEffect(() => {
+    if (!operationsTrainId) {
+      return;
+    }
+
     const loadRecovery = async () => {
       try {
-        const response = await getRecovery(
-          "6a9d5a64a663314c1afeaa69"
-        );
+        const response = await getRecovery(operationsTrainId);
 
         setRecoveryData(response.data);
       } catch (error) {
@@ -221,10 +240,15 @@ function CommandCenter() {
     };
 
     loadRecovery();
-  }, []);
+  }, [operationsTrainId]);
 
   const [trainFilter, setTrainFilter] = useState("ALL");
   const [incidentFilter, setIncidentFilter] = useState("ALL");
+
+  const operationsTrainName = (() => {
+    const train = trains.find((item) => item.trainId === operationsTrainId);
+    return train ? `Train ${train.id}` : "This train";
+  })();
 
   const activeIncidents = incidents.filter(
     (incident) => incident.status !== "RESOLVED"
@@ -295,6 +319,7 @@ function CommandCenter() {
   }
 
   async function simulateRefresh() {
+    setRefreshing(true);
 
     try {
       const [trainsResponse, eventsResponse, networkResponse] =
@@ -324,6 +349,7 @@ function CommandCenter() {
 
         return {
           id: train.trainNumber,
+          trainId: String(train._id),
           name: train.trainName,
           type: train.trainType || "UNKNOWN",
           status:
@@ -352,39 +378,35 @@ function CommandCenter() {
       };
 
       setNetworkLoad(loadMap[networkData.networkStatus] ?? 0);
+      setUpdatedAt(new Date());
     } catch (error) {
       console.error("Failed to refresh operations:", error);
+    } finally {
+      setRefreshing(false);
     }
   }
 
   return (
-    <div className="min-h-full bg-slate-50 p-6 md:p-8">
-      {/* HEADER */}
-      <div className="mb-7 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900">
-            Command Centre
-          </h1>
+    // Was `min-h-full bg-slate-50 p-6 md:p-8` -- a second background and a
+    // second padding inside a <main> that already has both, which cost this
+    // page 24px of width on a phone against every other page.
+    <div className="space-y-7">
 
-          <p className="mt-1 text-slate-500">
-            Operational control and real-time railway intelligence.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 rounded-full border border-green-200 bg-green-50 px-4 py-2 text-sm font-medium text-green-700">
-            <span className="h-2 w-2 rounded-full bg-green-500" />
-            System Online
-          </div>
-
-          <button
-            onClick={simulateRefresh}
-            className="rounded-lg bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-600"
+      <PageHeader
+        title="Command Centre"
+        subtitle="Operational control and real-time railway intelligence."
+        updatedAt={updatedAt}
+        onRefresh={simulateRefresh}
+        refreshing={refreshing}
+        actions={
+          <div
+            className={`flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium ${healthStyle.chip} ${healthStyle.text}`}
           >
-            Refresh Operations
-          </button>
-        </div>
-      </div>
+            <span className={`h-2 w-2 rounded-full ${healthStyle.dot}`} aria-hidden="true" />
+            {health.label}
+          </div>
+        }
+      />
 
       {/* KPI CARDS */}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -478,11 +500,7 @@ function CommandCenter() {
                     </td>
 
                     <td className="px-5 py-4">
-                      <span
-                        className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusStyles[train.status]}`}
-                      >
-                        {train.status}
-                      </span>
+                      <Badge status={train.status} />
                     </td>
 
                     <td className="px-5 py-4 text-sm text-slate-600">
@@ -499,13 +517,16 @@ function CommandCenter() {
                           +{train.delay} min
                         </span>
                       ) : (
-                        <span className="text-slate-400">On time</span>
+                        <span className="text-slate-500">On time</span>
                       )}
                     </td>
 
                     <td className="px-5 py-4">
                       <button
-                        onClick={() => setSelectedTrain(train)}
+                        onClick={() => {
+                          setSelectedTrain(train);
+                          setOperationsTrainId(train.trainId);
+                        }}
                         className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
                       >
                         Details
@@ -578,11 +599,7 @@ function CommandCenter() {
                         {incident.title}
                       </h3>
 
-                      <span
-                        className={`rounded-full border px-2 py-1 text-[10px] font-bold ${severityStyles[incident.severity]}`}
-                      >
-                        {incident.severity}
-                      </span>
+                      <Badge status={incident.severity} size="sm" />
                     </div>
 
                     <p className="mt-1 text-sm text-slate-500">
@@ -590,14 +607,9 @@ function CommandCenter() {
                     </p>
 
                     <div className="mt-3 flex items-center justify-between">
-                      <span
-                        className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${statusStyles[incident.status]
-                          }`}
-                      >
-                        {incident.status}
-                      </span>
+                      <Badge status={incident.status} size="sm" />
 
-                      <span className="text-xs text-slate-400">
+                      <span className="text-xs text-slate-500">
                         {incident.time}
                       </span>
                     </div>
@@ -644,10 +656,9 @@ function CommandCenter() {
             title="Delay Risk"
             text={
               riskData
-                ? `Train 12951 has ${riskData.riskLevel.toLowerCase()} delay risk with a risk score of ${riskData.riskScore}.`
+                ? `${operationsTrainName} has ${riskData.riskLevel.toLowerCase()} delay risk with a risk score of ${riskData.riskScore}.`
                 : "Risk data unavailable."
             }
-            action="Review recovery options"
           />
 
           <InsightCard
@@ -657,7 +668,6 @@ function CommandCenter() {
                 ? recoveryData.recoveryAction
                 : "Recovery data unavailable."
             }
-            action="Review recovery plan"
           />
 
           <InsightCard
@@ -667,7 +677,6 @@ function CommandCenter() {
                 ? `${bottleneckData.section} has ${bottleneckData.severity.toLowerCase()} bottleneck severity with a score of ${bottleneckData.score}.`
                 : "Bottleneck data unavailable."
             }
-            action="Monitor affected section"
           />
 
           <InsightCard
@@ -677,7 +686,6 @@ function CommandCenter() {
                 ? `${propagationData.totalAffectedStations} stations may be affected downstream from ${propagationData.fromStation}, with an estimated delay of ${propagationData.affectedStations[0]?.estimatedDelayMinutes ?? 0} minutes.`
                 : "Propagation data unavailable."
             }
-            action="Review affected stations"
           />
         </div>
       </section>
@@ -696,11 +704,7 @@ function CommandCenter() {
               </h2>
             </div>
 
-            <span
-              className={`rounded-full px-3 py-1 text-xs font-bold ${statusStyles[selectedTrain.status]}`}
-            >
-              {selectedTrain.status}
-            </span>
+            <Badge status={selectedTrain.status} size="lg" />
           </div>
 
           <div className="mt-5 grid grid-cols-2 gap-4">
@@ -742,12 +746,7 @@ function CommandCenter() {
               </p>
             </div>
 
-            <span
-              className={`rounded-full border px-3 py-1 text-xs font-bold ${severityStyles[selectedIncident.severity]
-                }`}
-            >
-              {selectedIncident.severity}
-            </span>
+            <Badge status={selectedIncident.severity} size="lg" />
           </div>
 
           <p className="mt-5 text-sm leading-6 text-slate-600">
@@ -758,12 +757,7 @@ function CommandCenter() {
             <div className="flex items-center justify-between">
               <span className="text-sm text-slate-500">Current status</span>
 
-              <span
-                className={`rounded-full px-3 py-1 text-xs font-bold ${statusStyles[selectedIncident.status]
-                  }`}
-              >
-                {selectedIncident.status}
-              </span>
+              <Badge status={selectedIncident.status} size="lg" />
             </div>
           </div>
 
@@ -815,12 +809,12 @@ function KpiCard({
         {value}
       </p>
 
-      <p className="mt-2 text-sm text-slate-400">{subtitle}</p>
+      <p className="mt-2 text-sm text-slate-500">{subtitle}</p>
     </div>
   );
 }
 
-function InsightCard({ title, text, action }) {
+function InsightCard({ title, text }) {
   return (
     <div className="rounded-xl border border-slate-200 bg-slate-50 p-5">
       <p className="text-sm font-bold text-slate-900">{title}</p>
@@ -828,10 +822,6 @@ function InsightCard({ title, text, action }) {
       <p className="mt-2 text-sm leading-6 text-slate-500">
         {text}
       </p>
-
-      <button className="mt-4 text-xs font-bold text-orange-600 hover:text-orange-700">
-        {action} →
-      </button>
     </div>
   );
 }
@@ -839,7 +829,7 @@ function InsightCard({ title, text, action }) {
 function Detail({ label, value }) {
   return (
     <div className="rounded-xl bg-slate-50 p-4">
-      <p className="text-xs font-medium text-slate-400">{label}</p>
+      <p className="text-xs font-medium text-slate-500">{label}</p>
       <p className="mt-1 text-sm font-semibold text-slate-800">
         {value}
       </p>

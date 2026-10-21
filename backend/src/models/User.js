@@ -56,4 +56,9 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("User", userSchema);
+// Explicit collection name. The default would be "users", which in the shared
+// database belongs to the FastAPI service: its documents have no email field,
+// so this schema's unique email index could not even be built over them, and
+// Node documents there would break the identity provider. Node's own legacy
+// accounts live apart, under main_.
+module.exports = mongoose.model("User", userSchema, "main_users");

@@ -7,6 +7,11 @@ import {
     sendStaffOTP,
 } from "../services/authService";
 
+// Staff accounts are created by an administrator, and the Express endpoints
+// behind this form answer 410 Gone. The flow is kept behind this flag rather
+// than deleted, so it can be revived if the policy changes.
+const STAFF_SELF_REGISTRATION_OPEN = false;
+
 const StaffRegister = () => {
     const navigate = useNavigate();
 
@@ -29,6 +34,11 @@ const StaffRegister = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        if (!STAFF_SELF_REGISTRATION_OPEN) {
+            setError("Staff self-registration is closed. Ask an administrator to create the account.");
+            return;
+        }
 
         try {
             setLoading(true);
@@ -81,7 +91,7 @@ const StaffRegister = () => {
                                     RailPulse
                                 </h2>
 
-                                <p className="text-sm text-gray-400">
+                                <p className="text-sm text-gray-500">
                                     Railway Intelligence
                                 </p>
                             </div>
@@ -113,7 +123,7 @@ const StaffRegister = () => {
                                 <p className="text-orange-500 font-bold text-lg">
                                     ETA
                                 </p>
-                                <p className="text-gray-400 text-sm">
+                                <p className="text-gray-500 text-sm">
                                     Prediction
                                 </p>
                             </div>
@@ -122,7 +132,7 @@ const StaffRegister = () => {
                                 <p className="text-orange-500 font-bold text-lg">
                                     Live
                                 </p>
-                                <p className="text-gray-400 text-sm">
+                                <p className="text-gray-500 text-sm">
                                     Monitoring
                                 </p>
                             </div>
@@ -131,7 +141,7 @@ const StaffRegister = () => {
                                 <p className="text-orange-500 font-bold text-lg">
                                     Risk
                                 </p>
-                                <p className="text-gray-400 text-sm">
+                                <p className="text-gray-500 text-sm">
                                     Analysis
                                 </p>
                             </div>
@@ -142,7 +152,7 @@ const StaffRegister = () => {
 
                             <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
 
-                            <span className="text-sm text-gray-400">
+                            <span className="text-sm text-gray-500">
                                 Railway Intelligence Platform
                             </span>
 
@@ -175,7 +185,17 @@ const StaffRegister = () => {
                             )}
 
 
-                            <form
+                                                {/* The Express staff endpoints answer 410 Gone: staff accounts
+                        are created by an administrator in the prediction
+                        service. The form is kept, and disabled, rather than
+                        posting into an endpoint that cannot answer. */}
+                    <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                        Staff self-registration is closed. Railway staff accounts
+                        are created by an administrator, and this form no longer
+                        submits.
+                    </div>
+
+                    <form
                                 onSubmit={handleSubmit}
                                 className="space-y-5"
                             >
@@ -309,7 +329,7 @@ const StaffRegister = () => {
 
                             <div className="border-t border-gray-100 mt-8 pt-6 text-center">
 
-                                <p className="text-xs text-gray-400">
+                                <p className="text-xs text-gray-500">
                                     Secure RailPulse staff access
                                 </p>
 

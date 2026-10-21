@@ -40,7 +40,20 @@ const alertSchema = new mongoose.Schema(
             type: Date,
             default: Date.now,
         },
+
+              // Marks a row written by scripts/seed-demo.js. Mongoose drops unknown
+              // fields in strict mode, so without this the seed's --reset would match
+              // nothing and silently refuse to clean up after itself.
+              dataSource: {
+                type: String,
+                enum: ["SEED", "MANUAL"],
+                default: "MANUAL",
+              },
     }
 );
 
-module.exports = mongoose.model("Alert", alertSchema);
+// Explicit collection name. The default "alerts" belongs to FastAPI, which
+// reads alert_type / severity / message / created_at; this schema writes
+// alertType and a trainId ObjectId, and a document of this shape in that
+// collection makes the FastAPI /alerts endpoint raise a KeyError.
+module.exports = mongoose.model("Alert", alertSchema, "main_alerts");

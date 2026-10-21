@@ -1,14 +1,28 @@
 import { useState } from "react";
+
+import Button from "../components/ui/Button";
 import { TrainFront } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import api from "../services/api";
+import authApi, { authErrorMessage } from "../services/authApi";
 
 function Login() {
     const navigate = useNavigate();
+    const location = useLocation();
+
+    const params = new URLSearchParams(location.search);
+    const expired = params.get("expired") === "1";
+    const signedOut = params.get("signedout") === "1";
+
+    const notice = location.state?.notice
+        || (signedOut ? "Signed out of RailPulse and of the ML app." : "");
+
+    const warning = expired
+        ? "Your session ended. Please sign in again."
+        : "";
     const { login } = useAuth();
 
-    const [email, setEmail] = useState("");
+    const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
 
     const [loading, setLoading] = useState(false);
@@ -21,22 +35,27 @@ function Login() {
         setError("");
 
         try {
-            const response = await api.post("/auth/login", {
-                email,
+            // FastAPI is the only identity provider for both applications.
+            const response = await authApi.post("/auth/login", {
+                username,
                 password,
             });
 
-            const { token, user } = response.data;
+            const { access_token: accessToken, user } = response.data;
 
-            login(token, user);
+            login(accessToken, user);
 
             navigate("/dashboard");
         } catch (error) {
-            console.error(error);
+            const status = error.response?.status;
 
             setError(
-                error.response?.data?.message ||
-                "Invalid email or password"
+                status === 401
+                    // The accounts that existed before the move to a single
+                    // sign-in were not carried across, and saying only
+                    // "invalid" would send those people hunting for a typo.
+                    ? "Invalid username or password. If you had an account before RailPulse moved to a single sign-in, it was not carried over \u2014 please register again."
+                    : authErrorMessage(error, "Sign in failed. Please try again.")
             );
         } finally {
             setLoading(false);
@@ -125,7 +144,7 @@ function Login() {
                                 </div>
                             </div>
 
-                            <div className="mt-12 flex items-center gap-2 text-xs text-gray-400">
+                            <div className="mt-12 flex items-center gap-2 text-xs text-gray-500">
                                 <span className="w-2 h-2 rounded-full bg-orange-500" />
                                 Railway Intelligence Platform
                             </div>
@@ -152,13 +171,16 @@ function Login() {
                                 >
 
                                     <div>
-                                        <label className="block text-sm font-semibold text-black mb-2">
-                                            Email
+                                        <label
+                                            htmlFor="login-username"
+                                            className="block text-sm font-semibold text-black mb-2"
+                                        >
+                                            Username
                                         </label>
 
                                         <div className="relative">
 
-                                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">
                                                 <svg
                                                     width="18"
                                                     height="18"
@@ -167,40 +189,40 @@ function Login() {
                                                     stroke="currentColor"
                                                     strokeWidth="2"
                                                 >
-                                                    <rect
-                                                        x="3"
-                                                        y="5"
-                                                        width="18"
-                                                        height="14"
-                                                        rx="2"
-                                                    />
+                                                    <circle cx="12" cy="8" r="4" />
 
-                                                    <path d="m3 7 9 6 9-6" />
+                                                    <path d="M4 21a8 8 0 0 1 16 0" />
                                                 </svg>
                                             </div>
 
                                             <input
-                                                type="email"
-                                                value={email}
+                                                id="login-username"
+                                                name="username"
+                                                type="text"
+                                                autoComplete="username"
+                                                value={username}
                                                 onChange={(e) =>
-                                                    setEmail(e.target.value)
+                                                    setUsername(e.target.value)
                                                 }
-                                                placeholder="Enter email"
+                                                placeholder="Enter username"
                                                 required
-                                                className="w-full pl-11 pr-4 py-3.5 border border-gray-300 rounded-xl outline-none bg-white !text-black !placeholder:text-gray-400 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all"
+                                                className="w-full pl-11 pr-4 py-3.5 border border-gray-300 rounded-xl outline-none bg-white text-slate-900 placeholder:text-slate-400 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all"
                                             />
 
                                         </div>
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-semibold text-black mb-2">
+                                        <label
+                                            htmlFor="login-password"
+                                            className="block text-sm font-semibold text-black mb-2"
+                                        >
                                             Password
                                         </label>
 
                                         <div className="relative">
 
-                                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">
                                                 <svg
                                                     width="18"
                                                     height="18"
@@ -222,18 +244,33 @@ function Login() {
                                             </div>
 
                                             <input
+                                                id="login-password"
+                                                name="password"
                                                 type="password"
+                                                autoComplete="current-password"
                                                 value={password}
                                                 onChange={(e) =>
                                                     setPassword(e.target.value)
                                                 }
                                                 placeholder="Enter password"
                                                 required
-                                                className="w-full pl-11 pr-4 py-3.5 border border-gray-300 rounded-xl outline-none bg-white !text-black !placeholder:text-gray-400 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all"
+                                                className="w-full pl-11 pr-4 py-3.5 border border-gray-300 rounded-xl outline-none bg-white text-slate-900 placeholder:text-slate-400 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all"
                                             />
 
                                         </div>
                                     </div>
+
+                                    {warning && !error && (
+                                        <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-xl text-sm">
+                                            {warning}
+                                        </div>
+                                    )}
+
+                                    {notice && !error && (
+                                        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl text-sm">
+                                            {notice}
+                                        </div>
+                                    )}
 
                                     {error && (
                                         <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl text-sm">
@@ -241,20 +278,15 @@ function Login() {
                                         </div>
                                     )}
 
-                                    <button
+                                    <Button
                                         type="submit"
-                                        disabled={loading}
-                                        className="w-full py-3.5 rounded-xl bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white font-semibold transition-all shadow-sm"
+                                        loading={loading}
+                                        fullWidth
+                                        size="lg"
+                                        className="rounded-xl py-3.5"
                                     >
-                                        {loading ? (
-                                            <span className="flex items-center justify-center gap-2">
-                                                <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                                                Signing in...
-                                            </span>
-                                        ) : (
-                                            "Sign In"
-                                        )}
-                                    </button>
+                                        {loading ? "Signing in..." : "Sign In"}
+                                    </Button>
 
                                 </form>
 
@@ -286,7 +318,7 @@ function Login() {
 
                             <div className="mt-8 pt-6 border-t border-gray-100">
 
-                                    <div className="flex items-center justify-center gap-2 text-xs text-gray-400">
+                                    <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
 
                                         <svg
                                             width="14"
@@ -313,7 +345,7 @@ function Login() {
                     </div>
                 </div>
 
-                <p className="text-center text-xs text-gray-400 mt-6">
+                <p className="text-center text-xs text-gray-500 mt-6">
                     RailPulse · Railway Intelligence
                 </p>
 

@@ -1,0 +1,193 @@
+[
+  {
+    "page": "dashboard",
+    "width": 1280,
+    "landed": "/#/passenger/dashboard",
+    "title": "Welcome",
+    "hscroll": false,
+    "links": [
+      "#/passenger/alerts",
+      "#/passenger/history",
+      "#/passenger/train"
+    ],
+    "console": [],
+    "pageerrors": [],
+    "screenshot": "auth-dashboard-1280.png"
+  },
+  {
+    "page": "train",
+    "width": 1280,
+    "landed": "/#/passenger/train",
+    "title": "Track a train",
+    "hscroll": false,
+    "links": [],
+    "console": [],
+    "pageerrors": [],
+    "screenshot": "auth-train-1280.png"
+  },
+  {
+    "page": "history",
+    "width": 1280,
+    "landed": "/#/passenger/history",
+    "title": "Prediction history",
+    "hscroll": false,
+    "links": [],
+    "console": [],
+    "pageerrors": [],
+    "screenshot": "auth-history-1280.png"
+  },
+  {
+    "page": "alerts",
+    "width": 1280,
+    "landed": "/#/passenger/alerts",
+    "title": "Alert intelligence",
+    "hscroll": false,
+    "links": [],
+    "console": [],
+    "pageerrors": [],
+    "screenshot": "auth-alerts-1280.png"
+  },
+  {
+    "page": "prediction",
+    "width": 1280,
+    "landed": "/#/passenger/train",
+    "title": "Track a train",
+    "hscroll": false,
+    "links": [],
+    "console": [],
+    "pageerrors": [],
+    "screenshot": "auth-prediction-1280.png",
+    "prediction": {
+      "predictedArrival": "Predicted arrival\nLive prediction\n\nSCHEDULED ARRIVAL\n\n06:00 IST\n\n21 Oct 2026, 06:00 IST\n\nPREDICTE",
+      "range": "Most likely somewhere between 06:01 IST and 06:26 IST \u2014 that is +1.4 min to +26.4 min against the timetable.\n\nChance of arriving more than 15 minutes late: 44% \u2014 about 44 in 100 journeys th",
+      "chance": "Chance of arriving more than 15 minutes late: 44% \u2014 about 44 in 100 journeys that look like this one to t",
+      "synthetic": true,
+      "baseline": false,
+      "gps": false,
+      "charts": 2
+    }
+  },
+  {
+    "page": "simulation-leak",
+    "width": 1280,
+    "landed": "/#/passenger/simulation",
+    "title": "Simulation lab",
+    "hscroll": false,
+    "links": [],
+    "console": [],
+    "pageerrors": [],
+    "screenshot": "auth-simulation-leak-1280.png",
+    "leak": {
+      "simulationForm": true,
+      "badge": true
+    },
+    "tabOrder": [
+      "A:#/passenger/dashboard",
+      "A:#/passenger/dashboard",
+      "A:#/passenger/train",
+      "A:#/passenger/history",
+      "A:#/passenger/alerts",
+      "BUTTON:\u2197Sign out",
+      "A:#/passenger/train",
+      "A:#/passenger/history",
+      "A:#/passenger/alerts",
+      "A:#/passenger/train"
+    ]
+  },
+  {
+    "page": "dashboard",
+    "width": 768,
+    "landed": "/#/passenger/dashboard",
+    "title": "Welcome",
+    "hscroll": false,
+    "links": [
+      "#/passenger/alerts",
+      "#/passenger/history",
+      "#/passenger/train"
+    ],
+    "console": [],
+    "pageerrors": [],
+    "screenshot": "auth-dashboard-768.png"
+  },
+  {
+    "page": "train",
+    "width": 768,
+    "landed": "/#/passenger/train",
+    "title": "Track a train",
+    "hscroll": false,
+    "links": [],
+    "console": [],
+    "pageerrors": [],
+    "screenshot": "auth-train-768.png"
+  },
+  {
+    "page": "history",
+    "width": 768,
+    "landed": "/#/passenger/history",
+    "title": "Prediction history",
+    "hscroll": false,
+    "links": [],
+    "console": [],
+    "pageerrors": [],
+    "screenshot": "auth-history-768.png"
+  },
+  {
+    "page": "alerts",
+    "width": 768,
+    "landed": "/#/passenger/alerts",
+    "title": "Alert intelligence",
+    "hscroll": false,
+    "links": [],
+    "console": [],
+    "pageerrors": [],
+    "screenshot": "auth-alerts-768.png"
+  },
+  {
+    "page": "dashboard",
+    "width": 360,
+    "landed": "/#/passenger/dashboard",
+    "title": "Welcome",
+    "hscroll": false,
+    "links": [
+      "#/passenger/alerts",
+      "#/passenger/history",
+      "#/passenger/train"
+    ],
+    "console": [],
+    "pageerrors": [],
+    "screenshot": "auth-dashboard-360.png"
+  },
+  {
+    "page": "train",
+    "width": 360,
+    "landed": "/#/passenger/train",
+    "title": "Track a train",
+    "hscroll": false,
+    "links": [],
+    "console": [],
+    "pageerrors": [],
+    "screenshot": "auth-train-360.png"
+  },
+  {
+    "page": "history",
+    "width": 360,
+    "landed": "/#/passenger/history",
+    "title": "Prediction history",
+    "hscroll": false,
+    "links": [],
+    "console": [],
+    "pageerrors": [],
+    "screenshot": "auth-history-360.png"
+  },
+  {
+    "page": "alerts",
+    "width": 360,
+    "landed": "/#/passenger/alerts",
+    "title": "Alert intelligence",
+    "hscroll": false,
+    "links": [],
+    "console": [],
+    "pageerrors": [],
+    "screenshot": "auth-alerts-360.png"
+  }
+]

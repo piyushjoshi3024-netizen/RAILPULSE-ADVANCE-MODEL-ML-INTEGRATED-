@@ -1,19 +1,39 @@
-import { useEffect, useState } from "react";
-import { getTrains } from "../services/trainService";
-import { getTrainEvents } from "../services/trainEventService";
-import api from "../services/api";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+
+import { useAuth } from "../context/AuthContext";
 
 import {
-  MapContainer,
-  TileLayer,
-  CircleMarker,
-  Marker,
-  Popup,
-  Polyline,
-} from "react-leaflet";
+  useAlerts,
+  useCorridors,
+  useNetworkSummary,
+  useStations,
+  useTrainEvents,
+  useTrains,
+} from "../hooks";
+
+import Loading from "../components/state/Loading";
+import EmptyState from "../components/state/EmptyState";
+import ErrorState from "../components/state/ErrorState";
+
+// The markers, lines and popups moved to components/map, so both this map
+// and the Network Map page draw the same things the same way.
+import { MapContainer, TileLayer } from "react-leaflet";
 
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
+
+import TrainMarker from "../components/map/TrainMarker";
+import StationMarker from "../components/map/StationMarker";
+import CorridorLine from "../components/map/CorridorLine";
+import UnmappedTrains from "../components/map/UnmappedTrains";
+import { CRITICAL_DELAY_MINUTES, trainStatusFor } from "../components/map/mapStyle";
+import CountUp from "../components/ui/CountUp";
+import LastUpdated from "../components/ui/LastUpdated";
+import { ArrowRight, TriangleAlert } from "lucide-react";
+import Reveal from "../components/ui/Reveal";
+import { useFirstReveal } from "../components/ui/useFirstReveal";
+import { SkeletonStats } from "../components/ui/Skeleton";
 
 // --------------------------------------------------
 // LEAFLET ICON FIX
@@ -31,293 +51,191 @@ L.Icon.Default.mergeOptions({
 });
 
 // --------------------------------------------------
-// STATIONS
+// STATIONS AND CORRIDORS
 // --------------------------------------------------
+//
+// Both lists used to be written out here, and NetworkMap.jsx carried its own
+// slightly different copy of the same thing. They come from
+// GET /api/stations and GET /api/corridors now, which is static reference
+// data -- a station does not move while trains run -- so the hooks fetch it
+// once per mount and never poll it.
 
-const stations = [
-  {
-    name: "New Delhi",
-    code: "NDLS",
-    position: [28.6139, 77.209],
-  },
-  {
-    name: "Gurugram",
-    code: "GGN",
-    position: [28.4595, 77.0266],
-  },
-  {
-    name: "Rewari",
-    code: "RE",
-    position: [28.199, 76.619],
-  },
-  {
-    name: "Jaipur",
-    code: "JP",
-    position: [26.9124, 75.7873],
-  },
-  {
-    name: "Agra",
-    code: "AGC",
-    position: [27.1767, 78.0081],
-  },
-  {
-    name: "Kota",
-    code: "KOTA",
-    position: [25.2138, 75.8648],
-  },
-  {
-    name: "Bhopal",
-    code: "BPL",
-    position: [23.2599, 77.4126],
-  },
-  {
-    name: "Mumbai Central",
-    code: "MMCT",
-    position: [19.076, 72.8777],
-  },
-  {
-    name: "Surat",
-    code: "ST",
-    position: [21.1702, 72.8311],
-  },
-  {
-    name: "Kanpur",
-    code: "CNB",
-    position: [26.4499, 80.3319],
-  },
-  {
-    name: "Prayagraj",
-    code: "PRYJ",
-    position: [25.4358, 81.8463],
-  },
-  {
-    name: "Kolkata",
-    code: "HWH",
-    position: [22.5726, 88.3639],
-  },
-];
-
-
-// --------------------------------------------------
-// RAILWAY CORRIDORS
-// --------------------------------------------------
-
-const corridors = [
-  // Delhi -> Jaipur -> Mumbai
-  [
-    [28.6139, 77.209],
-    [28.4595, 77.0266],
-    [28.199, 76.619],
-    [26.9124, 75.7873],
-    [25.2138, 75.8648],
-    [23.2599, 77.4126],
-    [21.1702, 72.8311],
-    [19.076, 72.8777],
-  ],
-
-  // Delhi -> Agra -> Bhopal
-  [
-    [28.6139, 77.209],
-    [27.1767, 78.0081],
-    [25.2138, 75.8648],
-    [23.2599, 77.4126],
-  ],
-
-  // Delhi -> Kanpur -> Prayagraj -> Kolkata
-  [
-    [28.6139, 77.209],
-    [26.4499, 80.3319],
-    [25.4358, 81.8463],
-    [22.5726, 88.3639],
-  ],
-];
-
-// --------------------------------------------------
-// TRAIN ICON
-// --------------------------------------------------
-
-function createTrainIcon(status, selected = false) {
-  const color = status === "DELAYED" ? "#dc2626" : "#16a34a";
-
-  return L.divIcon({
-    className: "",
-    iconSize: [24, 24],
-    iconAnchor: [12, 12],
-
-    html: `
-      <div style="
-        width: ${selected ? "28px" : "22px"};
-        height: ${selected ? "28px" : "22px"};
-        border-radius: 50%;
-        background: ${color};
-        border: ${selected ? "4px" : "3px"} solid white;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.35);
-        display:flex;
-        align-items:center;
-        justify-content:center;
-      ">
-        <div style="
-          width:7px;
-          height:7px;
-          background:white;
-          border-radius:50%;
-        "></div>
-      </div>
-    `,
-  });
-}
 
 // --------------------------------------------------
 // DASHBOARD
 // --------------------------------------------------
 
 function Dashboard() {
-  const [trains, setTrains] = useState([]);
-  const [selectedTrain, setSelectedTrain] = useState(null);
-  const [networkData, setNetworkData] = useState(null);
-  const [alertsData, setAlertsData] = useState([]);
+  const navigate = useNavigate();
+  const { user } = useAuth();
 
-  useEffect(() => {
-    const loadTrainData = async () => {
-      try {
+  // One hook per resource. Trains, events, the network summary and alerts
+  // poll every fifteen seconds and pause while the tab is hidden; stations
+  // and corridors are static and are fetched once.
+  const trainsResource = useTrains();
+  const eventsResource = useTrainEvents();
+  const networkResource = useNetworkSummary();
+  const alertsResource = useAlerts();
+  const stationsResource = useStations();
+  // The station list is handed to useCorridors so /api/stations is fetched
+  // once for this page rather than once per hook that needs it.
+  const corridorsResource = useCorridors(stationsResource);
 
-        const [
-          trainsResponse,
-          eventsResponse,
-          networkResponse,
-          alertsResponse,
-        ] = await Promise.all([
-          getTrains(),
-          getTrainEvents(),
-          api.get("/operations/network"),
-          api.get("/alerts"),
-        ]);
+  // UI-2: the entrance runs once, on the first answer, and is switched off
+  // before the 15-second poll comes round. `!loading` rather than
+  // `length > 0` so a genuinely empty alert list still settles rather than
+  // waiting for data that is never coming.
+  const statsRevealed = useFirstReveal(!networkResource.loading);
+  const alertsRevealed = useFirstReveal(!alertsResource.loading);
 
-        const backendTrains = trainsResponse.data;
-        const backendEvents = eventsResponse.data;
-        setAlertsData(alertsResponse.data);
+  // The selection is held as a train number rather than a train object. The
+  // old version stored the object and then ran an effect to re-point it at the
+  // new object after every poll, which meant one extra render per poll and a
+  // stale panel if that effect ever missed. Deriving it cannot go stale.
+  const [selectedNumber, setSelectedNumber] = useState(null);
 
-        setNetworkData(networkResponse.data);
+  const { latestByTrain } = eventsResource;
+  const { byName, positionOf } = stationsResource;
 
-        const latestEvents = new Map();
+  // The map shape the page renders. Cheap enough for a network's worth of
+  // trains that memoising it would only hide where the work happens.
+  const trains = trainsResource.trains.map((train) => {
+    const event = latestByTrain.get(String(train._id));
 
-        backendEvents.forEach((event) => {
-          const trainId = String(event.trainId);
+    const currentStation =
+      event?.station ||
+      train.currentStation ||
+      train.source;
 
-          if (!latestEvents.has(trainId)) {
-            latestEvents.set(trainId, event);
-          }
-        });
-
-        const mapTrains = backendTrains.map((train) => {
-          const event = latestEvents.get(String(train._id));
-
-          const currentStation =
-            event?.station ||
-            train.currentStation ||
-            train.source;
-
-          const station = stations.find(
-            (item) => item.name === currentStation
-          );
-
-          return {
-            number: train.trainNumber,
-            name: train.trainName,
-            type: train.trainType || "UNKNOWN",
-            status:
-              event?.delayMinutes > 0
-                ? "DELAYED"
-                : "RUNNING",
-            speed: event?.speed || 0,
-            delay: event?.delayMinutes || 0,
-            currentStation,
-            destination: train.destination,
-            position: station?.position || [28.6139, 77.209],
-          };
-        });
-
-        setTrains(mapTrains);
-
-        if (mapTrains.length > 0) {
-          setSelectedTrain(mapTrains[0]);
-        }
-      } catch (error) {
-        console.error("Failed to load dashboard train data:", error);
-      } 
+    return {
+      number: train.trainNumber,
+      name: train.trainName,
+      type: train.trainType || "UNKNOWN",
+      status: event?.delayMinutes > 0 ? "DELAYED" : "RUNNING",
+      // null rather than 0 where the event carried no reading: "standing at
+      // a platform" and "we were not told" are different facts.
+      speed: typeof event?.speed === "number" ? event.speed : null,
+      delay: event?.delayMinutes || 0,
+      currentStation,
+      stationCode: byName.get(currentStation)?.code || null,
+      destination: train.destination,
+      // null, not a default point. This used to fall back to New Delhi for
+      // any station it could not find, which put real trains at a coordinate
+      // nobody had claimed they were at.
+      position: positionOf(byName.get(currentStation)),
     };
+  });
 
-    loadTrainData();
-  }, []);
+  const mappableTrains = trains.filter((train) => train.position);
+  const unmappedTrains = trains.filter((train) => !train.position);
+  const unmappedCount = unmappedTrains.length;
 
-  // ------------------------------------------------
-  // SMALL LIVE MOVEMENT
-  // ------------------------------------------------
+  // The same two joins the Network Map page makes, so the Dashboard's map
+  // and that one cannot tell different stories about the same data.
+  const trainsByStation = new Map();
+  mappableTrains.forEach((train) => {
+    if (!train.stationCode) return;
+    trainsByStation.set(train.stationCode, [
+      ...(trainsByStation.get(train.stationCode) || []),
+      train,
+    ]);
+  });
 
-
-
-  // ------------------------------------------------
-  // KEEP SELECTED TRAIN UPDATED
-  // ------------------------------------------------
-
-  useEffect(() => {
-    const updated = trains.find(
-      (train) => train.number === selectedTrain?.number
+  const trainsByCorridor = new Map();
+  corridorsResource.corridors.forEach((corridor) => {
+    const codes = new Set(corridor.stations || []);
+    trainsByCorridor.set(
+      corridor.corridorId,
+      mappableTrains.filter((train) => train.stationCode && codes.has(train.stationCode))
     );
+  });
 
-    if (updated) {
-      setSelectedTrain(updated);
-    }
-  }, [trains]);
+  const selectedTrain =
+    trains.find((train) => train.number === selectedNumber) ||
+    trains[0] ||
+    null;
+
+  // The map cannot be drawn without trains, their events and the station
+  // coordinates. The alerts panel and the stat cards report their own states.
+  const mapLoading =
+    trainsResource.loading || eventsResource.loading || stationsResource.loading;
+
+  const mapError =
+    trainsResource.error ||
+    eventsResource.error ||
+    stationsResource.error ||
+    corridorsResource.error;
+
+  const retryMap = () => {
+    trainsResource.refetch();
+    eventsResource.refetch();
+    stationsResource.refetch();
+    corridorsResource.refetch();
+  };
 
   return (
     <div className="space-y-8">
 
-      {/* -------------------------------------------
-          PAGE HEADING
-      -------------------------------------------- */}
-
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900">
-          Dashboard
-        </h1>
-
-        <p className="mt-2 text-slate-500">
-          Overview of the railway network and current operations.
-        </p>
-      </div>
+      <DashboardHero
+        user={user}
+        summary={networkResource.summary}
+        networkStatus={networkResource.networkStatus}
+        alertsCount={alertsResource.alerts.length}
+        loading={networkResource.loading}
+        error={Boolean(networkResource.error)}
+        updatedAt={networkResource.updatedAt}
+        onRefresh={retryMap}
+        refreshing={networkResource.loading}
+        onViewAlerts={() => navigate("/alerts")}
+        onViewMap={() => navigate("/map")}
+      />
 
       {/* -------------------------------------------
           STATS
       -------------------------------------------- */}
 
-      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+      {/* The first load gets skeletons shaped like the cards, not a bare
+          spinner, so the four figures land in the space already reserved
+          for them instead of pushing the map down the page. */}
+      {networkResource.loading && alertsResource.loading ? (
+        <SkeletonStats count={4} />
+      ) : (
+        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
 
-        <StatCard
-          title="Active Trains"
-          value={networkData?.summary?.activeTrains ?? "--"}
-          description="Currently operating"
-        />
+          <StatCard
+            index={0}
+            revealed={statsRevealed}
+            title="Active Trains"
+            value={networkResource.loading ? null : networkResource.summary.activeTrains}
+            description={networkResource.error ? "Summary unavailable" : "Currently operating"}
+          />
 
-        <StatCard
-          title="Delayed Trains"
-          value={networkData?.summary?.delayedTrains ?? "--"}
-          description="Need attention"
-        />
+          <StatCard
+            index={1}
+            revealed={statsRevealed}
+            title="Delayed Trains"
+            value={networkResource.loading ? null : networkResource.summary.delayedTrains}
+            description={networkResource.error ? "Summary unavailable" : "Need attention"}
+          />
 
-        <StatCard
-          title="Network Status"
-          value={networkData?.networkStatus ?? "--"}
-          description="Current network condition"
-        />
+          <StatCard
+            index={2}
+            revealed={statsRevealed}
+            title="Network Status"
+            value={networkResource.loading ? null : networkResource.networkStatus}
+            description={networkResource.error ? "Summary unavailable" : "Current network condition"}
+          />
 
-        <StatCard
-          title="Active Alerts"
-          value={alertsData.length}
-          description="Requires monitoring"
-        />
+          <StatCard
+            index={3}
+            revealed={statsRevealed}
+            title="Active Alerts"
+            value={alertsResource.loading ? null : alertsResource.alerts.length}
+            description={alertsResource.error ? "Alerts unavailable" : "Requires monitoring"}
+          />
 
-      </div>
+        </div>
+      )}
 
       {/* -------------------------------------------
           NETWORK + ALERTS
@@ -343,7 +261,11 @@ function Dashboard() {
               </p>
             </div>
 
-            <button className="rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600">
+            <button
+              type="button"
+              onClick={() => navigate("/map")}
+              className="rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600"
+            >
               View Map
             </button>
 
@@ -359,11 +281,31 @@ function Dashboard() {
 
             <div className="h-[360px] overflow-hidden rounded-xl">
 
+              {mapLoading ? (
+
+                <Loading label="Loading the network map..." className="py-28" />
+
+              ) : mapError ? (
+
+                <ErrorState
+                  message={mapError}
+                  hint="The map needs trains, their latest events and the station list. Check that the API is running."
+                  onRetry={retryMap}
+                  className="py-24"
+                />
+
+              ) : (
+
               <MapContainer
                 center={[23.5, 78.9]}
                 zoom={5}
-                scrollWheelZoom={true}
-                className=" w-full h-[390px] rounded-xl"
+                // Off, unlike the Network Map page: this map is a panel in a
+                // scrolling page, and a wheel over it should scroll the page
+                // rather than zoom the map out from under the cursor.
+                scrollWheelZoom={false}
+                touchZoom
+                tap
+                className="rp-map w-full h-[300px] sm:h-[390px] rounded-xl"
               >
 
                 <TileLayer
@@ -375,15 +317,11 @@ function Dashboard() {
                     RAILWAY CORRIDORS
                 ---------------------------------- */}
 
-                {corridors.map((corridor, index) => (
-                  <Polyline
-                    key={index}
-                    positions={corridor}
-                    pathOptions={{
-                      color: "#f97316",
-                      weight: 4,
-                      opacity: 0.8,
-                    }}
+                {corridorsResource.corridors.map((corridor) => (
+                  <CorridorLine
+                    key={corridor.corridorId}
+                    corridor={corridor}
+                    trains={trainsByCorridor.get(corridor.corridorId) || []}
                   />
                 ))}
 
@@ -391,111 +329,31 @@ function Dashboard() {
                     STATIONS
                 ---------------------------------- */}
 
-                {stations.map((station) => (
-                  <CircleMarker
+                {stationsResource.stations.map((station) => (
+                  <StationMarker
                     key={station.code}
-                    center={station.position}
-                    radius={4}
-                    pathOptions={{
-                      color: "#1e293b",
-                      fillColor: "#ffffff",
-                      fillOpacity: 1,
-                      weight: 2,
-                    }}
-                  >
-                    <Popup>
-
-                      <div className="min-w-[150px]">
-
-                        <p className="font-bold text-slate-900">
-                          {station.name}
-                        </p>
-
-                        <p className="text-xs text-slate-500">
-                          Station Code: {station.code}
-                        </p>
-
-                        <div className="mt-2 border-t pt-2 text-xs">
-                          Railway Network Station
-                        </div>
-
-                      </div>
-
-                    </Popup>
-
-                  </CircleMarker>
+                    station={station}
+                    trains={trainsByStation.get(station.code) || []}
+                    onSelectTrain={setSelectedNumber}
+                  />
                 ))}
 
                 {/* ---------------------------------
                     TRAINS
                 ---------------------------------- */}
 
-                {trains.map((train) => (
-
-                  <Marker
+                {mappableTrains.map((train) => (
+                  <TrainMarker
                     key={train.number}
-                    position={train.position}
-                    icon={createTrainIcon(
-                      train.status,
-                      selectedTrain?.number === train.number
-                    )}
-                    eventHandlers={{
-                      click: () => setSelectedTrain(train),
-                    }}
-                  >
-
-                    <Popup>
-
-                      <div className="min-w-[190px]">
-
-                        <p className="font-bold text-slate-900">
-                          {train.name}
-                        </p>
-
-                        <p className="text-xs text-slate-500">
-                          Train {train.number}
-                        </p>
-
-                        <div className="mt-2 space-y-1 text-sm">
-
-                          <p>
-                            <b>Status:</b>{" "}
-                            <span
-                              className={
-                                train.status === "DELAYED"
-                                  ? "text-red-600"
-                                  : "text-green-600"
-                              }
-                            >
-                              {train.status}
-                            </span>
-                          </p>
-
-                          <p>
-                            <b>Speed:</b> {train.speed} km/h
-                          </p>
-
-                          <p>
-                            <b>Current:</b>{" "}
-                            {train.currentStation}
-                          </p>
-
-                          <p>
-                            <b>Destination:</b>{" "}
-                            {train.destination}
-                          </p>
-
-                        </div>
-
-                      </div>
-
-                    </Popup>
-
-                  </Marker>
-
+                    train={train}
+                    selected={selectedTrain?.number === train.number}
+                    onSelect={setSelectedNumber}
+                  />
                 ))}
 
               </MapContainer>
+
+              )}
 
             </div>
 
@@ -513,13 +371,19 @@ function Dashboard() {
                     Live Network
                   </h3>
 
-                  <span className="flex items-center gap-1 text-xs font-medium text-green-600">
+                  {/* This said "LIVE" with a green dot whenever a train was
+                      selected. Nothing here is a live feed: it is a
+                      fifteen-second poll, so it reports when the data was last
+                      read instead of claiming a stream. */}
+                  {trainsResource.updatedAt && (
+                    <span className="flex items-center gap-1 text-xs font-medium text-slate-500">
 
-                    <span className="h-2 w-2 rounded-full bg-green-500"></span>
+                      <span className="h-2 w-2 rounded-full bg-green-500"></span>
 
-                    LIVE
+                      {trainsResource.updatedAt.toLocaleTimeString()}
 
-                  </span>
+                    </span>
+                  )}
 
                 </div>
 
@@ -530,6 +394,29 @@ function Dashboard() {
               </div>
 
               {/* SELECTED TRAIN */}
+
+              {trainsResource.loading ? (
+
+                <Loading label="Loading trains..." className="py-8" />
+
+              ) : trainsResource.error ? (
+
+                <ErrorState
+                  message={trainsResource.error}
+                  onRetry={trainsResource.refetch}
+                  className="py-8"
+                />
+
+              ) : !selectedTrain ? (
+
+                <EmptyState
+                  title="No trains to show"
+                  hint="No train has been recorded in this environment yet."
+                  icon="\u2014"
+                  className="rounded-xl border border-dashed border-slate-300 bg-white p-4"
+                />
+
+              ) : (
 
               <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
 
@@ -590,6 +477,8 @@ function Dashboard() {
 
               </div>
 
+              )}
+
               {/* NETWORK SUMMARY */}
 
               <div className="mt-3 grid grid-cols-2 gap-2">
@@ -628,7 +517,7 @@ function Dashboard() {
 
                     <button
                       key={train.number}
-                      onClick={() => setSelectedTrain(train)}
+                      onClick={() => setSelectedNumber(train.number)}
                       className={`flex w-full items-center justify-between rounded-lg px-2 py-2 text-left transition ${selectedTrain?.number === train.number
                         ? "bg-orange-100"
                         : "hover:bg-white"
@@ -650,7 +539,7 @@ function Dashboard() {
 
                       </div>
 
-                      <span className="text-[10px] text-slate-400">
+                      <span className="text-[10px] text-slate-500">
                         {train.speed} km/h
                       </span>
 
@@ -668,27 +557,32 @@ function Dashboard() {
 
           {/* MAP LEGEND */}
 
-          <div className="mt-3 flex flex-wrap gap-4 text-xs text-slate-500">
+          <div className="mt-3 space-y-2">
 
-            <Legend
-              type="green"
-              text="Running Train"
-            />
+            {/* The same three delay bands the Network Map uses, each naming
+                the range it stands for. The old legend had two -- "Running"
+                and "Delayed" -- and neither said what the colour meant in
+                minutes. */}
+            <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-slate-700">
 
-            <Legend
-              type="red"
-              text="Delayed Train"
-            />
+              {[
+                trainStatusFor(0),
+                trainStatusFor(1),
+                trainStatusFor(CRITICAL_DELAY_MINUTES),
+              ].map((band) => (
+                <Legend key={band.key} color={band.color} text={band.legend} />
+              ))}
 
-            <Legend
-              type="orange"
-              text="Railway Corridor"
-            />
+              <Legend color="#fb923c" text="Railway corridor" shape="line" />
+              <Legend text="Station" shape="station" />
 
-            <Legend
-              type="station"
-              text="Station"
-            />
+            </div>
+
+            {unmappedCount > 0 && (
+              <div className="max-w-md">
+                <UnmappedTrains trains={unmappedTrains} />
+              </div>
+            )}
 
           </div>
 
@@ -706,13 +600,39 @@ function Dashboard() {
 
           <div className="mt-5 space-y-4">
 
-            {alertsData.slice(0, 3).map((alert) => (
-              <AlertItem
-                key={alert._id}
-                title={alert.message}
-                time={new Date(alert.createdAt).toLocaleTimeString()}
+            {alertsResource.loading ? (
+
+              <Loading label="Loading alerts..." className="py-6" />
+
+            ) : alertsResource.error ? (
+
+              <ErrorState
+                message={alertsResource.error}
+                onRetry={alertsResource.refetch}
+                className="py-6"
               />
-            ))}
+
+            ) : alertsResource.alerts.length === 0 ? (
+
+              <p className="text-sm text-slate-500">
+                No alerts have been recorded.
+              </p>
+
+            ) : (
+              alertsResource.alerts.slice(0, 3).map((alert, alertIndex) => (
+                <AlertItem
+                  key={alert._id}
+                  index={alertIndex}
+                  revealed={alertsRevealed}
+                  title={alert.message}
+                  time={
+                    alert.createdAt
+                      ? new Date(alert.createdAt).toLocaleTimeString()
+                      : "Unknown"
+                  }
+                />
+              ))
+            )}
 
           </div>
         </div>
@@ -727,27 +647,136 @@ function Dashboard() {
 // STAT CARD
 // --------------------------------------------------
 
+// --------------------------------------------------
+// DASHBOARD HERO  (Phase UI-5)
+//
+// A landing band for the one page a user opens on. It fetches nothing of
+// its own -- the greeting is from the auth context the app already holds,
+// and every figure is the same `networkResource` / `alertsResource` the
+// stat cards below it read. The orange wash is `.rp-hero` in index.css, so
+// it has one definition and a dark-mode counterpart in one place. The whole
+// band is `rp-fade`, which is disabled under prefers-reduced-motion.
+// --------------------------------------------------
+
+function timeGreeting(date = new Date()) {
+  const hour = date.getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
+}
+
+function DashboardHero({
+  user,
+  summary,
+  networkStatus,
+  alertsCount,
+  loading,
+  error,
+  updatedAt,
+  onRefresh,
+  refreshing,
+  onViewAlerts,
+  onViewMap,
+}) {
+  const name = user?.full_name || user?.username || "there";
+  const active = summary?.activeTrains ?? 0;
+  const delayed = summary?.delayedTrains ?? 0;
+
+  return (
+    <section className="rp-hero rp-fade relative overflow-hidden rounded-2xl border p-6 shadow-sm sm:p-8">
+      {/* Decoration only; never announced. */}
+      <span className="rp-hero-glow pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full" aria-hidden="true" />
+
+      <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-wider text-orange-600">
+            Dashboard
+          </p>
+
+          <h1 className="mt-1 text-2xl font-bold text-slate-900 sm:text-3xl">
+            {timeGreeting()}, {name}
+          </h1>
+
+          {/* One honest sentence, from the live figures. "Loading" and a
+              failed summary are distinct -- a dash is not a zero. */}
+          <p className="mt-2 max-w-2xl text-sm text-slate-600">
+            {loading ? (
+              "Loading the latest network figures..."
+            ) : error ? (
+              "The network summary is unavailable right now. The figures below say which parts loaded."
+            ) : (
+              <>
+                Network status is{" "}
+                <span className="font-semibold text-slate-900">{networkStatus}</span>.{" "}
+                <span className="font-semibold text-slate-900">{active}</span> active,{" "}
+                <span className="font-semibold text-slate-900">{delayed}</span> delayed,{" "}
+                <span className="font-semibold text-slate-900">{alertsCount}</span>{" "}
+                {alertsCount === 1 ? "alert" : "alerts"} open.
+              </>
+            )}
+          </p>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={onViewMap}
+              className="rp-press inline-flex items-center gap-1.5 rounded-lg bg-orange-500 px-3.5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2"
+            >
+              Open the map
+              <ArrowRight size={15} aria-hidden="true" />
+            </button>
+
+            {alertsCount > 0 ? (
+              <button
+                type="button"
+                onClick={onViewAlerts}
+                className="rp-press inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:border-orange-400 hover:text-orange-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2"
+              >
+                <TriangleAlert size={15} aria-hidden="true" />
+                Review {alertsCount} {alertsCount === 1 ? "alert" : "alerts"}
+              </button>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="shrink-0">
+          <LastUpdated updatedAt={updatedAt} onRefresh={onRefresh} loading={refreshing} />
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function StatCard({
   title,
   value,
   description,
+  index = 0,
+  revealed = false,
 }) {
+  // Only a number counts up. "HIGH" is a network status, and a string has
+  // nothing to count from; `null` means the figure has not arrived, which
+  // renders as "--" rather than as a zero that would read as a real count.
+  const isNumber = typeof value === "number" && Number.isFinite(value);
+
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <Reveal index={index} active={revealed}>
+      <div className="h-full rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
 
-      <p className="text-sm font-medium text-slate-500">
-        {title}
-      </p>
+        <p className="text-sm font-medium text-slate-600">
+          {title}
+        </p>
 
-      <p className="mt-3 text-3xl font-bold text-slate-900">
-        {value}
-      </p>
+        <p className="mt-3 text-3xl font-bold text-slate-900">
+          {isNumber ? <CountUp value={value} /> : value ?? "--"}
+        </p>
 
-      <p className="mt-2 text-sm text-slate-400">
-        {description}
-      </p>
+        <p className="mt-2 text-sm text-slate-500">
+          {description}
+        </p>
 
-    </div>
+      </div>
+    </Reveal>
   );
 }
 
@@ -758,9 +787,11 @@ function StatCard({
 function AlertItem({
   title,
   time,
+  index = 0,
+  revealed = false,
 }) {
   return (
-    <div className="flex gap-3 rounded-xl bg-orange-50 p-3">
+    <Reveal index={index} active={revealed} className="flex gap-3 rounded-xl bg-orange-50 p-3">
 
       <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-orange-500" />
 
@@ -770,13 +801,13 @@ function AlertItem({
           {title}
         </p>
 
-        <p className="mt-1 text-xs text-slate-400">
+        <p className="mt-1 text-xs text-slate-600">
           {time}
         </p>
 
       </div>
 
-    </div>
+    </Reveal>
   );
 }
 
@@ -792,7 +823,7 @@ function DetailRow({
   return (
     <div className="flex items-center justify-between text-xs">
 
-      <span className="text-slate-400">
+      <span className="text-slate-500">
         {label}
       </span>
 
@@ -824,7 +855,7 @@ function MiniStat({
         {value}
       </p>
 
-      <p className="text-[10px] text-slate-400">
+      <p className="text-[10px] text-slate-500">
         {label}
       </p>
 
@@ -836,27 +867,31 @@ function MiniStat({
 // LEGEND
 // --------------------------------------------------
 
-function Legend({
-  type,
-  text,
-}) {
+
+function Legend({ color = null, text, shape = "dot" }) {
   let visual;
 
-  if (type === "orange") {
+  if (shape === "line") {
     visual = (
-      <span className="h-[3px] w-5 rounded bg-orange-500" />
+      <span
+        className="h-[3px] w-5 shrink-0 rounded"
+        style={{ background: color }}
+        aria-hidden="true"
+      />
     );
-  } else if (type === "station") {
+  } else if (shape === "station") {
     visual = (
-      <span className="h-3 w-3 rounded-full border-2 border-slate-700 bg-white" />
+      <span
+        className="h-3 w-3 shrink-0 rounded-full border-2 border-slate-700 bg-white"
+        aria-hidden="true"
+      />
     );
   } else {
     visual = (
       <span
-        className={`h-3 w-3 rounded-full ${type === "red"
-          ? "bg-red-500"
-          : "bg-green-500"
-          }`}
+        className="h-3 w-3 shrink-0 rounded-full border-2 border-white shadow"
+        style={{ background: color }}
+        aria-hidden="true"
       />
     );
   }

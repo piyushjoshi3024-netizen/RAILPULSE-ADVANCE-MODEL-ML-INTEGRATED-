@@ -1,0 +1,301 @@
+[
+  {
+    "page": "react-root",
+    "width": 360,
+    "requested": "http://localhost:5173/",
+    "landed": "http://localhost:5173/",
+    "hscroll": false,
+    "scrollWidth": 360,
+    "clientWidth": 360,
+    "heading": "RailPulse",
+    "console": [],
+    "pageerrors": [],
+    "links": [
+      "/login",
+      "/register/staff"
+    ],
+    "screenshot": "react-root-360.png"
+  },
+  {
+    "page": "react-root",
+    "width": 768,
+    "requested": "http://localhost:5173/",
+    "landed": "http://localhost:5173/",
+    "hscroll": false,
+    "scrollWidth": 768,
+    "clientWidth": 768,
+    "heading": "RailPulse",
+    "console": [],
+    "pageerrors": [],
+    "links": [
+      "/login",
+      "/register/staff"
+    ],
+    "screenshot": "react-root-768.png"
+  },
+  {
+    "page": "react-root",
+    "width": 1280,
+    "requested": "http://localhost:5173/",
+    "landed": "http://localhost:5173/",
+    "hscroll": false,
+    "scrollWidth": 1280,
+    "clientWidth": 1280,
+    "heading": "RailPulse",
+    "console": [],
+    "pageerrors": [],
+    "links": [
+      "/login",
+      "/register/staff"
+    ],
+    "screenshot": "react-root-1280.png"
+  },
+  {
+    "page": "react-login",
+    "width": 360,
+    "requested": "http://localhost:5173/login",
+    "landed": "http://localhost:5173/login",
+    "hscroll": false,
+    "scrollWidth": 360,
+    "clientWidth": 360,
+    "heading": "RailPulse",
+    "console": [],
+    "pageerrors": [],
+    "links": [],
+    "screenshot": "react-login-360.png"
+  },
+  {
+    "page": "react-login",
+    "width": 768,
+    "requested": "http://localhost:5173/login",
+    "landed": "http://localhost:5173/login",
+    "hscroll": false,
+    "scrollWidth": 768,
+    "clientWidth": 768,
+    "heading": "RailPulse",
+    "console": [],
+    "pageerrors": [],
+    "links": [],
+    "screenshot": "react-login-768.png"
+  },
+  {
+    "page": "react-login",
+    "width": 1280,
+    "requested": "http://localhost:5173/login",
+    "landed": "http://localhost:5173/login",
+    "hscroll": false,
+    "scrollWidth": 1280,
+    "clientWidth": 1280,
+    "heading": "RailPulse",
+    "console": [],
+    "pageerrors": [],
+    "links": [],
+    "screenshot": "react-login-1280.png"
+  },
+  {
+    "page": "react-staff-reg",
+    "width": 1280,
+    "requested": "http://localhost:5173/register/staff",
+    "landed": "http://localhost:5173/register/staff",
+    "hscroll": false,
+    "scrollWidth": 1280,
+    "clientWidth": 1280,
+    "heading": "RailPulse",
+    "console": [],
+    "pageerrors": [],
+    "links": [
+      "/login",
+      "/register"
+    ],
+    "screenshot": "react-staff-reg-1280.png"
+  },
+  {
+    "page": "react-staff-otp",
+    "width": 1280,
+    "requested": "http://localhost:5173/staff/verify-otp",
+    "landed": "http://localhost:5173/staff/verify-otp",
+    "hscroll": false,
+    "scrollWidth": 1280,
+    "clientWidth": 1280,
+    "heading": "Verify Staff Account",
+    "console": [],
+    "pageerrors": [],
+    "links": [],
+    "screenshot": "react-staff-otp-1280.png"
+  },
+  {
+    "page": "react-dashboard",
+    "width": 1280,
+    "requested": "http://localhost:5173/dashboard",
+    "landed": "http://localhost:5173/login",
+    "hscroll": false,
+    "scrollWidth": 1280,
+    "clientWidth": 1280,
+    "heading": "RailPulse",
+    "console": [],
+    "pageerrors": [],
+    "links": [],
+    "screenshot": "react-dashboard-1280.png"
+  },
+  {
+    "page": "react-operations",
+    "width": 1280,
+    "requested": "http://localhost:5173/operations",
+    "landed": "http://localhost:5173/login",
+    "hscroll": false,
+    "scrollWidth": 1280,
+    "clientWidth": 1280,
+    "heading": "RailPulse",
+    "console": [],
+    "pageerrors": [],
+    "links": [],
+    "screenshot": "react-operations-1280.png"
+  },
+  {
+    "page": "ml-landing",
+    "width": 360,
+    "requested": "http://localhost:3000/#/",
+    "landed": "http://localhost:3000/#/",
+    "hscroll": false,
+    "scrollWidth": 360,
+    "clientWidth": 360,
+    "heading": "Know where the journey is going.",
+    "console": [],
+    "pageerrors": [],
+    "links": [
+      "#/login/admin",
+      "#/login/staff",
+      "#/login/user"
+    ],
+    "screenshot": "ml-landing-360.png"
+  },
+  {
+    "page": "ml-landing",
+    "width": 768,
+    "requested": "http://localhost:3000/#/",
+    "landed": "http://localhost:3000/#/",
+    "hscroll": false,
+    "scrollWidth": 768,
+    "clientWidth": 768,
+    "heading": "Know where the journey is going.",
+    "console": [],
+    "pageerrors": [],
+    "links": [
+      "#/login/admin",
+      "#/login/staff",
+      "#/login/user"
+    ],
+    "screenshot": "ml-landing-768.png"
+  },
+  {
+    "page": "ml-landing",
+    "width": 1280,
+    "requested": "http://localhost:3000/#/",
+    "landed": "http://localhost:3000/#/",
+    "hscroll": false,
+    "scrollWidth": 1280,
+    "clientWidth": 1280,
+    "heading": "Know where the journey is going.",
+    "console": [],
+    "pageerrors": [],
+    "links": [
+      "#/login/admin",
+      "#/login/staff",
+      "#/login/user"
+    ],
+    "screenshot": "ml-landing-1280.png"
+  },
+  {
+    "page": "ml-login-user",
+    "width": 360,
+    "requested": "http://localhost:3000/#/login/user",
+    "landed": "http://localhost:3000/#/login/user",
+    "hscroll": false,
+    "scrollWidth": 360,
+    "clientWidth": 360,
+    "heading": "Your journey, with a better ETA.",
+    "console": [],
+    "pageerrors": [],
+    "links": [
+      "#/",
+      "#/login/admin",
+      "#/login/staff",
+      "#/register"
+    ],
+    "screenshot": "ml-login-user-360.png"
+  },
+  {
+    "page": "ml-login-user",
+    "width": 768,
+    "requested": "http://localhost:3000/#/login/user",
+    "landed": "http://localhost:3000/#/login/user",
+    "hscroll": false,
+    "scrollWidth": 768,
+    "clientWidth": 768,
+    "heading": "Your journey, with a better ETA.",
+    "console": [],
+    "pageerrors": [],
+    "links": [
+      "#/",
+      "#/login/admin",
+      "#/login/staff",
+      "#/register"
+    ],
+    "screenshot": "ml-login-user-768.png"
+  },
+  {
+    "page": "ml-login-user",
+    "width": 1280,
+    "requested": "http://localhost:3000/#/login/user",
+    "landed": "http://localhost:3000/#/login/user",
+    "hscroll": false,
+    "scrollWidth": 1280,
+    "clientWidth": 1280,
+    "heading": "Your journey, with a better ETA.",
+    "console": [],
+    "pageerrors": [],
+    "links": [
+      "#/",
+      "#/login/admin",
+      "#/login/staff",
+      "#/register"
+    ],
+    "screenshot": "ml-login-user-1280.png"
+  },
+  {
+    "page": "ml-register",
+    "width": 1280,
+    "requested": "http://localhost:3000/#/register",
+    "landed": "http://localhost:3000/#/register",
+    "hscroll": false,
+    "scrollWidth": 1280,
+    "clientWidth": 1280,
+    "heading": "A clearer journey starts here.",
+    "console": [],
+    "pageerrors": [],
+    "links": [
+      "#/",
+      "#/login/user"
+    ],
+    "screenshot": "ml-register-1280.png"
+  },
+  {
+    "page": "ml-passenger-dash",
+    "width": 1280,
+    "requested": "http://localhost:3000/#/passenger/dashboard",
+    "landed": "http://localhost:3000/#/login/user",
+    "hscroll": false,
+    "scrollWidth": 1280,
+    "clientWidth": 1280,
+    "heading": "Your journey, with a better ETA.",
+    "console": [],
+    "pageerrors": [],
+    "links": [
+      "#/",
+      "#/login/admin",
+      "#/login/staff",
+      "#/register"
+    ],
+    "screenshot": "ml-passenger-dash-1280.png"
+  }
+]

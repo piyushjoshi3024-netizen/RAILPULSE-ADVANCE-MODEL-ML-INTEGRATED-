@@ -11,7 +11,365 @@ body,
   margin: 0;
 }
 
+/* The app paints `bg-slate-50` over this in MainLayout. Before UI-2 this was
+   #020617 with white text, left over from the Vite template, which flashed
+   near-black on first paint and showed through overscroll on a light UI. */
 body {
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+/* =========================================================================
+   MOTION  (Phase UI-2)
+
+   Every animation in the app is defined here so there is one place to read
+   and one place to switch off. Durations stay short -- 180-220ms -- because
+   this is an operations console and a train that is 18 minutes late should
+   not wait on a flourish.
+
+   Nothing here animates `width`, `height`, `top` or `left`; only `opacity`
+   and `transform`, which the compositor can run without re-laying out the
+   page. That is what keeps the 15-second poll from stuttering.
+   ========================================================================= */
+
+@keyframes rp-page-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes rp-reveal-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes rp-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes rp-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes rp-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+/* Route change. Applied to the <main> wrapper, keyed on the pathname, so it
+   runs once per navigation and never on a data refresh. */
+/* `backwards`, not `both`.
+   `both` keeps the final keyframe applied after the animation ends, and
+   that final keyframe sets `transform: none` -- which computes to an
+   identity matrix, not to nothing. An element with any transform, identity
+   included, becomes the containing block for its `position: fixed`
+   descendants. With `both` here, the Network Map's fullscreen panel
+   measured 768x688 inside `<main>` instead of covering the 1024x768
+   viewport, and every future modal or overlay would have done the same.
+   `backwards` fills only *before* the animation runs, so afterwards the
+   element returns to its own styles and has no transform at all. */
+.rp-page {
+  animation: rp-page-in 200ms ease-out backwards;
+}
+
+/* A card or row arriving for the first time. `--rp-i` is the item's index;
+   the stagger is capped at 10 so a 60-row table does not take 2.4s to
+   appear. The component that renders this only sets the class on first
+   load -- a poll re-render reuses the same element with no class, so
+   nothing re-triggers and nothing flickers. */
+.rp-reveal {
+  animation: rp-reveal-in 220ms ease-out backwards;
+  animation-delay: calc(min(var(--rp-i, 0), 10) * 40ms);
+}
+
+.rp-fade {
+  animation: rp-fade-in 180ms ease-out backwards;
+}
+
+.rp-toast {
+  animation: rp-toast-in 200ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+/* Skeleton placeholder. The sweep is a moving background, not a transform,
+   so it cannot shift the layout it is standing in for. */
+.rp-skeleton {
+  background-color: #e2e8f0;
+  background-image: linear-gradient(
+    90deg,
+    rgba(226, 232, 240, 0) 0%,
+    rgba(255, 255, 255, 0.75) 50%,
+    rgba(226, 232, 240, 0) 100%
+  );
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  animation: rp-shimmer 1.4s linear infinite;
+}
+
+/* Press feedback. Kept as a class rather than a Tailwind `active:` variant
+   because it has to be switched off for reduced motion below. */
+.rp-press {
+  transition: transform 140ms ease-out, background-color 140ms ease-out,
+    border-color 140ms ease-out, box-shadow 140ms ease-out, color 140ms ease-out;
+}
+
+.rp-press:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.rp-lift:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+/* =========================================================================
+   MAP  (Phase UI-3)
+
+   The tiles are standard OpenStreetMap, which is beige, green and orange --
+   the same three colours the network's own corridors and markers use, so
+   the data competed with the basemap it sat on. Every pale basemap worth
+   having now wants an API key, so the tiles are desaturated and lightened
+   here instead: no key, no extra request, and the status colours read
+   cleanly on top.
+
+   Only the tile pane is touched. Markers, lines and popups are siblings of
+   it in Leaflet's pane stack and keep their true colours.
+   ========================================================================= */
+
+.rp-map .leaflet-tile-pane {
+  filter: saturate(0.38) brightness(1.07) contrast(0.94);
+}
+
+/* Leaflet's popup is a white box with its own rounding; these two lines
+   bring it in line with the cards it floats over. */
+.rp-map .leaflet-popup-content-wrapper {
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.2);
+}
+
+.rp-map .leaflet-popup-content {
+  margin: 0.875rem 1rem;
+  line-height: 1.5;
+}
+
+/* The station label is part of the marker icon, so the icon's own box must
+   not clip it or catch clicks meant for the map underneath. */
+.station-marker,
+.train-marker {
+  background: transparent;
+  border: 0;
+  overflow: visible;
+}
+
+/* =========================================================================
+   DASHBOARD HERO  (Phase UI-5)
+
+   The one place the landing band's colours live, so light and dark are
+   defined together and the page file carries no gradient. A gentle orange
+   wash on white; the glow is a soft brand accent, decorative only.
+   ========================================================================= */
+
+.rp-hero {
+  border-color: #fed7aa;
+  background: linear-gradient(135deg, #fff7ed 0%, #ffffff 55%);
+}
+
+.rp-hero-glow {
+  background: radial-gradient(circle, rgba(249, 115, 22, 0.18) 0%, rgba(249, 115, 22, 0) 70%);
+}
+
+/* =========================================================================
+   DARK THEME  (Phase UI-5)
+
+   One layer, keyed on html[data-theme="dark"], which the inline script in
+   index.html sets before first paint and the header toggle flips. It remaps
+   the neutral surface, text and border utilities the app actually uses --
+   enumerated from the source, not guessed -- plus hover states, the status
+   chips, the map tiles and Leaflet's popup. The brand orange is left alone:
+   it reads on dark as it does on light.
+
+   These rules sit outside Tailwind's cascade layers, so they win over the
+   utilities without !important. Nothing here changes layout; only colour.
+   ========================================================================= */
+
+html[data-theme="dark"] body {
   background: #020617;
-  color: white;
+  color: #e2e8f0;
+}
+
+/* --- Surfaces --- */
+html[data-theme="dark"] .bg-white { background-color: #0f172a; }
+html[data-theme="dark"] .bg-slate-50,
+html[data-theme="dark"] .bg-gray-50 { background-color: #020617; }
+html[data-theme="dark"] .bg-slate-100 { background-color: #1e293b; }
+html[data-theme="dark"] .bg-slate-200 { background-color: #334155; }
+html[data-theme="dark"] .bg-slate-300 { background-color: #475569; }
+html[data-theme="dark"] .bg-slate-50\/50 { background-color: #0f172a; }
+html[data-theme="dark"] .bg-white\/95 { background-color: rgba(15, 23, 42, 0.95); }
+html[data-theme="dark"] .bg-white\/90 { background-color: rgba(15, 23, 42, 0.92); }
+html[data-theme="dark"] .bg-white\/80 { background-color: rgba(15, 23, 42, 0.85); }
+
+/* --- Hover surfaces --- */
+html[data-theme="dark"] .hover\:bg-slate-50:hover,
+html[data-theme="dark"] .hover\:bg-slate-100:hover,
+html[data-theme="dark"] .hover\:bg-white:hover { background-color: #1e293b; }
+html[data-theme="dark"] .hover\:bg-slate-200:hover { background-color: #334155; }
+
+/* --- Text --- */
+html[data-theme="dark"] .text-slate-900,
+html[data-theme="dark"] .text-gray-900,
+html[data-theme="dark"] .text-black { color: #f1f5f9; }
+html[data-theme="dark"] .text-slate-800 { color: #e2e8f0; }
+html[data-theme="dark"] .text-slate-700,
+html[data-theme="dark"] .text-gray-700 { color: #cbd5e1; }
+html[data-theme="dark"] .text-slate-600,
+html[data-theme="dark"] .text-gray-600 { color: #cbd5e1; }
+html[data-theme="dark"] .text-slate-500,
+html[data-theme="dark"] .text-gray-500 { color: #94a3b8; }
+
+/* Inputs: light text on a dark field, whatever utilities they carry, so a
+   typed value is never dark-on-dark. Covers the login form's forced-black
+   text too. */
+html[data-theme="dark"] input,
+html[data-theme="dark"] textarea,
+html[data-theme="dark"] select { color: #e2e8f0; }
+html[data-theme="dark"] input::placeholder,
+html[data-theme="dark"] textarea::placeholder { color: #64748b; }
+html[data-theme="dark"] .\!text-black { color: #f1f5f9 !important; }
+html[data-theme="dark"] .text-slate-400,
+html[data-theme="dark"] .text-gray-400 { color: #94a3b8; }
+
+/* --- Borders --- */
+html[data-theme="dark"] .border-slate-100,
+html[data-theme="dark"] .border-slate-200,
+html[data-theme="dark"] .border-gray-100,
+html[data-theme="dark"] .border-gray-200 { border-color: #1e293b; }
+html[data-theme="dark"] .border-slate-300,
+html[data-theme="dark"] .border-gray-300 { border-color: #334155; }
+html[data-theme="dark"] .divide-slate-100 > * + * { border-color: #1e293b; }
+html[data-theme="dark"] .divide-slate-200 > * + * { border-color: #334155; }
+
+/* --- Orange tints: on dark, the light wash would glow, so it becomes a
+       translucent brand tint. The text orange is left as it is. --- */
+html[data-theme="dark"] .bg-orange-50 { background-color: rgba(249, 115, 22, 0.12); }
+html[data-theme="dark"] .bg-orange-100 { background-color: rgba(249, 115, 22, 0.18); }
+html[data-theme="dark"] .hover\:bg-orange-50:hover { background-color: rgba(249, 115, 22, 0.14); }
+
+/* --- Status chips: darkened fills with lighter text, so a badge reads as an
+       accent on a dark card rather than a bright block. --- */
+html[data-theme="dark"] .bg-green-100 { background-color: rgba(22, 163, 74, 0.2); }
+html[data-theme="dark"] .text-green-800,
+html[data-theme="dark"] .text-green-700 { color: #86efac; }
+html[data-theme="dark"] .bg-red-100 { background-color: rgba(220, 38, 38, 0.22); }
+html[data-theme="dark"] .text-red-800,
+html[data-theme="dark"] .text-red-700 { color: #fca5a5; }
+html[data-theme="dark"] .bg-amber-100,
+html[data-theme="dark"] .bg-yellow-100 { background-color: rgba(245, 158, 11, 0.2); }
+html[data-theme="dark"] .text-amber-800,
+html[data-theme="dark"] .text-amber-700,
+html[data-theme="dark"] .text-yellow-700 { color: #fcd34d; }
+
+/* --- Skeleton --- */
+html[data-theme="dark"] .rp-skeleton {
+  background-color: #1e293b;
+  background-image: linear-gradient(
+    90deg,
+    rgba(30, 41, 59, 0) 0%,
+    rgba(71, 85, 105, 0.6) 50%,
+    rgba(30, 41, 59, 0) 100%
+  );
+}
+
+/* --- Hero --- */
+html[data-theme="dark"] .rp-hero {
+  border-color: #3f2a12;
+  background: linear-gradient(135deg, rgba(124, 45, 18, 0.35) 0%, #0f172a 55%);
+}
+html[data-theme="dark"] .rp-hero-glow {
+  background: radial-gradient(circle, rgba(249, 115, 22, 0.22) 0%, rgba(249, 115, 22, 0) 70%);
+}
+
+/* --- Map: the light OSM tiles are inverted into a dark basemap. Markers and
+       lines live in other panes and keep their true colours. --- */
+html[data-theme="dark"] .rp-map .leaflet-tile-pane {
+  filter: invert(0.92) hue-rotate(180deg) saturate(0.6) brightness(1.05) contrast(0.95);
+}
+html[data-theme="dark"] .rp-map .leaflet-popup-content-wrapper,
+html[data-theme="dark"] .rp-map .leaflet-popup-tip {
+  background: #0f172a;
+  color: #e2e8f0;
+}
+
+/* =========================================================================
+   REDUCED MOTION
+
+   One block, and it is the last word. A user who has asked their system for
+   less motion gets the same layout, the same colours and the same
+   information -- the content simply appears instead of arriving. The
+   skeleton keeps its grey block but stops sweeping, so it still reads as
+   "not loaded yet" without moving.
+   ========================================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .rp-page,
+  .rp-reveal,
+  .rp-fade,
+  .rp-toast {
+    animation: none;
+  }
+
+  .rp-skeleton {
+    animation: none;
+    background-image: none;
+  }
+
+  .rp-press,
+  .rp-lift {
+    transition: none;
+  }
+
+  .rp-press:active:not(:disabled),
+  .rp-lift:hover:not(:disabled) {
+    transform: none;
+  }
+
+  /* Catches the Tailwind `transition` / `animate-spin` / `animate-ping`
+     classes already spread through the pages, which this phase does not
+     rewrite. `animate-spin` is left alone on purpose: a spinner that does
+     not spin reads as a broken image. */
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .animate-ping {
+    animation: none !important;
+  }
 }

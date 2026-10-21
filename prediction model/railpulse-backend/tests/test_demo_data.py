@@ -1,11 +1,41 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from fastapi.testclient import TestClient
 
 from app.core.security import hash_password
 from app.db.mongodb import db
 from app.main import app
+from app.ml.predictor import DelayPrediction
 from app.services import eta_service
+
+
+def _install_stub_predictor(monkeypatch):
+    """Replace the model with a fixed prediction so the API path is tested, not the model."""
+
+    class StubPredictor:
+        def predict(self, request):
+            anchor = request.scheduled_arrival or request.current_timestamp
+            return DelayPrediction(
+                train_number=request.train_number,
+                predicted_delay_minutes=25.0,
+                delay_p10_minutes=10.0,
+                delay_p50_minutes=25.0,
+                delay_p90_minutes=60.0,
+                predicted_eta=anchor + timedelta(minutes=25),
+                eta_lower=anchor + timedelta(minutes=10),
+                eta_upper=anchor + timedelta(minutes=60),
+                predicted_remaining_minutes=120.0,
+                delay_category="MODERATE",
+                risk_level="MODERATE",
+                p_delay_gt_15=0.7,
+                confidence=0.8,
+                model_version="test",
+                data_source="DEMO",
+                train_known_to_model=True,
+                unsupported_fields_ignored=[],
+            )
+
+    monkeypatch.setattr(eta_service.default_eta_service, "_predictor", StubPredictor())
 
 
 class FakeCursor:
@@ -72,7 +102,10 @@ class FakeDatabase:
     def __init__(self):
         self.collections = {
             name: FakeCollection()
-            for name in ("users", "live_train_state", "simulation_states", "predictions", "alerts")
+            for name in (
+                "users", "live_train_state", "simulation_states", "predictions", "alerts",
+                "reference_trains",
+            )
         }
 
     def __getitem__(self, name):
@@ -139,7 +172,10 @@ def test_demo_seed_is_idempotent(monkeypatch):
     assert first.status_code == 200
     assert second.status_code == 200
     assert second.json()["updated_count"] >= 1
-    assert len(fake_database["live_train_state"].documents) == 5
+    # Demo trains are derived from the dataset, so the count follows the data.
+    seeded = first.json()["seeded_count"]
+    assert seeded == second.json()["seeded_count"]
+    assert len(fake_database["live_train_state"].documents) == seeded
 
 
 def test_demo_reset_only_deletes_demo_records(monkeypatch):
@@ -177,17 +213,13 @@ def test_list_trains_and_state_work_for_seeded_demo(monkeypatch):
 
 def test_prediction_works_for_seeded_demo_train(monkeypatch):
     client, fake_database, headers = make_auth_client(monkeypatch, "ADMIN")
-    monkeypatch.setattr(eta_service, "predict_eta_and_delay", lambda features: (120.0, 25.0))
-    monkeypatch.setattr(eta_service, "get_uncertainty_metadata", lambda: {
-        "eta_interval_minutes": 30,
-        "eta_calibration_coverage": 0.9,
-    })
-    monkeypatch.setattr(eta_service, "get_model_metadata", lambda: {"version": "test"})
+    _install_stub_predictor(monkeypatch)
     seed = client.post("/api/v1/demo/seed", headers=headers)
     assert seed.status_code == 200
 
     state = client.get("/api/v1/trains/12301/state", headers=headers)
     payload = state.json()
+    payload.pop("_id", None)
     prediction = client.post(
         "/api/v1/predict/eta",
         json={

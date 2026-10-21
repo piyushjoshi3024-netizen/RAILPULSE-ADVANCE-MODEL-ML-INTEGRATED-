@@ -1,0 +1,422 @@
+[
+  {
+    "width": 1280,
+    "path": "/dashboard",
+    "sw": 1280,
+    "cw": 1280,
+    "sidebar": 256,
+    "heading": "RailPulse",
+    "navTargets": [
+      "/dashboard",
+      "/trains",
+      "/map",
+      "/journey",
+      "/eta",
+      "/alerts",
+      "http://localhost:3000"
+    ],
+    "hscroll": false,
+    "console": [],
+    "errors": []
+  },
+  {
+    "width": 1280,
+    "path": "/trains",
+    "sw": 1280,
+    "cw": 1280,
+    "sidebar": 256,
+    "heading": "RailPulse",
+    "navTargets": [
+      "/dashboard",
+      "/trains",
+      "/map",
+      "/journey",
+      "/eta",
+      "/alerts",
+      "http://localhost:3000"
+    ],
+    "hscroll": false,
+    "console": [],
+    "errors": []
+  },
+  {
+    "width": 1280,
+    "path": "/map",
+    "sw": 1280,
+    "cw": 1280,
+    "sidebar": 256,
+    "heading": "RailPulse",
+    "navTargets": [
+      "/dashboard",
+      "/trains",
+      "/map",
+      "/journey",
+      "/eta",
+      "/alerts",
+      "http://localhost:3000"
+    ],
+    "hscroll": false,
+    "console": [],
+    "errors": []
+  },
+  {
+    "width": 1280,
+    "path": "/journey",
+    "sw": 1280,
+    "cw": 1280,
+    "sidebar": 256,
+    "heading": "RailPulse",
+    "navTargets": [
+      "/dashboard",
+      "/trains",
+      "/map",
+      "/journey",
+      "/eta",
+      "/alerts",
+      "http://localhost:3000"
+    ],
+    "hscroll": false,
+    "console": [],
+    "errors": []
+  },
+  {
+    "width": 1280,
+    "path": "/eta",
+    "sw": 1280,
+    "cw": 1280,
+    "sidebar": 256,
+    "heading": "RailPulse",
+    "navTargets": [
+      "/dashboard",
+      "/trains",
+      "/map",
+      "/journey",
+      "/eta",
+      "/alerts",
+      "http://localhost:3000"
+    ],
+    "hscroll": false,
+    "console": [],
+    "errors": []
+  },
+  {
+    "width": 1280,
+    "path": "/alerts",
+    "sw": 1280,
+    "cw": 1280,
+    "sidebar": 256,
+    "heading": "RailPulse",
+    "navTargets": [
+      "/dashboard",
+      "/trains",
+      "/map",
+      "/journey",
+      "/eta",
+      "/alerts",
+      "http://localhost:3000"
+    ],
+    "hscroll": false,
+    "console": [],
+    "errors": []
+  },
+  {
+    "width": 1280,
+    "path": "/no-such-page",
+    "sw": 1280,
+    "cw": 1280,
+    "sidebar": 256,
+    "heading": "RailPulse",
+    "navTargets": [
+      "/dashboard",
+      "/trains",
+      "/map",
+      "/journey",
+      "/eta",
+      "/alerts",
+      "http://localhost:3000"
+    ],
+    "hscroll": false,
+    "console": [],
+    "errors": []
+  },
+  {
+    "width": 768,
+    "path": "/dashboard",
+    "sw": 768,
+    "cw": 768,
+    "sidebar": 256,
+    "heading": "RailPulse",
+    "navTargets": [
+      "/dashboard",
+      "/trains",
+      "/map",
+      "/journey",
+      "/eta",
+      "/alerts",
+      "http://localhost:3000"
+    ],
+    "hscroll": false,
+    "console": [],
+    "errors": []
+  },
+  {
+    "width": 768,
+    "path": "/trains",
+    "sw": 768,
+    "cw": 768,
+    "sidebar": 256,
+    "heading": "RailPulse",
+    "navTargets": [
+      "/dashboard",
+      "/trains",
+      "/map",
+      "/journey",
+      "/eta",
+      "/alerts",
+      "http://localhost:3000"
+    ],
+    "hscroll": false,
+    "console": [],
+    "errors": []
+  },
+  {
+    "width": 768,
+    "path": "/map",
+    "sw": 768,
+    "cw": 768,
+    "sidebar": 256,
+    "heading": "RailPulse",
+    "navTargets": [
+      "/dashboard",
+      "/trains",
+      "/map",
+      "/journey",
+      "/eta",
+      "/alerts",
+      "http://localhost:3000"
+    ],
+    "hscroll": false,
+    "console": [],
+    "errors": []
+  },
+  {
+    "width": 768,
+    "path": "/journey",
+    "sw": 768,
+    "cw": 768,
+    "sidebar": 256,
+    "heading": "RailPulse",
+    "navTargets": [
+      "/dashboard",
+      "/trains",
+      "/map",
+      "/journey",
+      "/eta",
+      "/alerts",
+      "http://localhost:3000"
+    ],
+    "hscroll": false,
+    "console": [],
+    "errors": []
+  },
+  {
+    "width": 768,
+    "path": "/eta",
+    "sw": 768,
+    "cw": 768,
+    "sidebar": 256,
+    "heading": "RailPulse",
+    "navTargets": [
+      "/dashboard",
+      "/trains",
+      "/map",
+      "/journey",
+      "/eta",
+      "/alerts",
+      "http://localhost:3000"
+    ],
+    "hscroll": false,
+    "console": [],
+    "errors": []
+  },
+  {
+    "width": 768,
+    "path": "/alerts",
+    "sw": 768,
+    "cw": 768,
+    "sidebar": 256,
+    "heading": "RailPulse",
+    "navTargets": [
+      "/dashboard",
+      "/trains",
+      "/map",
+      "/journey",
+      "/eta",
+      "/alerts",
+      "http://localhost:3000"
+    ],
+    "hscroll": false,
+    "console": [],
+    "errors": []
+  },
+  {
+    "width": 768,
+    "path": "/no-such-page",
+    "sw": 768,
+    "cw": 768,
+    "sidebar": 256,
+    "heading": "RailPulse",
+    "navTargets": [
+      "/dashboard",
+      "/trains",
+      "/map",
+      "/journey",
+      "/eta",
+      "/alerts",
+      "http://localhost:3000"
+    ],
+    "hscroll": false,
+    "console": [],
+    "errors": []
+  },
+  {
+    "width": 360,
+    "path": "/dashboard",
+    "sw": 513,
+    "cw": 360,
+    "sidebar": 256,
+    "heading": "RailPulse",
+    "navTargets": [
+      "/dashboard",
+      "/trains",
+      "/map",
+      "/journey",
+      "/eta",
+      "/alerts",
+      "http://localhost:3000"
+    ],
+    "hscroll": true,
+    "console": [],
+    "errors": []
+  },
+  {
+    "width": 360,
+    "path": "/trains",
+    "sw": 513,
+    "cw": 360,
+    "sidebar": 256,
+    "heading": "RailPulse",
+    "navTargets": [
+      "/dashboard",
+      "/trains",
+      "/map",
+      "/journey",
+      "/eta",
+      "/alerts",
+      "http://localhost:3000"
+    ],
+    "hscroll": true,
+    "console": [],
+    "errors": []
+  },
+  {
+    "width": 360,
+    "path": "/map",
+    "sw": 513,
+    "cw": 360,
+    "sidebar": 256,
+    "heading": "RailPulse",
+    "navTargets": [
+      "/dashboard",
+      "/trains",
+      "/map",
+      "/journey",
+      "/eta",
+      "/alerts",
+      "http://localhost:3000"
+    ],
+    "hscroll": true,
+    "console": [],
+    "errors": []
+  },
+  {
+    "width": 360,
+    "path": "/journey",
+    "sw": 513,
+    "cw": 360,
+    "sidebar": 256,
+    "heading": "RailPulse",
+    "navTargets": [
+      "/dashboard",
+      "/trains",
+      "/map",
+      "/journey",
+      "/eta",
+      "/alerts",
+      "http://localhost:3000"
+    ],
+    "hscroll": true,
+    "console": [],
+    "errors": []
+  },
+  {
+    "width": 360,
+    "path": "/eta",
+    "sw": 513,
+    "cw": 360,
+    "sidebar": 256,
+    "heading": "RailPulse",
+    "navTargets": [
+      "/dashboard",
+      "/trains",
+      "/map",
+      "/journey",
+      "/eta",
+      "/alerts",
+      "http://localhost:3000"
+    ],
+    "hscroll": true,
+    "console": [],
+    "errors": []
+  },
+  {
+    "width": 360,
+    "path": "/alerts",
+    "sw": 513,
+    "cw": 360,
+    "sidebar": 256,
+    "heading": "RailPulse",
+    "navTargets": [
+      "/dashboard",
+      "/trains",
+      "/map",
+      "/journey",
+      "/eta",
+      "/alerts",
+      "http://localhost:3000"
+    ],
+    "hscroll": true,
+    "console": [],
+    "errors": []
+  },
+  {
+    "width": 360,
+    "path": "/no-such-page",
+    "sw": 513,
+    "cw": 360,
+    "sidebar": 256,
+    "heading": "RailPulse",
+    "navTargets": [
+      "/dashboard",
+      "/trains",
+      "/map",
+      "/journey",
+      "/eta",
+      "/alerts",
+      "http://localhost:3000"
+    ],
+    "hscroll": true,
+    "console": [],
+    "errors": []
+  }
+]

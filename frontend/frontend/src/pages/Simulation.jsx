@@ -1,25 +1,14 @@
 import { useState } from "react";
 import { runStaffSimulation } from "../services/simulationService";
-const scenarios = [
-  {
-    id: 1,
-    name: "Train Delay",
-    description: "Simulate the effect of a delayed train on the network.",
-    train: "12951 - Mumbai Rajdhani",
-  },
-  {
-    id: 2,
-    name: "Platform Congestion",
-    description: "Simulate platform availability constraints.",
-    train: "12952 - Delhi Rajdhani",
-  },
-  {
-    id: 3,
-    name: "High Traffic",
-    description: "Simulate increased traffic on a railway corridor.",
-    train: "12002 - Bhopal Shatabdi",
-  },
-];
+
+import { useTrains } from "../hooks";
+import PageHeader from "../components/ui/PageHeader";
+import { SIMULATION_SCENARIOS } from "../config/scenarios";
+
+// The three presets live in config/scenarios.js (decision D-A1). They
+// describe the branches the simulation endpoints implement, so they belong to
+// the code, not to the database, and they are not fetched.
+const scenarios = SIMULATION_SCENARIOS;
 
 function Simulation() {
   const [scenario, setScenario] = useState("Train Delay");
@@ -29,48 +18,79 @@ function Simulation() {
   const [simulated, setSimulated] = useState(false);
   const [simulationResult, setSimulationResult] = useState(null);
 
+  // Each scenario used to carry a train id written into the source. Two of the
+  // three did not exist in the database, so those scenarios always failed and
+  // said nothing about it. The trains come from the API now, and the operator
+  // chooses one.
+  // The trains come from the API. No polling here: a list that changed under
+  // an operator halfway through setting up a run would move the selection they
+  // had just made.
+  const trainsResource = useTrains({ poll: false });
+  const trains = trainsResource.trains;
+
+  const [trainId, setTrainId] = useState("");
+  const [error, setError] = useState("");
+  const [running, setRunning] = useState(false);
+
+  // Default to the first train once the list arrives, without an effect: the
+  // selection is only stored once the operator changes it.
+  const effectiveTrainId =
+    trainId || (trains.length > 0 ? String(trains[0]._id) : "");
+
+  const loadMessage = trainsResource.loading
+    ? ""
+    : trainsResource.error ||
+      (trains.length === 0 ? "No trains are available to simulate." : "");
+
   const selectedScenario = scenarios.find(
     (item) => item.name === scenario
   );
 
-  const runSimulation = async () => {
-    try {
-      const selectedTrainId =
-        selectedScenario.id === 1
-          ? "6a9d5a64a663314c1afeaa69"
-          : selectedScenario.id === 2
-            ? "6a9d5aa7a663314c1afeaa71"
-            : "6aa059ac1366fcd8e7e46558";
+  const selectedTrain = trains.find(
+    (item) => String(item._id) === effectiveTrainId
+  );
 
+  const runSimulation = async () => {
+    if (!effectiveTrainId) {
+      setError("Choose a train before running the simulation.");
+      setSimulated(false);
+      return;
+    }
+
+    setRunning(true);
+    setError("");
+
+    try {
       const response = await runStaffSimulation({
-        trainId: selectedTrainId,
+        trainId: effectiveTrainId,
         additionalDelayMinutes: Number(delay || 0),
       });
 
       setSimulationResult(response.data);
       setSimulated(true);
-    } catch (error) {
-      console.error("Failed to run simulation:", error);
+    } catch (runError) {
+      console.error("Failed to run simulation:", runError);
+      setError(
+        runError.response?.data?.message ||
+        "The simulation could not be run. Check that the API is reachable."
+      );
       setSimulationResult(null);
       setSimulated(false);
+    } finally {
+      setRunning(false);
     }
   };
 
   return (
-    <div className="space-y-8 p-8">
+    <div className="space-y-8">
 
-      {/* PAGE HEADER */}
-
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900">
-          What-If Simulation
-        </h1>
-
-        <p className="mt-2 text-slate-500">
-          Simulate operational scenarios and analyze their impact
-          on railway traffic.
-        </p>
-      </div>
+      <PageHeader
+        title="What-If Simulation"
+        subtitle="Simulate operational scenarios and analyze their impact on railway traffic."
+        updatedAt={trainsResource.updatedAt}
+        onRefresh={trainsResource.refetch}
+        refreshing={trainsResource.loading}
+      />
 
 
       {/* SCENARIO SELECTION */}
@@ -112,6 +132,41 @@ function Simulation() {
         </div>
 
 
+        <div className="mt-6">
+
+          <label
+            htmlFor="simulation-train"
+            className="mb-2 block text-sm font-medium text-slate-600"
+          >
+            Train
+          </label>
+
+          <select
+            id="simulation-train"
+            value={effectiveTrainId}
+            onChange={(e) => {
+              setTrainId(e.target.value);
+              setSimulated(false);
+            }}
+            disabled={trains.length === 0 || trainsResource.loading}
+            className="w-full max-w-md rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 disabled:bg-slate-50 disabled:text-slate-400"
+          >
+            {trainsResource.loading ? (
+              <option value="">Loading trains...</option>
+            ) : trains.length === 0 ? (
+              <option value="">No trains available</option>
+            ) : (
+              trains.map((train) => (
+                <option key={train._id} value={String(train._id)}>
+                  {train.trainNumber} - {train.trainName}
+                </option>
+              ))
+            )}
+          </select>
+
+        </div>
+
+
         {/* SCENARIO DESCRIPTION */}
 
         <div className="mt-5 rounded-xl bg-orange-50 p-4">
@@ -125,7 +180,10 @@ function Simulation() {
           </p>
 
           <p className="mt-2 text-xs text-slate-500">
-            Selected train: {selectedScenario.train}
+            Selected train:{" "}
+            {selectedTrain
+              ? `${selectedTrain.trainNumber} - ${selectedTrain.trainName}`
+              : "none selected"}
           </p>
 
         </div>
@@ -171,7 +229,7 @@ function Simulation() {
                 }}
                 className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
               />
-              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-slate-400">
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-slate-500">
                 min
               </span>
 
@@ -231,13 +289,21 @@ function Simulation() {
 
         {/* RUN BUTTON */}
 
+        {(error || loadMessage) && (
+          <div className="mt-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+            {error || loadMessage}
+          </div>
+        )}
+
         <div className="mt-6 flex justify-end">
 
           <button
+            type="button"
             onClick={runSimulation}
-            className="rounded-lg bg-orange-500 px-6 py-3 text-sm font-semibold text-white transition hover:bg-orange-600"
+            disabled={running || !effectiveTrainId}
+            className="rounded-lg bg-orange-500 px-6 py-3 text-sm font-semibold text-white transition hover:bg-orange-600 disabled:bg-orange-300"
           >
-            Run Simulation
+            {running ? "Running..." : "Run Simulation"}
           </button>
 
         </div>
@@ -490,7 +556,7 @@ function ResultCard({
         {value}
       </p>
 
-      <p className="mt-2 text-sm text-slate-400">
+      <p className="mt-2 text-sm text-slate-500">
         {description}
       </p>
 

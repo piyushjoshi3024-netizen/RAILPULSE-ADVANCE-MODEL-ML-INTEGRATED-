@@ -5,6 +5,7 @@ from datetime import datetime
 
 class TrainListItem(BaseModel):
     train_number: str
+    train_name: Optional[str] = None
     train_type: Optional[str] = None
     source: Optional[str] = None
     destination: Optional[str] = None
@@ -35,6 +36,7 @@ class DemoSeedResponse(BaseModel):
 
 class TrainStateRequest(BaseModel):
     train_number: str
+    train_name: Optional[str] = None
     train_type: Optional[str] = None
     train_priority: Optional[int] = None
     current_timestamp: datetime
