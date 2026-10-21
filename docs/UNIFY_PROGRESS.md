@@ -1107,12 +1107,12 @@ resolution would have been wiped every 15 s. It is a set of ids now. It is
 still session-local, because `models/Alert.js` has no status field to write to —
 unchanged behaviour, now stated in the code.
 
-**C.4 Simulation** (`cf5f8f5`). Presets from `config/scenarios.js` (D-A1), the
+**C.4 Simulation** (`ba8adb1`). Presets from `config/scenarios.js` (D-A1), the
 train list from `useTrains({ poll: false })` — deliberately not polling, since a
 list changing under an operator mid-setup would move the selection they just
 made. The default selection is derived rather than written by an effect.
 
-**C.5 The sweep** (`a6f3f2c`). Across all 12 files in `src/pages`:
+**C.5 The sweep** (`9bf46c6`). Across all 12 files in `src/pages`:
 
 | Looked for | Found | Action |
 |---|---|---|
@@ -1132,7 +1132,7 @@ No styling or layout changed in any of the four commits.
 | InsightCard actions | **They do not exist.** `InsightCard({ title, text })` renders two `<p>` elements and no button. A scripted scan of every `<button>` in `src/pages` and `src/components` found **zero** without an `onClick` or `type="submit"`. |
 | StaffOTP reload crash | **Already handled.** With no `location.state.email` it renders an explanation and a link to `/register/staff`. You asked for a redirect; the explanatory screen was kept instead, because a silent redirect tells the user nothing about why they were moved. Say the word and it becomes a `<Navigate>`. |
 | Register.jsx `alert()` + shared client | **Already done.** No `alert(` anywhere in `src/`; it uses `authApi` (the shared client with the session interceptor) and an inline `{error}` block. |
-| **Merge `config.js` + `config/`** (C-B1) | **Done** (`4e1d2a7`). `src/config.js` → `src/config/index.js`, re-exporting `polling.js` and `scenarios.js`. `"../config"` still resolves for all five importers, and the default origins are verified present in the build output. |
+| **Merge `config.js` + `config/`** (C-B1) | **Done** (`675a5da`). `src/config.js` → `src/config/index.js`, re-exporting `polling.js` and `scenarios.js`. `"../config"` still resolves for all five importers, and the default origins are verified present in the build output. |
 | Mobile sidebar and nav targets (read-only) | **Verified by reading.** `Sidebar` is `fixed … -translate-x-full` below `md` and `md:static md:translate-x-0` above, with a close button, a backdrop and Escape handling in `MainLayout`. All **8** sidebar paths have a matching `<Route>`; `/` → `Entry`; catch-all present. |
 
 ### 4. Phase F — already implemented, verified by reading
