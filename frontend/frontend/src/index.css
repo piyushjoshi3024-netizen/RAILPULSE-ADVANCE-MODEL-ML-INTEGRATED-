@@ -85,8 +85,18 @@ body {
 
 /* Route change. Applied to the <main> wrapper, keyed on the pathname, so it
    runs once per navigation and never on a data refresh. */
+/* `backwards`, not `both`.
+   `both` keeps the final keyframe applied after the animation ends, and
+   that final keyframe sets `transform: none` -- which computes to an
+   identity matrix, not to nothing. An element with any transform, identity
+   included, becomes the containing block for its `position: fixed`
+   descendants. With `both` here, the Network Map's fullscreen panel
+   measured 768x688 inside `<main>` instead of covering the 1024x768
+   viewport, and every future modal or overlay would have done the same.
+   `backwards` fills only *before* the animation runs, so afterwards the
+   element returns to its own styles and has no transform at all. */
 .rp-page {
-  animation: rp-page-in 200ms ease-out both;
+  animation: rp-page-in 200ms ease-out backwards;
 }
 
 /* A card or row arriving for the first time. `--rp-i` is the item's index;
@@ -95,16 +105,16 @@ body {
    load -- a poll re-render reuses the same element with no class, so
    nothing re-triggers and nothing flickers. */
 .rp-reveal {
-  animation: rp-reveal-in 220ms ease-out both;
+  animation: rp-reveal-in 220ms ease-out backwards;
   animation-delay: calc(min(var(--rp-i, 0), 10) * 40ms);
 }
 
 .rp-fade {
-  animation: rp-fade-in 180ms ease-out both;
+  animation: rp-fade-in 180ms ease-out backwards;
 }
 
 .rp-toast {
-  animation: rp-toast-in 200ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: rp-toast-in 200ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
 }
 
 /* Skeleton placeholder. The sweep is a moving background, not a transform,
@@ -135,6 +145,45 @@ body {
 
 .rp-lift:hover:not(:disabled) {
   transform: translateY(-1px);
+}
+
+/* =========================================================================
+   MAP  (Phase UI-3)
+
+   The tiles are standard OpenStreetMap, which is beige, green and orange --
+   the same three colours the network's own corridors and markers use, so
+   the data competed with the basemap it sat on. Every pale basemap worth
+   having now wants an API key, so the tiles are desaturated and lightened
+   here instead: no key, no extra request, and the status colours read
+   cleanly on top.
+
+   Only the tile pane is touched. Markers, lines and popups are siblings of
+   it in Leaflet's pane stack and keep their true colours.
+   ========================================================================= */
+
+.rp-map .leaflet-tile-pane {
+  filter: saturate(0.38) brightness(1.07) contrast(0.94);
+}
+
+/* Leaflet's popup is a white box with its own rounding; these two lines
+   bring it in line with the cards it floats over. */
+.rp-map .leaflet-popup-content-wrapper {
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.2);
+}
+
+.rp-map .leaflet-popup-content {
+  margin: 0.875rem 1rem;
+  line-height: 1.5;
+}
+
+/* The station label is part of the marker icon, so the icon's own box must
+   not clip it or catch clicks meant for the map underneath. */
+.station-marker,
+.train-marker {
+  background: transparent;
+  border: 0;
+  overflow: visible;
 }
 
 /* =========================================================================

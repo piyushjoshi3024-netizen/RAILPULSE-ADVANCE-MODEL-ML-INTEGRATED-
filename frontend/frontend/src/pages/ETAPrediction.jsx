@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
+
 import { getTrainETA } from "../services/etaService";
 
 import { useNetworkSummary, useTrainEvents, useTrains } from "../hooks";
@@ -111,7 +113,14 @@ function ETAPrediction() {
   // looked up "12951" strictly, found nothing, logged to the console and did
   // nothing at all -- a button that looked enabled and never worked. The
   // selection is empty until chosen, and the effective train is derived.
-  const [selectedNumber, setSelectedNumber] = useState("");
+  // The map's "View ETA" button links here as /eta?train=12621, so a train
+  // picked on the map is the one this page opens on. The parameter is only
+  // the initial selection -- once the user picks another train from the
+  // list, their choice wins and the URL is not fought over.
+  const [searchParams] = useSearchParams();
+  const [selectedNumber, setSelectedNumber] = useState(
+    () => searchParams.get("train") || ""
+  );
   const [predictionGenerated, setPredictionGenerated] = useState(false);
   const [etaData, setEtaData] = useState(null);
   const [loading, setLoading] = useState(false);

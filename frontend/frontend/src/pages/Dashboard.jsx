@@ -14,18 +14,18 @@ import Loading from "../components/state/Loading";
 import EmptyState from "../components/state/EmptyState";
 import ErrorState from "../components/state/ErrorState";
 
-import {
-  MapContainer,
-  TileLayer,
-  CircleMarker,
-  Marker,
-  Popup,
-  Polyline,
-} from "react-leaflet";
+// The markers, lines and popups moved to components/map, so both this map
+// and the Network Map page draw the same things the same way.
+import { MapContainer, TileLayer } from "react-leaflet";
 
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
+import TrainMarker from "../components/map/TrainMarker";
+import StationMarker from "../components/map/StationMarker";
+import CorridorLine from "../components/map/CorridorLine";
+import UnmappedTrains from "../components/map/UnmappedTrains";
+import { CRITICAL_DELAY_MINUTES, trainStatusFor } from "../components/map/mapStyle";
 import CountUp from "../components/ui/CountUp";
 import Reveal from "../components/ui/Reveal";
 import { useFirstReveal } from "../components/ui/useFirstReveal";
@@ -56,40 +56,6 @@ L.Icon.Default.mergeOptions({
 // data -- a station does not move while trains run -- so the hooks fetch it
 // once per mount and never poll it.
 
-// --------------------------------------------------
-// TRAIN ICON
-// --------------------------------------------------
-
-function createTrainIcon(status, selected = false) {
-  const color = status === "DELAYED" ? "#dc2626" : "#16a34a";
-
-  return L.divIcon({
-    className: "",
-    iconSize: [24, 24],
-    iconAnchor: [12, 12],
-
-    html: `
-      <div style="
-        width: ${selected ? "28px" : "22px"};
-        height: ${selected ? "28px" : "22px"};
-        border-radius: 50%;
-        background: ${color};
-        border: ${selected ? "4px" : "3px"} solid white;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.35);
-        display:flex;
-        align-items:center;
-        justify-content:center;
-      ">
-        <div style="
-          width:7px;
-          height:7px;
-          background:white;
-          border-radius:50%;
-        "></div>
-      </div>
-    `,
-  });
-}
 
 // --------------------------------------------------
 // DASHBOARD
@@ -141,9 +107,12 @@ function Dashboard() {
       name: train.trainName,
       type: train.trainType || "UNKNOWN",
       status: event?.delayMinutes > 0 ? "DELAYED" : "RUNNING",
-      speed: event?.speed || 0,
+      // null rather than 0 where the event carried no reading: "standing at
+      // a platform" and "we were not told" are different facts.
+      speed: typeof event?.speed === "number" ? event.speed : null,
       delay: event?.delayMinutes || 0,
       currentStation,
+      stationCode: byName.get(currentStation)?.code || null,
       destination: train.destination,
       // null, not a default point. This used to fall back to New Delhi for
       // any station it could not find, which put real trains at a coordinate
@@ -153,7 +122,28 @@ function Dashboard() {
   });
 
   const mappableTrains = trains.filter((train) => train.position);
-  const unmappedCount = trains.length - mappableTrains.length;
+  const unmappedTrains = trains.filter((train) => !train.position);
+  const unmappedCount = unmappedTrains.length;
+
+  // The same two joins the Network Map page makes, so the Dashboard's map
+  // and that one cannot tell different stories about the same data.
+  const trainsByStation = new Map();
+  mappableTrains.forEach((train) => {
+    if (!train.stationCode) return;
+    trainsByStation.set(train.stationCode, [
+      ...(trainsByStation.get(train.stationCode) || []),
+      train,
+    ]);
+  });
+
+  const trainsByCorridor = new Map();
+  corridorsResource.corridors.forEach((corridor) => {
+    const codes = new Set(corridor.stations || []);
+    trainsByCorridor.set(
+      corridor.corridorId,
+      mappableTrains.filter((train) => train.stationCode && codes.has(train.stationCode))
+    );
+  });
 
   const selectedTrain =
     trains.find((train) => train.number === selectedNumber) ||
@@ -304,8 +294,13 @@ function Dashboard() {
               <MapContainer
                 center={[23.5, 78.9]}
                 zoom={5}
-                scrollWheelZoom={true}
-                className=" w-full h-[390px] rounded-xl"
+                // Off, unlike the Network Map page: this map is a panel in a
+                // scrolling page, and a wheel over it should scroll the page
+                // rather than zoom the map out from under the cursor.
+                scrollWheelZoom={false}
+                touchZoom
+                tap
+                className="rp-map w-full h-[300px] sm:h-[390px] rounded-xl"
               >
 
                 <TileLayer
@@ -318,14 +313,10 @@ function Dashboard() {
                 ---------------------------------- */}
 
                 {corridorsResource.corridors.map((corridor) => (
-                  <Polyline
+                  <CorridorLine
                     key={corridor.corridorId}
-                    positions={corridor.positions}
-                    pathOptions={{
-                      color: "#f97316",
-                      weight: 4,
-                      opacity: 0.8,
-                    }}
+                    corridor={corridor}
+                    trains={trainsByCorridor.get(corridor.corridorId) || []}
                   />
                 ))}
 
@@ -334,38 +325,12 @@ function Dashboard() {
                 ---------------------------------- */}
 
                 {stationsResource.stations.map((station) => (
-                  <CircleMarker
+                  <StationMarker
                     key={station.code}
-                    center={[station.lat, station.lng]}
-                    radius={4}
-                    pathOptions={{
-                      color: "#1e293b",
-                      fillColor: "#ffffff",
-                      fillOpacity: 1,
-                      weight: 2,
-                    }}
-                  >
-                    <Popup>
-
-                      <div className="min-w-[150px]">
-
-                        <p className="font-bold text-slate-900">
-                          {station.name}
-                        </p>
-
-                        <p className="text-xs text-slate-500">
-                          Station Code: {station.code}
-                        </p>
-
-                        <div className="mt-2 border-t pt-2 text-xs">
-                          Railway Network Station
-                        </div>
-
-                      </div>
-
-                    </Popup>
-
-                  </CircleMarker>
+                    station={station}
+                    trains={trainsByStation.get(station.code) || []}
+                    onSelectTrain={setSelectedNumber}
+                  />
                 ))}
 
                 {/* ---------------------------------
@@ -373,68 +338,12 @@ function Dashboard() {
                 ---------------------------------- */}
 
                 {mappableTrains.map((train) => (
-
-                  <Marker
+                  <TrainMarker
                     key={train.number}
-                    position={train.position}
-                    icon={createTrainIcon(
-                      train.status,
-                      selectedTrain?.number === train.number
-                    )}
-                    eventHandlers={{
-                      click: () => setSelectedNumber(train.number),
-                    }}
-                  >
-
-                    <Popup>
-
-                      <div className="min-w-[190px]">
-
-                        <p className="font-bold text-slate-900">
-                          {train.name}
-                        </p>
-
-                        <p className="text-xs text-slate-500">
-                          Train {train.number}
-                        </p>
-
-                        <div className="mt-2 space-y-1 text-sm">
-
-                          <p>
-                            <b>Status:</b>{" "}
-                            <span
-                              className={
-                                train.status === "DELAYED"
-                                  ? "text-red-600"
-                                  : "text-green-600"
-                              }
-                            >
-                              {train.status}
-                            </span>
-                          </p>
-
-                          <p>
-                            <b>Speed:</b> {train.speed} km/h
-                          </p>
-
-                          <p>
-                            <b>Current:</b>{" "}
-                            {train.currentStation}
-                          </p>
-
-                          <p>
-                            <b>Destination:</b>{" "}
-                            {train.destination}
-                          </p>
-
-                        </div>
-
-                      </div>
-
-                    </Popup>
-
-                  </Marker>
-
+                    train={train}
+                    selected={selectedTrain?.number === train.number}
+                    onSelect={setSelectedNumber}
+                  />
                 ))}
 
               </MapContainer>
@@ -643,33 +552,31 @@ function Dashboard() {
 
           {/* MAP LEGEND */}
 
-          <div className="mt-3 flex flex-wrap gap-4 text-xs text-slate-500">
+          <div className="mt-3 space-y-2">
 
-            <Legend
-              type="green"
-              text="Running Train"
-            />
+            {/* The same three delay bands the Network Map uses, each naming
+                the range it stands for. The old legend had two -- "Running"
+                and "Delayed" -- and neither said what the colour meant in
+                minutes. */}
+            <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-slate-700">
 
-            <Legend
-              type="red"
-              text="Delayed Train"
-            />
+              {[
+                trainStatusFor(0),
+                trainStatusFor(1),
+                trainStatusFor(CRITICAL_DELAY_MINUTES),
+              ].map((band) => (
+                <Legend key={band.key} color={band.color} text={band.legend} />
+              ))}
 
-            <Legend
-              type="orange"
-              text="Railway Corridor"
-            />
+              <Legend color="#fb923c" text="Railway corridor" shape="line" />
+              <Legend text="Station" shape="station" />
 
-            <Legend
-              type="station"
-              text="Station"
-            />
+            </div>
 
             {unmappedCount > 0 && (
-              <span className="text-slate-400">
-                {unmappedCount} train{unmappedCount === 1 ? "" : "s"} not shown:
-                no coordinate is recorded for the station it is at.
-              </span>
+              <div className="max-w-md">
+                <UnmappedTrains trains={unmappedTrains} />
+              </div>
             )}
 
           </div>
@@ -855,27 +762,31 @@ function MiniStat({
 // LEGEND
 // --------------------------------------------------
 
-function Legend({
-  type,
-  text,
-}) {
+
+function Legend({ color = null, text, shape = "dot" }) {
   let visual;
 
-  if (type === "orange") {
+  if (shape === "line") {
     visual = (
-      <span className="h-[3px] w-5 rounded bg-orange-500" />
+      <span
+        className="h-[3px] w-5 shrink-0 rounded"
+        style={{ background: color }}
+        aria-hidden="true"
+      />
     );
-  } else if (type === "station") {
+  } else if (shape === "station") {
     visual = (
-      <span className="h-3 w-3 rounded-full border-2 border-slate-700 bg-white" />
+      <span
+        className="h-3 w-3 shrink-0 rounded-full border-2 border-slate-700 bg-white"
+        aria-hidden="true"
+      />
     );
   } else {
     visual = (
       <span
-        className={`h-3 w-3 rounded-full ${type === "red"
-          ? "bg-red-500"
-          : "bg-green-500"
-          }`}
+        className="h-3 w-3 shrink-0 rounded-full border-2 border-white shadow"
+        style={{ background: color }}
+        aria-hidden="true"
       />
     );
   }
