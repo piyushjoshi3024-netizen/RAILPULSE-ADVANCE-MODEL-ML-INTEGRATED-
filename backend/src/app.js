@@ -22,6 +22,8 @@ const alertRoutes = require("./routes/alert.routes");
 
 const referenceRoutes = require("./routes/reference.routes");
 
+const apiGuard = require("../middleware/apiGuard");
+
 const staffAuthRoutes = require("./routes/staffAuth.routes");
 
 const app = express();
@@ -31,6 +33,11 @@ const app = express();
 app.use(cors());
 
 app.use(express.json());
+
+// Route protection (D4). One rule for everything under /api, applied before
+// any route is mounted: see middleware/apiGuard.js for the three levels and
+// the two exceptions, and tests/apiGuard.test.js for the table.
+app.use(apiGuard);
 
 // Health Check
 
