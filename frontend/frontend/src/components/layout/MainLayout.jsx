@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 
 import Sidebar from "./Sidebar";
 import Header from "./Header";
@@ -6,6 +7,7 @@ import Header from "./Header";
 function MainLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const menuButtonRef = useRef(null);
+  const location = useLocation();
 
   const closeSidebar = useCallback(() => {
     setSidebarOpen(false);
@@ -27,6 +29,19 @@ function MainLayout({ children }) {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [sidebarOpen]);
 
+  // The drawer is a layer over the page on a phone; letting the page behind
+  // it scroll is how a tap ends up on the wrong thing.
+  useEffect(() => {
+    if (!sidebarOpen) return undefined;
+
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [sidebarOpen]);
+
   return (
     <div className="min-h-screen bg-slate-50 flex">
 
@@ -36,12 +51,14 @@ function MainLayout({ children }) {
         onClose={closeSidebar}
       />
 
-      {/* Backdrop, only while the drawer is open on a small screen */}
+      {/* Backdrop, only while the drawer is open on a small screen. It fades
+          in rather than appearing, which reads as the drawer bringing it
+          along instead of the screen blinking. */}
       {sidebarOpen && (
         <button
           type="button"
           onClick={closeSidebar}
-          className="fixed inset-0 z-30 bg-slate-900/40 md:hidden"
+          className="rp-fade fixed inset-0 z-30 bg-slate-900/40 md:hidden"
           aria-label="Close navigation"
           tabIndex={-1}
         />
@@ -55,8 +72,16 @@ function MainLayout({ children }) {
           menuButtonRef={menuButtonRef}
         />
 
-        {/* Main content */}
-        <main className="flex-1 p-4 sm:p-8 overflow-auto">
+        {/* Main content.
+            `key` is the pathname, so React discards this subtree and mounts
+            a fresh one on every route change -- which is what makes the
+            fade-and-rise run once per navigation. It deliberately does NOT
+            include the search string or any state, so a filter change or a
+            15-second poll re-renders in place and nothing animates. */}
+        <main
+          key={location.pathname}
+          className="rp-page flex-1 p-4 sm:p-8 overflow-auto"
+        >
           {children}
         </main>
 

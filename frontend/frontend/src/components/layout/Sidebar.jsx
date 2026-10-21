@@ -152,7 +152,7 @@ function Sidebar({ open = false, onClose = () => {} }) {
         <button
           type="button"
           onClick={onClose}
-          className="ml-auto rounded-lg p-2 text-slate-500 hover:bg-slate-100 md:hidden"
+          className="rp-press ml-auto rounded-lg p-2 text-slate-500 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 md:hidden"
           aria-label="Close navigation"
         >
           <X size={20} />
@@ -178,7 +178,7 @@ function Sidebar({ open = false, onClose = () => {} }) {
                 to={item.path}
                 onClick={onClose}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all ${isActive
+                  `rp-press relative flex items-center gap-3 overflow-hidden rounded-xl px-4 py-3 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 ${isActive
                     ? "bg-orange-500 text-white shadow-sm"
                     : "text-slate-700 hover:bg-orange-50 hover:text-orange-600"
                   }`
@@ -187,6 +187,16 @@ function Sidebar({ open = false, onClose = () => {} }) {
 
                 {({ isActive }) => (
                   <>
+                    {/* The current page is marked by a bar as well as by
+                        fill, so it is not colour alone that says where you
+                        are. */}
+                    {isActive && (
+                      <span
+                        className="absolute inset-y-1.5 left-0 w-1 rounded-r-full bg-white/80"
+                        aria-hidden="true"
+                      />
+                    )}
+
                     <Icon
                       size={19}
                       strokeWidth={isActive ? 2.3 : 2}
@@ -203,7 +213,7 @@ function Sidebar({ open = false, onClose = () => {} }) {
           <a
             href="#ml-app"
             onClick={openMlApp}
-            className="flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all text-slate-700 hover:bg-orange-50 hover:text-orange-600"
+            className="rp-press flex items-center gap-3 rounded-xl px-4 py-3 font-medium text-slate-700 hover:bg-orange-50 hover:text-orange-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2"
           >
             <Clock3 size={19} strokeWidth={2} />
             <span>ETA prediction using ML model</span>
@@ -251,7 +261,7 @@ function Sidebar({ open = false, onClose = () => {} }) {
           <button
             type="button"
             onClick={handleLogout}
-            className="w-full mt-4 pt-3 border-t border-slate-200 flex items-center gap-3 text-slate-600 font-medium hover:text-orange-600 transition-all"
+            className="rp-press mt-4 flex w-full items-center gap-3 border-t border-slate-200 pt-3 font-medium text-slate-600 hover:text-orange-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"
           >
 
             <LogOut size={18} />

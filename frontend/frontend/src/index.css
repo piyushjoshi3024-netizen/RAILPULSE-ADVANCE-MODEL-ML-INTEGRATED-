@@ -11,7 +11,177 @@ body,
   margin: 0;
 }
 
+/* The app paints `bg-slate-50` over this in MainLayout. Before UI-2 this was
+   #020617 with white text, left over from the Vite template, which flashed
+   near-black on first paint and showed through overscroll on a light UI. */
 body {
-  background: #020617;
-  color: white;
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+/* =========================================================================
+   MOTION  (Phase UI-2)
+
+   Every animation in the app is defined here so there is one place to read
+   and one place to switch off. Durations stay short -- 180-220ms -- because
+   this is an operations console and a train that is 18 minutes late should
+   not wait on a flourish.
+
+   Nothing here animates `width`, `height`, `top` or `left`; only `opacity`
+   and `transform`, which the compositor can run without re-laying out the
+   page. That is what keeps the 15-second poll from stuttering.
+   ========================================================================= */
+
+@keyframes rp-page-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes rp-reveal-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes rp-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes rp-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes rp-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+/* Route change. Applied to the <main> wrapper, keyed on the pathname, so it
+   runs once per navigation and never on a data refresh. */
+.rp-page {
+  animation: rp-page-in 200ms ease-out both;
+}
+
+/* A card or row arriving for the first time. `--rp-i` is the item's index;
+   the stagger is capped at 10 so a 60-row table does not take 2.4s to
+   appear. The component that renders this only sets the class on first
+   load -- a poll re-render reuses the same element with no class, so
+   nothing re-triggers and nothing flickers. */
+.rp-reveal {
+  animation: rp-reveal-in 220ms ease-out both;
+  animation-delay: calc(min(var(--rp-i, 0), 10) * 40ms);
+}
+
+.rp-fade {
+  animation: rp-fade-in 180ms ease-out both;
+}
+
+.rp-toast {
+  animation: rp-toast-in 200ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Skeleton placeholder. The sweep is a moving background, not a transform,
+   so it cannot shift the layout it is standing in for. */
+.rp-skeleton {
+  background-color: #e2e8f0;
+  background-image: linear-gradient(
+    90deg,
+    rgba(226, 232, 240, 0) 0%,
+    rgba(255, 255, 255, 0.75) 50%,
+    rgba(226, 232, 240, 0) 100%
+  );
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  animation: rp-shimmer 1.4s linear infinite;
+}
+
+/* Press feedback. Kept as a class rather than a Tailwind `active:` variant
+   because it has to be switched off for reduced motion below. */
+.rp-press {
+  transition: transform 140ms ease-out, background-color 140ms ease-out,
+    border-color 140ms ease-out, box-shadow 140ms ease-out, color 140ms ease-out;
+}
+
+.rp-press:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.rp-lift:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+/* =========================================================================
+   REDUCED MOTION
+
+   One block, and it is the last word. A user who has asked their system for
+   less motion gets the same layout, the same colours and the same
+   information -- the content simply appears instead of arriving. The
+   skeleton keeps its grey block but stops sweeping, so it still reads as
+   "not loaded yet" without moving.
+   ========================================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .rp-page,
+  .rp-reveal,
+  .rp-fade,
+  .rp-toast {
+    animation: none;
+  }
+
+  .rp-skeleton {
+    animation: none;
+    background-image: none;
+  }
+
+  .rp-press,
+  .rp-lift {
+    transition: none;
+  }
+
+  .rp-press:active:not(:disabled),
+  .rp-lift:hover:not(:disabled) {
+    transform: none;
+  }
+
+  /* Catches the Tailwind `transition` / `animate-spin` / `animate-ping`
+     classes already spread through the pages, which this phase does not
+     rewrite. `animate-spin` is left alone on purpose: a spinner that does
+     not spin reads as a broken image. */
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .animate-ping {
+    animation: none !important;
+  }
 }

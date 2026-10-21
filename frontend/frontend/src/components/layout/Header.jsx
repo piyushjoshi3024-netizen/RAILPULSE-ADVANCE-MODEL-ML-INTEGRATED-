@@ -17,7 +17,7 @@ function Header({ onOpenSidebar = () => {}, menuButtonRef = null }) {
           type="button"
           ref={menuButtonRef}
           onClick={onOpenSidebar}
-          className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 md:hidden"
+          className="rp-press rounded-lg p-2 text-slate-600 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 md:hidden"
           aria-label="Open navigation"
           aria-controls="main-sidebar"
         >
@@ -47,7 +47,7 @@ function Header({ onOpenSidebar = () => {}, menuButtonRef = null }) {
           className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center shrink-0"
           title={user?.username ? `Signed in as ${user.username}` : "Signed in"}
         >
-          <UserCircle size={22} className="text-blue-600" />
+          <UserCircle size={22} className="text-orange-600" />
         </div>
       </div>
 

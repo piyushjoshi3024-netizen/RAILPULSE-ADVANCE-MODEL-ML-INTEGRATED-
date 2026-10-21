@@ -19,6 +19,7 @@ import StaffOTP from "./pages/StaffOTP";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import RoleRoute from "./components/RoleRoute";
+import { ToastProvider } from "./components/ui/Toast";
 
 /**
  * The entry point sends people where they can actually go: the dashboard when
@@ -70,7 +71,10 @@ function NotFound() {
 function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
+      {/* Outside the router on purpose: a toast raised by an action that
+          navigates away should still be readable on the page it lands on. */}
+      <ToastProvider>
+        <BrowserRouter>
         <Routes>
 
           {/* =========================
@@ -189,7 +193,8 @@ function App() {
           />
 
         </Routes>
-      </BrowserRouter>
+        </BrowserRouter>
+      </ToastProvider>
     </AuthProvider>
   );
 }
