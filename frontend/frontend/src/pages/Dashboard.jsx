@@ -26,6 +26,11 @@ import {
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
+import CountUp from "../components/ui/CountUp";
+import Reveal from "../components/ui/Reveal";
+import { useFirstReveal } from "../components/ui/useFirstReveal";
+import { SkeletonStats } from "../components/ui/Skeleton";
+
 // --------------------------------------------------
 // LEAFLET ICON FIX
 // --------------------------------------------------
@@ -104,6 +109,13 @@ function Dashboard() {
   // The station list is handed to useCorridors so /api/stations is fetched
   // once for this page rather than once per hook that needs it.
   const corridorsResource = useCorridors(stationsResource);
+
+  // UI-2: the entrance runs once, on the first answer, and is switched off
+  // before the 15-second poll comes round. `!loading` rather than
+  // `length > 0` so a genuinely empty alert list still settles rather than
+  // waiting for data that is never coming.
+  const statsRevealed = useFirstReveal(!networkResource.loading);
+  const alertsRevealed = useFirstReveal(!alertsResource.loading);
 
   // The selection is held as a train number rather than a train object. The
   // old version stored the object and then ran an effect to re-point it at the
@@ -187,33 +199,48 @@ function Dashboard() {
           STATS
       -------------------------------------------- */}
 
-      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+      {/* The first load gets skeletons shaped like the cards, not a bare
+          spinner, so the four figures land in the space already reserved
+          for them instead of pushing the map down the page. */}
+      {networkResource.loading && alertsResource.loading ? (
+        <SkeletonStats count={4} />
+      ) : (
+        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
 
-        <StatCard
-          title="Active Trains"
-          value={networkResource.loading ? "--" : networkResource.summary.activeTrains}
-          description={networkResource.error ? "Summary unavailable" : "Currently operating"}
-        />
+          <StatCard
+            index={0}
+            revealed={statsRevealed}
+            title="Active Trains"
+            value={networkResource.loading ? null : networkResource.summary.activeTrains}
+            description={networkResource.error ? "Summary unavailable" : "Currently operating"}
+          />
 
-        <StatCard
-          title="Delayed Trains"
-          value={networkResource.loading ? "--" : networkResource.summary.delayedTrains}
-          description={networkResource.error ? "Summary unavailable" : "Need attention"}
-        />
+          <StatCard
+            index={1}
+            revealed={statsRevealed}
+            title="Delayed Trains"
+            value={networkResource.loading ? null : networkResource.summary.delayedTrains}
+            description={networkResource.error ? "Summary unavailable" : "Need attention"}
+          />
 
-        <StatCard
-          title="Network Status"
-          value={networkResource.loading ? "--" : networkResource.networkStatus}
-          description={networkResource.error ? "Summary unavailable" : "Current network condition"}
-        />
+          <StatCard
+            index={2}
+            revealed={statsRevealed}
+            title="Network Status"
+            value={networkResource.loading ? null : networkResource.networkStatus}
+            description={networkResource.error ? "Summary unavailable" : "Current network condition"}
+          />
 
-        <StatCard
-          title="Active Alerts"
-          value={alertsResource.loading ? "--" : alertsResource.alerts.length}
-          description={alertsResource.error ? "Alerts unavailable" : "Requires monitoring"}
-        />
+          <StatCard
+            index={3}
+            revealed={statsRevealed}
+            title="Active Alerts"
+            value={alertsResource.loading ? null : alertsResource.alerts.length}
+            description={alertsResource.error ? "Alerts unavailable" : "Requires monitoring"}
+          />
 
-      </div>
+        </div>
+      )}
 
       {/* -------------------------------------------
           NETWORK + ALERTS
@@ -680,9 +707,11 @@ function Dashboard() {
               </p>
 
             ) : (
-              alertsResource.alerts.slice(0, 3).map((alert) => (
+              alertsResource.alerts.slice(0, 3).map((alert, alertIndex) => (
                 <AlertItem
                   key={alert._id}
+                  index={alertIndex}
+                  revealed={alertsRevealed}
                   title={alert.message}
                   time={
                     alert.createdAt
@@ -710,23 +739,32 @@ function StatCard({
   title,
   value,
   description,
+  index = 0,
+  revealed = false,
 }) {
+  // Only a number counts up. "HIGH" is a network status, and a string has
+  // nothing to count from; `null` means the figure has not arrived, which
+  // renders as "--" rather than as a zero that would read as a real count.
+  const isNumber = typeof value === "number" && Number.isFinite(value);
+
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <Reveal index={index} active={revealed}>
+      <div className="h-full rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
 
-      <p className="text-sm font-medium text-slate-500">
-        {title}
-      </p>
+        <p className="text-sm font-medium text-slate-600">
+          {title}
+        </p>
 
-      <p className="mt-3 text-3xl font-bold text-slate-900">
-        {value}
-      </p>
+        <p className="mt-3 text-3xl font-bold text-slate-900">
+          {isNumber ? <CountUp value={value} /> : value ?? "--"}
+        </p>
 
-      <p className="mt-2 text-sm text-slate-400">
-        {description}
-      </p>
+        <p className="mt-2 text-sm text-slate-500">
+          {description}
+        </p>
 
-    </div>
+      </div>
+    </Reveal>
   );
 }
 
@@ -737,9 +775,11 @@ function StatCard({
 function AlertItem({
   title,
   time,
+  index = 0,
+  revealed = false,
 }) {
   return (
-    <div className="flex gap-3 rounded-xl bg-orange-50 p-3">
+    <Reveal index={index} active={revealed} className="flex gap-3 rounded-xl bg-orange-50 p-3">
 
       <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-orange-500" />
 
@@ -749,13 +789,13 @@ function AlertItem({
           {title}
         </p>
 
-        <p className="mt-1 text-xs text-slate-400">
+        <p className="mt-1 text-xs text-slate-600">
           {time}
         </p>
 
       </div>
 
-    </div>
+    </Reveal>
   );
 }
 
