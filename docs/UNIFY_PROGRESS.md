@@ -1181,3 +1181,129 @@ been reachable in this session and the seed has never run.
 - **Done:** Phase C complete, Phase E low-risk items, Phase F verified.
 - **Blocked:** the seed dry run, on Mongo being unreachable.
 - **Not started, as instructed:** Phase D, Phase G.
+
+---
+
+## Seed dry run and backup — 2026-10-21
+
+### Docker: the right container existed, stopped
+
+    NAMES                 STATUS                      PORTS
+    railpulse-mongo-dev   Up 6 hours                  (none)
+    railpulse-redis       Up 6 hours                  0.0.0.0:6379->6379/tcp
+    railpulse-mongodb     Exited (0) 3 weeks ago
+    railpulse-mongo       Exited (0) 11 hours ago
+    sql_cc                Exited (0) 7 days ago
+    (four unrelated containers omitted)
+
+`railpulse-mongo` existed and was stopped, so step 2 applied: **`docker start
+railpulse-mongo`**, and nothing else. It came up publishing
+`0.0.0.0:27017->27017/tcp`. `railpulse-mongo-dev` was **not** touched,
+`MONGO_URI` was **not** changed, and no volume was touched.
+
+There are now two Mongo containers running. Only `railpulse-mongo` is
+reachable: the `-dev` one still publishes no port and has no network, so
+nothing can connect to it. Worth resolving before Phase D, but not here.
+
+### The target database is the one Node uses
+
+| Source | Value |
+|---|---|
+| `backend/.env` | `MONGO_URI=mongodb://127.0.0.1:27017/railpulse` (no credentials in it) |
+| Script's own report | `database        railpulse` |
+
+Same database. The script prints it from `mongoose.connection.name`, so that
+line is the connection it actually opened, not a restatement of the config.
+
+### Dry run output (verbatim)
+
+    DRY RUN -- nothing will be written
+      database        railpulse
+      collections     main_stations, main_corridors, trains, trainevents, main_alerts
+      never touched   users, main_users, live_train_state, reference_trains, predictions, alerts
+
+    Static reference data (stations and corridors do not change while trains run):
+      main_stations    existing    0  insert   13  update    0  final   13
+      main_corridors   existing    0  insert    4  update    0  final    4
+
+    Demo operational data:
+      trains           existing    0  insert   12  update    0  final   12
+      (dry run: 12 train(s) are not in the database yet, so their events are planned for the apply run, not counted here)
+      trainevents      existing    0  insert    0  update    0  final    0
+      main_alerts      existing    0  insert    0  update    0  final    0
+
+    Map coverage: 5 of 12 demo trains sit at a station this repository has a coordinate for. The rest appear in lists only.
+    Dry run complete. Nothing was written.
+
+**What an apply would write: 44 documents.** 13 stations + 4 corridors + 12
+trains + **12 train events** + **3 alerts**. The last two show as 0 above
+because both are keyed on the `_id` of a train that does not exist yet; the
+script says so rather than printing a number it cannot know. Every target
+collection is currently **empty**, so the apply would overwrite nothing.
+
+### Correction: it is **not** "only `main_*`"
+
+You asked me to confirm only `main_*` collections would be written. **That is
+not accurate, and the script does not claim it.** Two of the five are
+unprefixed:
+
+| Collection | Prefixed | Owner |
+|---|---|---|
+| `main_stations`, `main_corridors`, `main_alerts` | yes | Express |
+| **`trains`**, **`trainevents`** | **no** | Express (pre-existing names, from before the prefixing convention) |
+
+Checked for collision: FastAPI reads `users`, `alerts`, `predictions`,
+`reference_trains`, `live_train_state` and `simulation_states`. Neither
+`trains` nor `trainevents` is among them, and both are empty today, so
+writing them cannot disturb the ML service. Renaming them to `main_trains` /
+`main_trainevents` would be a model change plus a migration, which is a
+Phase D/G decision, not a seed one.
+
+### Backup: `backups/20261021-101505/`
+
+`mongodump` ran **inside** the container (the host has no client) against
+`mongodb://127.0.0.1:27017`, then `docker cp` copied it out and the
+container's temporary copy was removed. `backups/` is already in
+`.gitignore` (line 3), so none of it is committed. Total 344 KB.
+
+**30 collections dumped, matching `listDatabases` exactly:**
+
+- **`railpulse/` (19):** alerts, bottlenecks, etapredictions, journeys,
+  live_train_state, main_alerts, main_corridors, main_stations, main_users,
+  predictions, propagations, recoveries, reference_trains, riskassessments,
+  simulations, simulation_states, trainevents, trains, users
+- **`railpulse_node/` (11):** alerts, bottlenecks, etapredictions, journeys,
+  propagations, recoveries, riskassessments, simulations, trainevents, trains,
+  users
+- **`admin/` (1):** system.version
+
+`config` and `local` are excluded, which is `mongodump`'s default for
+server-internal databases and is expected.
+
+**Every non-empty collection has a non-empty dump file:**
+
+| Collection | Live docs | Dump |
+|---|---|---|
+| railpulse.predictions | 150 | 147,416 B |
+| railpulse.users | **23** | 4,964 B |
+| railpulse.live_train_state | 16 | 8,737 B |
+| railpulse.reference_trains | 12 | 4,777 B |
+| railpulse.simulation_states | 6 | 4,069 B |
+| railpulse_node.etapredictions | 3 | 1,143 B |
+| railpulse_node.{trains, journeys, trainevents, users} | 1 each | 262–659 B |
+
+Verification is by presence and non-zero size against the live counts, **not by
+a test restore** — a restore would write to a database, which is not approved.
+
+### Phase G evidence, gathered in passing
+
+`railpulse_node` is a second, live database holding 7 documents across 5
+collections (1 train, 1 journey, 1 train event, 3 ETA predictions, 1 user). It
+is not the database `MONGO_URI` points at. It belongs on the Phase G evidence
+table; nothing was done to it.
+
+### Status
+
+- **Done:** container started, dry run captured, full backup taken and verified.
+- **Not done:** `--apply`. Still never run.
+- **Next:** your approval to apply, after you have read the dry run above.
