@@ -281,6 +281,14 @@ const run = async () => {
 
     log(`  ${"train:live:*".padEnd(16)} ${APPLY ? "wrote" : "would write"} ${liveWritten} key(s)`);
 
+    if (!APPLY && liveWritten < demo.trains.length) {
+        log(
+            `  (dry run: a live-state key is keyed on a train's _id, and ` +
+            `${demo.trains.length - liveWritten} train(s) are not in the database yet, ` +
+            "so those keys are planned for the apply run and cannot be counted here)"
+        );
+    }
+
     const positionable = demo.trains.filter((t) => t.station).length;
     log("");
     log(

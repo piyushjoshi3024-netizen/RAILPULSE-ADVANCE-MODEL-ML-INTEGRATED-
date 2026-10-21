@@ -1439,3 +1439,161 @@ Phase G needs the exact database name typed before anything is dropped.
 - **Done:** seed applied and verified; ETA chain working end to end; three real
   defects fixed; browser verification; Phase G evidence; README rewritten.
 - **Not done, needs you:** D4 route protection; the `railpulse_node` drop.
+
+---
+
+## D4 route protection, the cleanup evidence, and a fresh-clone test — 2026-10-21
+
+### 1. D4 — one rule, in one file (`18e8058`)
+
+The rule lives in **`backend/middleware/apiGuard.js`**, mounted once in
+`app.js` before any route. Spreading `authenticate` across twelve route files
+would have left the same question open for the thirteenth.
+
+| Level | Applies to |
+|---|---|
+| **public** | `GET /api/health`, and the five retired identity endpoints, which must keep answering **410** to a caller with no token — a 401 in front of them would hide that |
+| **any signed-in role** | all reads: trains, train-events, alerts, stations, corridors, ETA, `/api/auth/me` |
+| **STAFF or ADMIN** | `POST/PUT/PATCH/DELETE` on trains, train-events, alerts, journeys; **everything** under `/api/simulation` and `/api/operations`, reads included |
+
+An unrecognised `/api` path defaults to **any signed-in role**, never to public,
+so a new route is protected before anyone remembers to protect it. Socket.IO is
+untouched. No secret and no token lifetime changed.
+
+#### Two rules I had to change, not two tests
+
+As instructed, where the plain rule broke a working screen I changed the rule.
+Both were found by calling the pages as a PASSENGER, not by reading the code:
+
+| Route | Why the plain rule was wrong |
+|---|---|
+| `GET /api/operations/network` | It is the summary on the **Dashboard**, which every role can open. The literal "everything under operations is STAFF/ADMIN" would have blanked three stat cards for every passenger. It is a read-only aggregate with no train id in it. The other `/api/operations/*` routes (risk, bottleneck, propagation, recovery) stay STAFF/ADMIN. |
+| `POST /api/journey/plan` | **Journey Management** is open to passengers by the app's own role gates. It is a POST because it takes a body; its only write is its own audit row. Treating it as a write would have 403'd the one thing a passenger goes there to do. |
+
+#### Tests, written first
+
+`backend/tests/apiGuard.test.js` — **19 tests**, all passing, backend total now
+**46 passed, 0 failed**. The rule is asserted as a table (every mounted route
+and its level, plus trailing slashes, query strings, lookalike prefixes like
+`/api/trainsets`, and the unknown-route default), then driven with real tokens.
+
+#### Measured against the running server
+
+| Check | Result |
+|---|---|
+| no token, read `GET /api/trains` | **401** |
+| no token, write `POST /api/trains` | **401** |
+| PASSENGER `POST /api/trains` | **403** |
+| PASSENGER `DELETE /api/trains/:id` | **403** |
+| PASSENGER `GET /api/operations/risk/:id` | **403** |
+| tampered signature, read and write | **401** each — not 403, which would mean the signature was never checked |
+| payload edited to `role: ADMIN` after signing | **401** |
+| STAFF `POST /api/trains` | **201** (then deleted as ADMIN → 200; `trains` is back to 12) |
+| `GET /api/health` | **200** |
+| `POST /api/auth/login` | **410** |
+
+#### Every page, every role
+
+Each page's actual calls, run with real FastAPI tokens for all three roles:
+
+| Page | PASSENGER | STAFF | ADMIN |
+|---|---|---|---|
+| Dashboard, NetworkMap, Trains, Alerts, ETAPrediction, JourneyManagement | ok | ok | ok |
+| Simulation, Command Centre | **403** (and the React router does not let a passenger open them) | ok | ok |
+
+**No page that a role is allowed to open has a failing call.**
+
+### 2. `smoke_1c27a344` deleted
+
+`railpulse.users` 25 → **24**. `ml-bridge` kept (confirmed present). Nothing
+else in that collection was touched.
+
+### 3. Fresh verified backup — `backups/20261021-104639/`
+
+**31 collections**, 404 KB: `railpulse/` 19, `railpulse_node/` 11,
+`admin/system.version`. Verified by **decoding the BSON**, not just by file
+size: `railpulse/users` 24 docs, `railpulse/trains` 12,
+`railpulse_node` {trains 1, users 1, journeys 1, trainevents 1,
+etapredictions 3} — matching the live counts exactly.
+
+Note: `railpulse`'s `bottlenecks`, `propagations`, `recoveries`,
+`riskassessments`, `journeys` and `simulations` are no longer empty. The
+role-matrix test above called those endpoints, and each one stores its result.
+
+### 4. `railpulse_node` evidence (**nothing dropped**)
+
+| Collection | Docs | Newest write |
+|---|---|---|
+| `etapredictions` | 3 | 2026-10-20 15:13:03 |
+| `trainevents` | 1 | 2026-10-20 11:22:55 |
+| `trains` | 1 | 2026-10-20 11:22:55 |
+| `journeys` | 1 | 2026-10-20 09:02:08 |
+| `users` | 1 | 2026-10-20 08:52:14 |
+| `alerts`, `bottlenecks`, `propagations`, `recoveries`, `riskassessments`, `simulations` | 0 | — |
+
+**Total 7 documents. Newest write 2026-10-20**, before the cutover; nothing has
+written to it since.
+
+**Still pointing at it:**
+
+| Kind | Result |
+|---|---|
+| Code (`*.js`, `*.py`, `*.json`, `*.yml`) | **none** |
+| `.env` files (either service) | **none** |
+| Docs | `Readme.md`, `docs/AUDIT_PHASE2.md`, `docs/UNIFY_PROGRESS.md` — all describing it as the retired backup, none configuring it |
+
+Nothing reads or writes it. It is safe to drop, and it has not been dropped: per
+the standing rule that needs you to type the exact name.
+
+### 5. Fresh-clone test of the README
+
+A clean `git clone` into a scratch folder — **no `.env`, no `node_modules`,
+no `.venv`** (verified by `find`) — then only the README's own steps.
+
+**What worked, first time:** `npm ci` in both JS projects; `python3 -m venv` +
+`pip install -r requirements.txt`; `training/train.py` (produced
+`delay-v3-20261021T051941Z` and the cleaned parquet); both `.env` templates
+exactly as printed; both backends starting and answering health **200**; the
+`ml-bridge` registration; `npm run seed` dry run; `--apply` (13/4/12/12/3 +
+12 Redis keys); the verification block; `npx vite build`. **The ETA chain worked
+on the clone**: `predictionSource: "ml"`, its own model version,
+`trainKnownToModel: true`.
+
+**Three things that failed or were unclear — all now fixed in the README:**
+
+1. **The website's own configuration was never mentioned.** There is a
+   `frontend/frontend/.env.example` (`VITE_API_BASE_URL`,
+   `VITE_AUTH_BASE_URL`, `VITE_ML_APP_URL`) and the README did not name it. On
+   the documented ports nothing is needed, so this is invisible until you change
+   a port — which is exactly when you need it. Now documented, together with the
+   matching `CORS_ORIGINS` edit.
+2. **The default training run does not cover the seeded trains.** The pipeline
+   defaults to `indian_railway_delay_data_.csv`: **100 journeys, 10 trains**.
+   The seed writes **12**. Measured on the clone with the catalogue loaded:
+   `/reference/trains/12002/route` → **200**, but **12621** and **12625** →
+   **404**. Arrival estimates still work (the model reports
+   `trainKnownToModel: false`), but the mismatch was undocumented. The README
+   now states it and gives the `--data data/indian_railway_delay_synthetic_552.csv`
+   flag to cover all twelve.
+3. **The seed's dry run printed a bare `would write 0 key(s)`** for Redis on an
+   empty database, with no explanation — a live-state key is keyed on a train's
+   `_id`, which does not exist until the apply run. The events line already said
+   so; the Redis line now does too.
+
+Also corrected while verifying: `MODEL_PATH`/`MODEL_VERSION` in the README's
+template were a guess carried over from the old guide; they are the real values
+from `.env.example`, and the README now says the registry supersedes them. The
+README's security section was rewritten to state the D4 rules.
+
+**Disclosed deviations:** the clone ran on ports 5001/8001 against a separate
+database, `railpulse_freshtest`, so the test could not touch the live stack or
+its data. That scratch database still exists and is not used by anything — say
+the word and it goes.
+
+### Status
+
+- **Done:** D4 (one commit, `18e8058`); throwaway account deleted; fresh
+  verified backup; `railpulse_node` evidence; fresh-clone README test with three
+  gaps found and fixed.
+- **Not done:** dropping `railpulse_node` — type the name and it goes, with a
+  backup newer than this one taken first.

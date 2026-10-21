@@ -118,6 +118,20 @@ It writes a versioned artifact under `models/registry/` and points
 `models/latest.json` at it; the API reports which one it loaded at
 `/api/v1/health/`. `MODEL_PATH` and `MODEL_VERSION` in `.env` are the legacy
 single-file settings and are superseded by that registry.
+`python3 -m training.pipeline` is the same thing with flags (`--data`,
+`--config`, `--seed`, `--quick`).
+
+By default it trains on `data/indian_railway_delay_data_.csv`: **100 journeys
+across 10 trains.** The demo seed in step 7 writes **12** trains, so two of
+them — **12621 Tamil Nadu Express** and **12625 Kerala Express** — will not be
+in the reference catalogue, and the ML app's route lookup answers 404 for those
+two. Their arrival estimates still work; the model simply reports
+`trainKnownToModel: false`. To cover all twelve, train on the larger included
+file instead:
+
+```bash
+cd "prediction model/railpulse-backend" && .venv/bin/python -m training.pipeline --data data/indian_railway_delay_synthetic_552.csv
+```
 
 ```bash
 cd "prediction model/railpulse-backend" && .venv/bin/python -m uvicorn app.main:app --port 8000
@@ -130,6 +144,12 @@ cd backend && npm ci && npm run dev
 ```bash
 cd frontend/frontend && npm ci && npm run dev
 ```
+
+The website needs no configuration if everything runs on the ports above. If
+any of them differ, copy `frontend/frontend/.env.example` to
+`.env.local` and set `VITE_API_BASE_URL`, `VITE_AUTH_BASE_URL` and
+`VITE_ML_APP_URL` — and add the website's own origin to `CORS_ORIGINS` in the
+FastAPI `.env`, which is compared against exactly what the browser sends.
 
 ```bash
 cd "prediction model/railpulse-frontend" && python3 -m http.server 3000
@@ -284,10 +304,16 @@ docker exec railpulse-mongo mongodump --uri="mongodb://127.0.0.1:27017" --out=/t
 
 Never commit `.env`, credentials, `node_modules`, `.venv`, model binaries,
 `backups/` or build output. Both `.env` files hold a shared signing secret;
-rotating it means updating both and signing everyone out. Most Express data
-routes are deliberately unauthenticated for now — adding route protection is a
-pending, explicitly-gated decision, so do not expose this setup to a network you
-do not control.
+rotating it means updating both and signing everyone out.
+
+**Every `/api` route requires a verified token**, except `GET /api/health` and
+the retired identity endpoints, which answer `410 Gone`. Reads are open to any
+signed-in role. Writes on trains, train-events, alerts and journeys, and
+everything under `/api/simulation` and `/api/operations`, require **STAFF or
+ADMIN**. The two exceptions are `GET /api/operations/network` (the dashboard
+summary every role sees) and `POST /api/journey/plan` (a passenger search). The
+whole rule is one file, `backend/middleware/apiGuard.js`, with its table in
+`backend/tests/apiGuard.test.js`. Socket.IO is not covered by it.
 
 ## Documentation
 
