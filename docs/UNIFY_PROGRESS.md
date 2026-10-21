@@ -1597,3 +1597,119 @@ the word and it goes.
   gaps found and fixed.
 - **Not done:** dropping `railpulse_node` — type the name and it goes, with a
   backup newer than this one taken first.
+
+---
+
+## Phase UI-1 — Design audit (read-only)
+
+Branch `feature/ui-polish`, cut from `940c588`. Tracked tree was clean; the only
+untracked items were `RAILPULSE_NEW.zip` and the Phase 6a screenshot folders.
+No source file was changed in this phase.
+
+### Tokens actually in use (`frontend/frontend/src`)
+
+Tailwind v4, CSS-first (`@import "tailwindcss"` in `index.css`). There is no
+`tailwind.config.js` and no `@theme` block, so every class is a stock Tailwind
+default — the project has no named tokens of its own.
+
+- **Brand:** `orange-500` (33 uses) with `orange-600` hover, `orange-50/100`
+  tints, `orange-400` focus border.
+- **Surfaces:** white cards on `slate-50` page, `slate-100`/`slate-200` for
+  dividers and inset panels.
+- **Text:** `slate-500` (73), `slate-900` (57), `slate-400` (44), `slate-600`
+  (41), `slate-700` (32).
+- **Status:** green / red / yellow / amber `-100` fills with `-700` text.
+- **Radius:** `rounded-full` (60), `rounded-xl` (49), `rounded-lg` (45),
+  `rounded-2xl` (33), plus stray `rounded-md`, `rounded-3xl`, `rounded`.
+- **Shadow:** `shadow-sm` (39) dominant; `shadow`, `shadow-md`, `shadow-lg`,
+  `shadow-2xl` appear once or twice each.
+- **Spacing:** `p-6` (32), `p-4` (22), `p-8` (11), `p-12` (9, state blocks);
+  gaps `gap-2`/`gap-3`/`gap-4`.
+- **Type:** `text-sm` (146), `text-xs` (90), `font-semibold` (107),
+  `font-bold` (65); `text-3xl font-bold` is the page title everywhere.
+- **Font family:** never set. Everything renders in the browser default
+  sans-serif.
+- **Motion:** bare `transition` (24), `transition-all` (7), `animate-spin` (3).
+  No `prefers-reduced-motion` guard exists anywhere.
+
+### Inconsistencies found
+
+1. **`slate` and `gray` are mixed.** The seven app pages use `slate`; Login,
+   Register, StaffRegister and StaffOTP use `gray` (`text-gray-500` 22,
+   `text-gray-900` 13, `border-gray-200/300` 14). Two greys, one product.
+2. **`green`/`red`/`yellow` instead of one status family.** `green-500` and
+   `green-700` sit next to `emerald`-free code, and `yellow-100` and `amber-100`
+   both mean "warning" in different files.
+3. **Body background contradicts every page.** `index.css` sets
+   `body { background:#020617; color:white }` — near-black — while the layout
+   paints `bg-slate-50` over it. The dark colour only shows through during
+   first paint and behind overscroll.
+4. **Five StatCard clones:** `StatCard` (Dashboard:709), `AlertStat`
+   (Alerts:376), `SummaryCard` (Trains:659), `KpiCard` (CommandCenter:835),
+   `MetricCard` (ETAPrediction:733). Same shape, four different paddings.
+5. **Four StatusBadge clones** (Alerts:584, Trains:714, ETAPrediction:821,
+   JourneyManagement:575) plus two severity maps (Alerts:553,
+   CommandCenter:14) holding identical colour strings.
+6. **No button component.** Every primary button is hand-written; the audit
+   found `py-3 rounded-lg`, `py-3.5 rounded-xl`, `px-6 py-3 rounded-lg`,
+   `px-4 py-2.5 rounded-lg` and `px-4 py-2 rounded-lg` as separate variants.
+   Disabled is `disabled:opacity-60` in one place and `disabled:bg-orange-300`
+   in another. No button has a loading state.
+7. **Focus rings only on inputs.** `focus:ring-2 focus:ring-orange-100`
+   appears 21 times, always on an input. No button or link has a visible
+   keyboard focus style, and nothing uses `focus-visible`.
+8. **Page headers are copy-pasted, not shared.** Seven near-identical
+   `<div><h1 class="text-3xl font-bold text-slate-900">` blocks. Login
+   (`text-xl`), Register (`text-4xl`) and StaffRegister (`text-4xl md:text-5xl`)
+   each pick their own scale.
+9. **CommandCenter double-pads.** It wraps itself in
+   `min-h-full bg-slate-50 p-6 md:p-8` inside a `<main>` that already applies
+   `p-4 sm:p-8`.
+10. **Contrast.** `text-slate-400` on white is about 2.8:1 — below the 4.5:1
+    minimum — and it carries the hint line in `EmptyState` and `ErrorState`
+    and 44 other places. `text-gray-400` on the auth pages is the same problem.
+11. **State blocks are good but thin.** `Loading`, `EmptyState` and `ErrorState`
+    are already shared and already honest about empty-vs-error. But loading is
+    one centred spinner for every context — card grid, 1000px-wide table and
+    map panel alike — so the layout jumps when data lands. `EmptyState` takes
+    no action, so a dead end stays a dead end.
+12. **No "last updated" anywhere,** despite a 15-second poll. The only refresh
+    control in the product is CommandCenter's "Refresh Operations" button.
+13. **`src/App.css` is dead** — 184 lines of leftover Vite template CSS
+    (`.hero`, `#next-steps`, `.vite`) that nothing imports.
+
+### Proposed shared set
+
+All five built from the values above — same orange, same slate, same
+`rounded-2xl`/`shadow-sm` card, no new palette:
+
+| Component | Replaces | Shape |
+|---|---|---|
+| `Button` | ~20 hand-written buttons | `variant` primary / secondary / ghost / danger, `size` sm/md, `loading`, `disabled`, real `focus-visible` ring |
+| `Card` | the `rounded-2xl border border-slate-200 bg-white p-6 shadow-sm` string (18 copies) | `padding` prop, optional `title`/`action` header slot |
+| `Badge` | 4 StatusBadge + 2 severity maps | one status→style map, always renders the label as text next to the colour |
+| `PageHeader` | 7 copied header blocks | `title`, `subtitle`, `actions` slot, and the "last updated" + refresh slot UI-4 needs |
+| `StatCard` | 5 clones | `label`, `value`, `tone`, `icon`, `hint`; count-up lands here in UI-2 |
+
+Location: `src/components/ui/`. Pages import and drop their local copies —
+presentation only, no change to any hook, service or fetch call.
+
+### Verified / not verified
+
+- `npx vite build` — passes (390 ms). Only the pre-existing >500 kB chunk notice.
+- `npx eslint src` — **6 errors, 0 warnings.** That is the ceiling for later
+  phases. All six are pre-existing `no-unused-vars` in `Trains.jsx`,
+  `JourneyManagement.jsx` and one other page.
+- **Not verified in a browser.** This phase read code only. The API on
+  `:5000` answers but every data route requires a token, so the 12 trains /
+  3 alerts count was not re-checked here; no source file changed, so it cannot
+  have moved. It will be checked in the browser from UI-2 on.
+
+### Decisions needed before UI-2
+
+- **`alert()` does not exist in this codebase** — the grep found zero calls.
+  The toast work in UI-2 has nothing to replace, so it would mean adding a new
+  surface. Say whether you want toasts added for the write actions
+  (Simulation run, Journey create, CommandCenter refresh) or dropped.
+- Everything else in UI-2 is doable in plain CSS with what is installed. No
+  animation library needed.
