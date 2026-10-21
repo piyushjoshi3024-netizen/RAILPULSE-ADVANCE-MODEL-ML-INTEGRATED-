@@ -3,11 +3,13 @@ import { useLocation } from "react-router-dom";
 
 import Sidebar from "./Sidebar";
 import Header from "./Header";
+import { useTheme } from "../ui/useTheme";
 
 function MainLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const menuButtonRef = useRef(null);
   const location = useLocation();
+  const { theme, toggle: toggleTheme } = useTheme();
 
   const closeSidebar = useCallback(() => {
     setSidebarOpen(false);
@@ -70,6 +72,8 @@ function MainLayout({ children }) {
         <Header
           onOpenSidebar={() => setSidebarOpen(true)}
           menuButtonRef={menuButtonRef}
+          theme={theme}
+          onToggleTheme={toggleTheme}
         />
 
         {/* Main content.

@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+import { useAuth } from "../context/AuthContext";
+
 import {
   useAlerts,
   useCorridors,
@@ -27,7 +29,8 @@ import CorridorLine from "../components/map/CorridorLine";
 import UnmappedTrains from "../components/map/UnmappedTrains";
 import { CRITICAL_DELAY_MINUTES, trainStatusFor } from "../components/map/mapStyle";
 import CountUp from "../components/ui/CountUp";
-import PageHeader from "../components/ui/PageHeader";
+import LastUpdated from "../components/ui/LastUpdated";
+import { ArrowRight, TriangleAlert } from "lucide-react";
 import Reveal from "../components/ui/Reveal";
 import { useFirstReveal } from "../components/ui/useFirstReveal";
 import { SkeletonStats } from "../components/ui/Skeleton";
@@ -64,6 +67,7 @@ L.Icon.Default.mergeOptions({
 
 function Dashboard() {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   // One hook per resource. Trains, events, the network summary and alerts
   // poll every fifteen seconds and pause while the tab is hidden; stations
@@ -172,15 +176,18 @@ function Dashboard() {
   return (
     <div className="space-y-8">
 
-      <PageHeader
-        title="Dashboard"
-        subtitle="Overview of the railway network and current operations."
-        // The network summary is the figure the page leads with, so its
-        // timestamp is the one that answers "is this current?". `retryMap`
-        // already refetches all five resources.
+      <DashboardHero
+        user={user}
+        summary={networkResource.summary}
+        networkStatus={networkResource.networkStatus}
+        alertsCount={alertsResource.alerts.length}
+        loading={networkResource.loading}
+        error={Boolean(networkResource.error)}
         updatedAt={networkResource.updatedAt}
         onRefresh={retryMap}
         refreshing={networkResource.loading}
+        onViewAlerts={() => navigate("/alerts")}
+        onViewMap={() => navigate("/map")}
       />
 
       {/* -------------------------------------------
@@ -639,6 +646,106 @@ function Dashboard() {
 // --------------------------------------------------
 // STAT CARD
 // --------------------------------------------------
+
+// --------------------------------------------------
+// DASHBOARD HERO  (Phase UI-5)
+//
+// A landing band for the one page a user opens on. It fetches nothing of
+// its own -- the greeting is from the auth context the app already holds,
+// and every figure is the same `networkResource` / `alertsResource` the
+// stat cards below it read. The orange wash is `.rp-hero` in index.css, so
+// it has one definition and a dark-mode counterpart in one place. The whole
+// band is `rp-fade`, which is disabled under prefers-reduced-motion.
+// --------------------------------------------------
+
+function timeGreeting(date = new Date()) {
+  const hour = date.getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
+}
+
+function DashboardHero({
+  user,
+  summary,
+  networkStatus,
+  alertsCount,
+  loading,
+  error,
+  updatedAt,
+  onRefresh,
+  refreshing,
+  onViewAlerts,
+  onViewMap,
+}) {
+  const name = user?.full_name || user?.username || "there";
+  const active = summary?.activeTrains ?? 0;
+  const delayed = summary?.delayedTrains ?? 0;
+
+  return (
+    <section className="rp-hero rp-fade relative overflow-hidden rounded-2xl border p-6 shadow-sm sm:p-8">
+      {/* Decoration only; never announced. */}
+      <span className="rp-hero-glow pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full" aria-hidden="true" />
+
+      <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-wider text-orange-600">
+            Dashboard
+          </p>
+
+          <h1 className="mt-1 text-2xl font-bold text-slate-900 sm:text-3xl">
+            {timeGreeting()}, {name}
+          </h1>
+
+          {/* One honest sentence, from the live figures. "Loading" and a
+              failed summary are distinct -- a dash is not a zero. */}
+          <p className="mt-2 max-w-2xl text-sm text-slate-600">
+            {loading ? (
+              "Loading the latest network figures..."
+            ) : error ? (
+              "The network summary is unavailable right now. The figures below say which parts loaded."
+            ) : (
+              <>
+                Network status is{" "}
+                <span className="font-semibold text-slate-900">{networkStatus}</span>.{" "}
+                <span className="font-semibold text-slate-900">{active}</span> active,{" "}
+                <span className="font-semibold text-slate-900">{delayed}</span> delayed,{" "}
+                <span className="font-semibold text-slate-900">{alertsCount}</span>{" "}
+                {alertsCount === 1 ? "alert" : "alerts"} open.
+              </>
+            )}
+          </p>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={onViewMap}
+              className="rp-press inline-flex items-center gap-1.5 rounded-lg bg-orange-500 px-3.5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2"
+            >
+              Open the map
+              <ArrowRight size={15} aria-hidden="true" />
+            </button>
+
+            {alertsCount > 0 ? (
+              <button
+                type="button"
+                onClick={onViewAlerts}
+                className="rp-press inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:border-orange-400 hover:text-orange-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2"
+              >
+                <TriangleAlert size={15} aria-hidden="true" />
+                Review {alertsCount} {alertsCount === 1 ? "alert" : "alerts"}
+              </button>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="shrink-0">
+          <LastUpdated updatedAt={updatedAt} onRefresh={onRefresh} loading={refreshing} />
+        </div>
+      </div>
+    </section>
+  );
+}
 
 function StatCard({
   title,

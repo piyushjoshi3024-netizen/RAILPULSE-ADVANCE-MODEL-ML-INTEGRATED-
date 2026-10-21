@@ -1,9 +1,15 @@
 import { Menu, UserCircle } from "lucide-react";
 
 import { HEALTH_STYLES, useServiceHealth } from "../../hooks/useServiceHealth";
+import ThemeToggle from "../ui/ThemeToggle";
 import { useAuth } from "../../context/AuthContext";
 
-function Header({ onOpenSidebar = () => {}, menuButtonRef = null }) {
+function Header({
+  onOpenSidebar = () => {},
+  menuButtonRef = null,
+  theme = "light",
+  onToggleTheme = () => {},
+}) {
   const health = useServiceHealth();
   const healthStyle = HEALTH_STYLES[health.state];
   const { user } = useAuth();
@@ -31,6 +37,8 @@ function Header({ onOpenSidebar = () => {}, menuButtonRef = null }) {
       </div>
 
       <div className="flex items-center gap-3">
+        <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+
         {/* The label is the measured state of both services, not decoration. */}
         <div
           className={`hidden sm:flex items-center gap-2 px-4 py-2 rounded-full border ${healthStyle.chip}`}

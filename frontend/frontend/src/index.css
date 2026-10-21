@@ -187,6 +187,133 @@ body {
 }
 
 /* =========================================================================
+   DASHBOARD HERO  (Phase UI-5)
+
+   The one place the landing band's colours live, so light and dark are
+   defined together and the page file carries no gradient. A gentle orange
+   wash on white; the glow is a soft brand accent, decorative only.
+   ========================================================================= */
+
+.rp-hero {
+  border-color: #fed7aa;
+  background: linear-gradient(135deg, #fff7ed 0%, #ffffff 55%);
+}
+
+.rp-hero-glow {
+  background: radial-gradient(circle, rgba(249, 115, 22, 0.18) 0%, rgba(249, 115, 22, 0) 70%);
+}
+
+/* =========================================================================
+   DARK THEME  (Phase UI-5)
+
+   One layer, keyed on html[data-theme="dark"], which the inline script in
+   index.html sets before first paint and the header toggle flips. It remaps
+   the neutral surface, text and border utilities the app actually uses --
+   enumerated from the source, not guessed -- plus hover states, the status
+   chips, the map tiles and Leaflet's popup. The brand orange is left alone:
+   it reads on dark as it does on light.
+
+   These rules sit outside Tailwind's cascade layers, so they win over the
+   utilities without !important. Nothing here changes layout; only colour.
+   ========================================================================= */
+
+html[data-theme="dark"] body {
+  background: #020617;
+  color: #e2e8f0;
+}
+
+/* --- Surfaces --- */
+html[data-theme="dark"] .bg-white { background-color: #0f172a; }
+html[data-theme="dark"] .bg-slate-50,
+html[data-theme="dark"] .bg-gray-50 { background-color: #020617; }
+html[data-theme="dark"] .bg-slate-100 { background-color: #1e293b; }
+html[data-theme="dark"] .bg-slate-200 { background-color: #334155; }
+html[data-theme="dark"] .bg-slate-300 { background-color: #475569; }
+html[data-theme="dark"] .bg-slate-50\/50 { background-color: #0f172a; }
+html[data-theme="dark"] .bg-white\/95 { background-color: rgba(15, 23, 42, 0.95); }
+html[data-theme="dark"] .bg-white\/90 { background-color: rgba(15, 23, 42, 0.92); }
+html[data-theme="dark"] .bg-white\/80 { background-color: rgba(15, 23, 42, 0.85); }
+
+/* --- Hover surfaces --- */
+html[data-theme="dark"] .hover\:bg-slate-50:hover,
+html[data-theme="dark"] .hover\:bg-slate-100:hover,
+html[data-theme="dark"] .hover\:bg-white:hover { background-color: #1e293b; }
+html[data-theme="dark"] .hover\:bg-slate-200:hover { background-color: #334155; }
+
+/* --- Text --- */
+html[data-theme="dark"] .text-slate-900,
+html[data-theme="dark"] .text-gray-900,
+html[data-theme="dark"] .text-black { color: #f1f5f9; }
+html[data-theme="dark"] .text-slate-800 { color: #e2e8f0; }
+html[data-theme="dark"] .text-slate-700,
+html[data-theme="dark"] .text-gray-700 { color: #cbd5e1; }
+html[data-theme="dark"] .text-slate-600,
+html[data-theme="dark"] .text-gray-600 { color: #cbd5e1; }
+html[data-theme="dark"] .text-slate-500,
+html[data-theme="dark"] .text-gray-500 { color: #94a3b8; }
+
+/* --- Borders --- */
+html[data-theme="dark"] .border-slate-100,
+html[data-theme="dark"] .border-slate-200,
+html[data-theme="dark"] .border-gray-100,
+html[data-theme="dark"] .border-gray-200 { border-color: #1e293b; }
+html[data-theme="dark"] .border-slate-300,
+html[data-theme="dark"] .border-gray-300 { border-color: #334155; }
+html[data-theme="dark"] .divide-slate-100 > * + * { border-color: #1e293b; }
+html[data-theme="dark"] .divide-slate-200 > * + * { border-color: #334155; }
+
+/* --- Orange tints: on dark, the light wash would glow, so it becomes a
+       translucent brand tint. The text orange is left as it is. --- */
+html[data-theme="dark"] .bg-orange-50 { background-color: rgba(249, 115, 22, 0.12); }
+html[data-theme="dark"] .bg-orange-100 { background-color: rgba(249, 115, 22, 0.18); }
+html[data-theme="dark"] .hover\:bg-orange-50:hover { background-color: rgba(249, 115, 22, 0.14); }
+
+/* --- Status chips: darkened fills with lighter text, so a badge reads as an
+       accent on a dark card rather than a bright block. --- */
+html[data-theme="dark"] .bg-green-100 { background-color: rgba(22, 163, 74, 0.2); }
+html[data-theme="dark"] .text-green-800,
+html[data-theme="dark"] .text-green-700 { color: #86efac; }
+html[data-theme="dark"] .bg-red-100 { background-color: rgba(220, 38, 38, 0.22); }
+html[data-theme="dark"] .text-red-800,
+html[data-theme="dark"] .text-red-700 { color: #fca5a5; }
+html[data-theme="dark"] .bg-amber-100,
+html[data-theme="dark"] .bg-yellow-100 { background-color: rgba(245, 158, 11, 0.2); }
+html[data-theme="dark"] .text-amber-800,
+html[data-theme="dark"] .text-amber-700,
+html[data-theme="dark"] .text-yellow-700 { color: #fcd34d; }
+
+/* --- Skeleton --- */
+html[data-theme="dark"] .rp-skeleton {
+  background-color: #1e293b;
+  background-image: linear-gradient(
+    90deg,
+    rgba(30, 41, 59, 0) 0%,
+    rgba(71, 85, 105, 0.6) 50%,
+    rgba(30, 41, 59, 0) 100%
+  );
+}
+
+/* --- Hero --- */
+html[data-theme="dark"] .rp-hero {
+  border-color: #3f2a12;
+  background: linear-gradient(135deg, rgba(124, 45, 18, 0.35) 0%, #0f172a 55%);
+}
+html[data-theme="dark"] .rp-hero-glow {
+  background: radial-gradient(circle, rgba(249, 115, 22, 0.22) 0%, rgba(249, 115, 22, 0) 70%);
+}
+
+/* --- Map: the light OSM tiles are inverted into a dark basemap. Markers and
+       lines live in other panes and keep their true colours. --- */
+html[data-theme="dark"] .rp-map .leaflet-tile-pane {
+  filter: invert(0.92) hue-rotate(180deg) saturate(0.6) brightness(1.05) contrast(0.95);
+}
+html[data-theme="dark"] .rp-map .leaflet-popup-content-wrapper,
+html[data-theme="dark"] .rp-map .leaflet-popup-tip {
+  background: #0f172a;
+  color: #e2e8f0;
+}
+
+/* =========================================================================
    REDUCED MOTION
 
    One block, and it is the last word. A user who has asked their system for
