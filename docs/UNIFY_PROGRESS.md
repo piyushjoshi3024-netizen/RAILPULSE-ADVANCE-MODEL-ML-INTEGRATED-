@@ -1713,3 +1713,162 @@ presentation only, no change to any hook, service or fetch call.
   (Simulation run, Journey create, CommandCenter refresh) or dropped.
 - Everything else in UI-2 is doable in plain CSS with what is installed. No
   animation library needed.
+
+---
+
+## Phase UI-2 — Motion and feedback, plus the Journey Management fix
+
+Commits: `550c930` (motion layer and primitives), `f203b53` (Journey fix and
+Dashboard wiring).
+
+### The Journey Management bug
+
+The report was "if I select any station, No journey found is shown, and only
+a few stations are listed". Both halves had one cause.
+
+`JourneyManagement.jsx` held six `<option>` elements typed in by hand -- New
+Delhi, Mumbai Central, Agra, Jaipur, Kota, Bhopal -- survivors of a 71-line
+demo array (`Mumbai Rajdhani`, `Delhi Rajdhani`, `Bhopal Shatabdi`) that sat
+at the top of the module and was no longer rendered.
+
+`planJourney` in `backend/src/services/journey.service.js` matches by walking
+each train's `route` and requiring `sourceIndex < destinationIndex`. The
+seeded network's routes contain these 17 station names:
+
+> Chennai, Chennai Central, Chennai Egmore, Dibrugarh, Gorakhpur, Howrah,
+> Jammu, Kanyakumari, Kolkata, Lucknow, Mumbai, New Delhi, Pune,
+> Rani Kamlapati, Thiruvananthapuram, Varanasi, Yesvantpur Jn
+
+Of the six hardcoded names, **one** — New Delhi — appears in any of them, and
+it is the destination of six trains and the origin of exactly one. So all but
+one selectable pair returned 404 and the page drew its "No journey found"
+panel. The default pair on load, New Delhi → Mumbai Central, was one of them.
+The data was never missing; the form was asking for stations this network
+does not have.
+
+Worth recording separately: the six hardcoded names are not arbitrary. Agra,
+Jaipur, Kota, Bhopal and Mumbai Central are all in `seed-reference.json`'s 13
+stations. The reference station table and the train route table share only
+**New Delhi and Kolkata**. That is a real seed-data gap, in the backend, and
+it is left alone here — flagged below.
+
+### What changed on the page
+
+- Both dropdowns are built from the route graph in the API's own train list.
+  12 origins; the "To" list is narrowed to stations reachable from the chosen
+  origin and shows the train count. A pair that returns nothing can no longer
+  be selected.
+- The pair is **derived**, not seeded by an effect, so changing the origin
+  cannot leave a stale destination that would 404. Verified live: switching
+  the origin to Mumbai moved the destination to Chennai on its own.
+- A 404 (a real "no train serves this pair") and a transport failure are now
+  told apart. The old `catch` logged to `console.error` and showed the same
+  empty panel for both, which is how a broken API could look like an empty
+  result indefinitely.
+- All options render and are selectable. The old code stored the full list
+  and then read only `options[0]`.
+- **An invented-data fix.** The timeline picked its "Current location" marker
+  with `status === "DELAYED" ? station === "Surat" : index === 3` — a station
+  name from the deleted demo array, and otherwise the fourth stop regardless
+  of where the train was. It now matches the train's own `currentStation`,
+  and draws no marker when none is recorded.
+- The page's own `p-8` is gone; `<main>` already applies `p-4 sm:p-8`.
+
+### The motion layer
+
+All of it is in `src/index.css`, so there is one place to read it and one
+media query that switches it off. Nothing animates a geometry property --
+only `opacity` and `transform`.
+
+- **Page transitions:** `.rp-page` on `<main>`, keyed on `location.pathname`.
+  200ms fade and 6px rise. The key excludes search params and state, so a
+  filter change or a poll re-renders in place.
+- **Buttons:** one `Button` component replacing five hand-written variants,
+  with hover lift, 0.97 press, a real `focus-visible` ring (no button in this
+  codebase had one), a spinner `loading` state that disables the button, and
+  one disabled style instead of two.
+- **First load only, and it means it.** `useFirstReveal` latches: it is true
+  for 700ms after the first answer and false forever after, and the class is
+  *removed*, not merely unused. A 15-second poll re-renders the same elements
+  with no animation class on them. `CountUp` is the same -- the first real
+  number counts up, every later one is set directly, because a stat card that
+  re-rolls its digits every fifteen seconds is unreadable, not polished.
+- **Skeletons** shaped like what is coming -- stat card, card, table rows,
+  map panel -- replacing the one centred spinner that stood in for all of
+  them. No skeleton shows a plausible-looking figure.
+- **Sidebar and drawer:** backdrop now fades, the body no longer scrolls
+  behind the open drawer, and the active link carries a bar on its leading
+  edge as well as the orange fill, so position says where you are and not
+  colour alone.
+- **Toasts:** a provider in `App.jsx`, wired to the Journey search. UI-1
+  recorded that there is no `alert()` in this codebase to replace; these are
+  for actions the user took, deliberately *not* for poll failures, which
+  would stack four toasts a minute on a flaky connection.
+
+### Reduced motion
+
+One `@media (prefers-reduced-motion: reduce)` block, last word, covering
+every class above plus the Tailwind `transition` and `animate-ping` classes
+already spread through pages this phase did not rewrite. `CountUp` checks
+`matchMedia` too, since a JS animation cannot be stopped by CSS. `animate-spin`
+is left running on purpose: a spinner that does not spin reads as a broken
+image.
+
+### Also fixed, from the UI-1 list
+
+- `body` background was `#020617` with white text under a light UI. Now
+  `#f8fafc`.
+- `src/App.css` deleted: 184 lines of Vite template CSS nothing imported.
+- `text-slate-400` on white (about 2.8:1) replaced with slate-500/600 in the
+  state components, the Dashboard stat cards, the alert list and the whole
+  Journey page.
+- The one `text-blue-600` in the product (the header avatar) is now
+  orange-600.
+
+### Verified
+
+- `npx vite build` — passes.
+- `npx eslint src` — **4 errors, 0 warnings**, down from the 6-error
+  baseline. Two `no-unused-vars` went with the deleted demo array. Two new
+  `react-refresh/only-export-components` errors were introduced and then
+  removed by splitting `useFirstReveal` and `useToast` into their own files
+  rather than left to sit against the budget.
+- **In a browser, signed in**, at 360, 768 and 1280:
+  - Dashboard reads **12 Active Trains and 3 Active Alerts** at every width.
+  - No page scrolls horizontally. At 360 a DOM sweep for elements extending
+    past the viewport returned zero.
+  - Journey: 12 origins listed, Chennai Central → New Delhi returns train
+    12621 Tamil Nadu Express, DELAYED +44m, 2182 km, with the success toast.
+    The timeline marks Chennai Central as current — which is the train's real
+    `currentStation` — and shows 2 stops, which is what the seed holds.
+  - The mobile drawer slides, the backdrop fades, the active-link bar shows.
+  - The six reduced-motion rules were read back out of the live stylesheet
+    and all resolve to `animation: none`.
+- **Not verified:** the reduced-motion behaviour was confirmed structurally
+  in the stylesheet, not by toggling the OS setting and watching it render.
+  The multi-option journey layout could not be exercised: in this seed every
+  origin→destination pair has exactly one train, because each route has only
+  two stops.
+
+### Open, for your call
+
+1. **The seed's station gap.** `seed-reference.json` has 13 stations with
+   coordinates; the train routes name 17 different ones. The two sets share
+   only New Delhi and Kolkata. That is almost certainly the same gap behind
+   the "N trains not shown: no coordinate is recorded" note, and it is the
+   first thing UI-3 will run into. Backend seed data, so untouched. No
+   coordinates have been guessed.
+2. **Each seeded route has two stops** — origin and destination, no
+   intermediate stations (`seed-demo.js` says so explicitly and says why).
+   So the timeline will always be two dots and "Duration" will read `--`,
+   because the origin stop carries no `scheduledDeparture`. Presentation
+   cannot fix that; it needs route data.
+3. **One deviation from the brief, declared.** The page now calls
+   `useTrains({ poll: false })` — an existing hook, unmodified — because a
+   dropdown of real stations cannot be built without the route graph. It
+   replaces the second `getTrains()` the search handler used to fire on every
+   search, so the page makes fewer requests than before, not more. No file
+   under `src/hooks`, `src/services` or `src/config` was edited.
+4. **A test account exists.** `ui_polish_qa` was registered through the app's
+   own form on localhost to verify the signed-in pages; there is no seeded
+   demo account. Say the word and it goes.
