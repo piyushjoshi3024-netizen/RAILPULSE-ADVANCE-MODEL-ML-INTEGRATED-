@@ -5,7 +5,17 @@
     "frontend/frontend/src/pages/Dashboard.jsx and NetworkMap.jsx. That was the",
     "only station geography in this repository, and the two copies disagreed",
     "about Vadodara (NetworkMap only) and about trailing zeroes. This file is",
-    "the union, which is why it has 13 stations and not 12.",
+    "the union, which is why it had 13 stations and not 12.",
+    "Seven more were added later: the stations the seeded trains report as",
+    "their current station but that this file had no coordinate for, which",
+    "left 7 of 12 trains off the map. Their lat/lng were looked up against",
+    "OpenStreetMap via Nominatim and each is recorded with the OSM object it",
+    "came from in docs/UNIFY_PROGRESS.md. Their `zone` values are NOT from",
+    "that lookup -- they are the standard Indian Railways zone codes,",
+    "asserted, and nothing reads the field.",
+    "The `name` must stay exactly as written: the train-to-coordinate join",
+    "is by station name, so changing \"Thiruvananthapuram\" to",
+    "\"Thiruvananthapuram Central\" would silently unmap that train again.",
     "The corridors are NetworkMap's four named ones, rewritten as station codes",
     "so the coordinates exist in exactly one place. Dashboard's three unnamed",
     "polylines were variants of the same three routes and carried no id."
@@ -23,7 +33,14 @@
     { "code": "MMCT", "name": "Mumbai Central", "lat": 19.0760, "lng": 72.8777, "zone": "WR" },
     { "code": "CNB",  "name": "Kanpur",         "lat": 26.4499, "lng": 80.3319, "zone": "NCR" },
     { "code": "PRYJ", "name": "Prayagraj",      "lat": 25.4358, "lng": 81.8463, "zone": "NCR" },
-    { "code": "HWH",  "name": "Kolkata",        "lat": 22.5726, "lng": 88.3639, "zone": "ER" }
+    { "code": "HWH",  "name": "Kolkata",        "lat": 22.5726, "lng": 88.3639, "zone": "ER" },
+    { "code": "GKP",  "name": "Gorakhpur",          "lat": 26.7604641, "lng": 83.3798194, "zone": "NER" },
+    { "code": "DBRG", "name": "Dibrugarh",          "lat": 27.4647373, "lng": 94.9371639, "zone": "NFR" },
+    { "code": "MS",   "name": "Chennai Egmore",     "lat": 13.0777493, "lng": 80.2612572, "zone": "SR" },
+    { "code": "BSB",  "name": "Varanasi",           "lat": 25.3275678, "lng":  82.986245, "zone": "NER" },
+    { "code": "LKO",  "name": "Lucknow",            "lat": 26.8311583, "lng": 80.9243609, "zone": "NR" },
+    { "code": "TVC",  "name": "Thiruvananthapuram", "lat":  8.4870167, "lng": 76.9526408, "zone": "SR" },
+    { "code": "MAS",  "name": "Chennai Central",    "lat": 13.0825901, "lng": 80.2763077, "zone": "SR" }
   ],
   "corridors": [
     {

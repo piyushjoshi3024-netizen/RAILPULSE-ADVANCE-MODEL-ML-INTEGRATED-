@@ -210,7 +210,8 @@ const run = async () => {
     // coordinate for a train's route at all, both fall back to the train's
     // real source from the ML dataset: the station is named honestly and
     // simply resolves to no marker, rather than being given a guessed point.
-    const stationName = new Map(reference.stations.map((s) => [s.code, s.name]));
+    const stationNameByCode = new Map(reference.stations.map((s) => [s.code, s.name]));
+    const stationName = stationNameByCode;
     const trainIds = new Map(
         (await Train.find().select("_id trainNumber").lean()).map((t) => [t.trainNumber, t._id])
     );
@@ -289,7 +290,16 @@ const run = async () => {
         );
     }
 
-    const positionable = demo.trains.filter((t) => t.station).length;
+    // Counted the way the map actually joins, which is by station *name*:
+    // a train's event carries `stationName.get(train.station)` when it has a
+    // code and `train.source` when it does not, and the client resolves that
+    // string through the station list. Counting `t.station` instead -- which
+    // is what this line did -- only ever saw the trains carrying a code, and
+    // so reported "5 of 12" even once the other seven had coordinates.
+    const stationNames = new Set(reference.stations.map((s) => s.name));
+    const positionable = demo.trains.filter((t) =>
+        stationNames.has(t.station ? stationNameByCode.get(t.station) : t.source)
+    ).length;
     log("");
     log(
         `Map coverage: ${positionable} of ${demo.trains.length} demo trains sit at a station this` +
