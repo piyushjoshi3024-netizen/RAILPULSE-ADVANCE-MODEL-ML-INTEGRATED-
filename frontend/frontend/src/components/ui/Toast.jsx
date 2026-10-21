@@ -112,7 +112,7 @@ export function ToastProvider({ children }) {
                             <button
                                 type="button"
                                 onClick={() => dismiss(toast.id)}
-                                className="rp-press shrink-0 rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"
+                                className="rp-press shrink-0 rounded-md p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"
                                 aria-label="Dismiss notification"
                             >
                                 <X size={15} />

@@ -5,106 +5,14 @@ import { getTrainETA } from "../services/etaService";
 
 import { useNetworkSummary, useTrainEvents, useTrains } from "../hooks";
 import Loading from "../components/state/Loading";
+import PageHeader from "../components/ui/PageHeader";
+import Badge from "../components/ui/Badge";
 import EmptyState from "../components/state/EmptyState";
 import ErrorState from "../components/state/ErrorState";
-const trains = [
-  {
-    trainNumber: "12951",
-    trainName: "Mumbai Rajdhani",
-    type: "EXPRESS",
-    current: "Surat",
-    destination: "Mumbai Central",
-    source: "New Delhi",
-    speed: 82,
-    delay: 18,
-    estimatedArrival: "22:45",
-    confidence: 94,
-    traffic: "Medium",
-    status: "DELAYED",
-    progress: 72,
-    stations: [
-      { name: "New Delhi", completed: true },
-      { name: "Rewari", completed: true },
-      { name: "Jaipur", completed: true },
-      { name: "Kota", completed: true },
-      { name: "Ratlam", completed: true },
-      { name: "Surat", current: true },
-      { name: "Mumbai Central", completed: false },
-    ],
-  },
-
-  {
-    trainNumber: "12952",
-    trainName: "Mumbai Rajdhani",
-    type: "EXPRESS",
-    current: "Jhansi",
-    destination: "Mumbai Central",
-    source: "New Delhi",
-    speed: 82,
-    delay: 0,
-    estimatedArrival: "06:20",
-    confidence: 97,
-    traffic: "Low",
-    status: "RUNNING",
-    progress: 48,
-    stations: [
-      { name: "New Delhi", completed: true },
-      { name: "Agra", completed: true },
-      { name: "Gwalior", completed: true },
-      { name: "Jhansi", current: true },
-      { name: "Bhopal", completed: false },
-      { name: "Kota", completed: false },
-      { name: "Mumbai Central", completed: false },
-    ],
-  },
-
-  {
-    trainNumber: "12002",
-    trainName: "Bhopal Shatabdi",
-    type: "SUPERFAST",
-    current: "Agra",
-    destination: "Bhopal",
-    source: "New Delhi",
-    speed: 96,
-    delay: 3,
-    estimatedArrival: "20:35",
-    confidence: 91,
-    traffic: "Medium",
-    status: "RUNNING",
-    progress: 54,
-    stations: [
-      { name: "New Delhi", completed: true },
-      { name: "Agra", current: true },
-      { name: "Gwalior", completed: false },
-      { name: "Jhansi", completed: false },
-      { name: "Bhopal", completed: false },
-    ],
-  },
-
-  {
-    trainNumber: "12301",
-    trainName: "Howrah Rajdhani",
-    type: "EXPRESS",
-    current: "Kanpur",
-    destination: "Howrah",
-    source: "New Delhi",
-    speed: 74,
-    delay: 12,
-    estimatedArrival: "07:15",
-    confidence: 89,
-    traffic: "High",
-    status: "DELAYED",
-    progress: 39,
-    stations: [
-      { name: "New Delhi", completed: true },
-      { name: "Kanpur", current: true },
-      { name: "Prayagraj", completed: false },
-      { name: "Varanasi", completed: false },
-      { name: "Gaya", completed: false },
-      { name: "Howrah", completed: false },
-    ],
-  },
-];
+// The 98-line hardcoded `trains` array that sat here is gone. It was dead --
+// nothing read it, eslint had flagged it since before this branch -- and it
+// was the same kind of stale demo data that made Journey Management answer
+// "No journey found" for every station pair. This page reads useTrains().
 
 function ETAPrediction() {
   // This defaulted to the hardcoded "12951", a train number that belongs to
@@ -224,23 +132,16 @@ function ETAPrediction() {
     );
   }
   return (
-    <div className="space-y-8 p-8">
+    <div className="space-y-8">
 
-      {/* =====================================================
-          HEADER
-      ===================================================== */}
-
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900">
-          ETA Prediction
-        </h1>
-
-        <p className="mt-2 text-slate-500">
-          Predict train arrival times using current operational data.
-        </p>
-
-        {etaData && <ModelStatusBadge eta={etaData} />}
-      </div>
+      <PageHeader
+        title="ETA Prediction"
+        subtitle="Predict train arrival times using current operational data."
+        updatedAt={trainsResource.updatedAt}
+        onRefresh={trainsResource.refetch}
+        refreshing={trainsResource.loading}
+        actions={etaData ? <ModelStatusBadge eta={etaData} /> : null}
+      />
 
 
       {/* =====================================================
@@ -365,7 +266,7 @@ function ETAPrediction() {
               </div>
 
 
-              <StatusBadge status={selectedTrain.status} />
+              <Badge status={selectedTrain.status} />
 
             </div>
 
@@ -517,7 +418,7 @@ function ETAPrediction() {
                           ? "font-bold text-orange-600"
                           : station.completed
                             ? "font-medium text-slate-600"
-                            : "text-slate-400"
+                            : "text-slate-500"
                         }
                       `}
                     >
@@ -604,7 +505,7 @@ function ETAPrediction() {
                     <p className="text-sm font-medium text-slate-500">
                       Model delay quantiles
                     </p>
-                    <span className="text-xs text-slate-400">
+                    <span className="text-xs text-slate-500">
                       {etaData.modelVersion}
                     </span>
                   </div>
@@ -614,7 +515,7 @@ function ETAPrediction() {
                     <QuantileCell label="P50" value={etaData.delayP50Minutes} highlight />
                     <QuantileCell label="P90" value={etaData.delayP90Minutes} />
                     <div>
-                      <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
                         Delay &gt; 15 min
                       </p>
                       <p className="mt-2 text-xl font-bold text-slate-900">
@@ -625,7 +526,7 @@ function ETAPrediction() {
                     </div>
                   </div>
 
-                  <p className="mt-3 text-xs text-slate-400">
+                  <p className="mt-3 text-xs text-slate-500">
                     Likely delay range {formatMinutes(etaData.delayP10Minutes)} to{" "}
                     {formatMinutes(etaData.delayP90Minutes)} at {selectedTrain.destination}.
                   </p>
@@ -657,7 +558,7 @@ function ETAPrediction() {
                     </p>
 
                     {etaData?.predictionSource !== "ml" && etaData?.fallbackReason && (
-                      <p className="mt-2 text-xs text-slate-400">
+                      <p className="mt-2 text-xs text-slate-500">
                         Model not used: {FALLBACK_REASONS[etaData.fallbackReason] || etaData.fallbackReason}
                       </p>
                     )}
@@ -703,7 +604,7 @@ function ETAPrediction() {
 
               <div className="mt-6 border-t border-slate-100 pt-5">
 
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
                   Estimated Arrival
                 </p>
 
@@ -716,7 +617,7 @@ function ETAPrediction() {
                     : "--"}
                 </p>
 
-                <p className="mt-1 text-xs text-slate-400">
+                <p className="mt-1 text-xs text-slate-500">
                   At {selectedTrain.destination}
                 </p>
 
@@ -749,7 +650,7 @@ function MetricCard({
 
     <div className="rounded-xl border border-slate-100 bg-slate-50 p-5">
 
-      <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
         {label}
       </p>
 
@@ -813,7 +714,7 @@ function AnalysisCard({
         {value}
       </p>
 
-      <p className="mt-1 text-xs text-slate-400">
+      <p className="mt-1 text-xs text-slate-500">
         {description}
       </p>
 
@@ -827,51 +728,6 @@ function AnalysisCard({
    STATUS BADGE
 ========================================================= */
 
-function StatusBadge({ status }) {
-
-  const styles = {
-    RUNNING: "bg-green-100 text-green-700",
-    DELAYED: "bg-red-100 text-red-700",
-    "AT STATION": "bg-orange-100 text-orange-700",
-  };
-
-  const dots = {
-    RUNNING: "bg-green-500",
-    DELAYED: "bg-red-500",
-    "AT STATION": "bg-orange-500",
-  };
-
-  return (
-
-    <span
-      className={`
-        inline-flex
-        items-center
-        gap-2
-        rounded-full
-        px-3
-        py-1.5
-        text-xs
-        font-semibold
-        ${styles[status] || "bg-slate-100 text-slate-600"}
-      `}
-    >
-
-      <span
-        className={`
-          h-2
-          w-2
-          rounded-full
-          ${dots[status] || "bg-slate-500"}
-        `}
-      />
-
-      {status}
-
-    </span>
-
-  );
-}
 
 
 /* =========================================================
@@ -894,7 +750,7 @@ function formatMinutes(value) {
 function QuantileCell({ label, value, highlight = false }) {
   return (
     <div>
-      <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
         {label}
       </p>
       <p

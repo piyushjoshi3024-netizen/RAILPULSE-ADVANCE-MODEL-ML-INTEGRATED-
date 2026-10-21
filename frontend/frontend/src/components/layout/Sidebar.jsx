@@ -140,9 +140,12 @@ function Sidebar({ open = false, onClose = () => {} }) {
         </div>
 
         <div className="ml-3">
-          <h1 className="text-xl font-bold text-slate-900">
+          {/* Not an <h1>: the page's own title is the h1, and two of them
+              per page leaves a screen reader's heading list opening on the
+              brand rather than on where the user is. */}
+          <p className="text-xl font-bold text-slate-900">
             RailPulse
-          </h1>
+          </p>
 
           <p className="text-xs text-slate-500">
             Railway Intelligence
@@ -163,7 +166,7 @@ function Sidebar({ open = false, onClose = () => {} }) {
       {/* Navigation */}
       <div className="px-4 py-6">
 
-        <p className="px-3 mb-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+        <p className="px-3 mb-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">
           Navigation
         </p>
 

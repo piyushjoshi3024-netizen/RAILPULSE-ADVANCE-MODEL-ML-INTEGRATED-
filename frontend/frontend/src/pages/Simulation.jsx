@@ -2,6 +2,7 @@ import { useState } from "react";
 import { runStaffSimulation } from "../services/simulationService";
 
 import { useTrains } from "../hooks";
+import PageHeader from "../components/ui/PageHeader";
 import { SIMULATION_SCENARIOS } from "../config/scenarios";
 
 // The three presets live in config/scenarios.js (decision D-A1). They
@@ -81,20 +82,15 @@ function Simulation() {
   };
 
   return (
-    <div className="space-y-8 p-8">
+    <div className="space-y-8">
 
-      {/* PAGE HEADER */}
-
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900">
-          What-If Simulation
-        </h1>
-
-        <p className="mt-2 text-slate-500">
-          Simulate operational scenarios and analyze their impact
-          on railway traffic.
-        </p>
-      </div>
+      <PageHeader
+        title="What-If Simulation"
+        subtitle="Simulate operational scenarios and analyze their impact on railway traffic."
+        updatedAt={trainsResource.updatedAt}
+        onRefresh={trainsResource.refetch}
+        refreshing={trainsResource.loading}
+      />
 
 
       {/* SCENARIO SELECTION */}
@@ -233,7 +229,7 @@ function Simulation() {
                 }}
                 className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
               />
-              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-slate-400">
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-slate-500">
                 min
               </span>
 
@@ -560,7 +556,7 @@ function ResultCard({
         {value}
       </p>
 
-      <p className="mt-2 text-sm text-slate-400">
+      <p className="mt-2 text-sm text-slate-500">
         {description}
       </p>
 

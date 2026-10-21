@@ -27,6 +27,7 @@ import CorridorLine from "../components/map/CorridorLine";
 import UnmappedTrains from "../components/map/UnmappedTrains";
 import { CRITICAL_DELAY_MINUTES, trainStatusFor } from "../components/map/mapStyle";
 import CountUp from "../components/ui/CountUp";
+import PageHeader from "../components/ui/PageHeader";
 import Reveal from "../components/ui/Reveal";
 import { useFirstReveal } from "../components/ui/useFirstReveal";
 import { SkeletonStats } from "../components/ui/Skeleton";
@@ -171,19 +172,16 @@ function Dashboard() {
   return (
     <div className="space-y-8">
 
-      {/* -------------------------------------------
-          PAGE HEADING
-      -------------------------------------------- */}
-
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900">
-          Dashboard
-        </h1>
-
-        <p className="mt-2 text-slate-500">
-          Overview of the railway network and current operations.
-        </p>
-      </div>
+      <PageHeader
+        title="Dashboard"
+        subtitle="Overview of the railway network and current operations."
+        // The network summary is the figure the page leads with, so its
+        // timestamp is the one that answers "is this current?". `retryMap`
+        // already refetches all five resources.
+        updatedAt={networkResource.updatedAt}
+        onRefresh={retryMap}
+        refreshing={networkResource.loading}
+      />
 
       {/* -------------------------------------------
           STATS
@@ -534,7 +532,7 @@ function Dashboard() {
 
                       </div>
 
-                      <span className="text-[10px] text-slate-400">
+                      <span className="text-[10px] text-slate-500">
                         {train.speed} km/h
                       </span>
 
@@ -609,7 +607,7 @@ function Dashboard() {
 
             ) : alertsResource.alerts.length === 0 ? (
 
-              <p className="text-sm text-slate-400">
+              <p className="text-sm text-slate-500">
                 No alerts have been recorded.
               </p>
 
@@ -718,7 +716,7 @@ function DetailRow({
   return (
     <div className="flex items-center justify-between text-xs">
 
-      <span className="text-slate-400">
+      <span className="text-slate-500">
         {label}
       </span>
 
@@ -750,7 +748,7 @@ function MiniStat({
         {value}
       </p>
 
-      <p className="text-[10px] text-slate-400">
+      <p className="text-[10px] text-slate-500">
         {label}
       </p>
 

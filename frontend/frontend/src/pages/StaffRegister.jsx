@@ -91,7 +91,7 @@ const StaffRegister = () => {
                                     RailPulse
                                 </h2>
 
-                                <p className="text-sm text-gray-400">
+                                <p className="text-sm text-gray-500">
                                     Railway Intelligence
                                 </p>
                             </div>
@@ -123,7 +123,7 @@ const StaffRegister = () => {
                                 <p className="text-orange-500 font-bold text-lg">
                                     ETA
                                 </p>
-                                <p className="text-gray-400 text-sm">
+                                <p className="text-gray-500 text-sm">
                                     Prediction
                                 </p>
                             </div>
@@ -132,7 +132,7 @@ const StaffRegister = () => {
                                 <p className="text-orange-500 font-bold text-lg">
                                     Live
                                 </p>
-                                <p className="text-gray-400 text-sm">
+                                <p className="text-gray-500 text-sm">
                                     Monitoring
                                 </p>
                             </div>
@@ -141,7 +141,7 @@ const StaffRegister = () => {
                                 <p className="text-orange-500 font-bold text-lg">
                                     Risk
                                 </p>
-                                <p className="text-gray-400 text-sm">
+                                <p className="text-gray-500 text-sm">
                                     Analysis
                                 </p>
                             </div>
@@ -152,7 +152,7 @@ const StaffRegister = () => {
 
                             <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
 
-                            <span className="text-sm text-gray-400">
+                            <span className="text-sm text-gray-500">
                                 Railway Intelligence Platform
                             </span>
 
@@ -329,7 +329,7 @@ const StaffRegister = () => {
 
                             <div className="border-t border-gray-100 mt-8 pt-6 text-center">
 
-                                <p className="text-xs text-gray-400">
+                                <p className="text-xs text-gray-500">
                                     Secure RailPulse staff access
                                 </p>
 

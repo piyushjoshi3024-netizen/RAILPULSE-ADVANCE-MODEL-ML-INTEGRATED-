@@ -7,7 +7,7 @@ import Button from "../ui/Button";
  * separate component stops pages from filling a gap with demo rows.
  *
  * UI-2 added `action`: a dead end with no way out is not a finished screen.
- * The hint also moved off `text-slate-400`, which measured about 2.8:1 on
+ * The hint also moved off `text-slate-500`, which measured about 2.8:1 on
  * white in the UI-1 audit -- below the 4.5:1 minimum for body text.
  */
 function EmptyState({

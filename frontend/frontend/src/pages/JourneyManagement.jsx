@@ -5,6 +5,7 @@ import { planJourney } from "../services/journeyService";
 import { useTrains } from "../hooks/useTrains";
 
 import Button from "../components/ui/Button";
+import PageHeader from "../components/ui/PageHeader";
 import CountUp from "../components/ui/CountUp";
 import Reveal from "../components/ui/Reveal";
 import { useFirstReveal } from "../components/ui/useFirstReveal";
@@ -52,9 +53,13 @@ function JourneyManagement() {
     // search result needs each train's type, status and current station to
     // enrich an option -- the same answer serves both, so the handler no
     // longer fires its own second request for the train list.
-    const { trains, loading: trainsLoading, error: trainsError, refetch } = useTrains({
-        poll: false,
-    });
+    const {
+        trains,
+        loading: trainsLoading,
+        error: trainsError,
+        updatedAt,
+        refetch,
+    } = useTrains({ poll: false });
 
     const toast = useToast();
 
@@ -207,15 +212,13 @@ function JourneyManagement() {
     return (
         <div className="space-y-8">
 
-            {/* HEADER */}
-
-            <div>
-                <h1 className="text-3xl font-bold text-slate-900">Journey Management</h1>
-
-                <p className="mt-2 text-slate-600">
-                    Plan and monitor train journeys across the railway network.
-                </p>
-            </div>
+            <PageHeader
+                title="Journey Management"
+                subtitle="Plan and monitor train journeys across the railway network."
+                updatedAt={updatedAt}
+                onRefresh={refetch}
+                refreshing={trainsLoading}
+            />
 
             {/* SEARCH */}
 
@@ -311,7 +314,7 @@ function JourneyManagement() {
                 {activeFrom && activeTo ? (
                     <p className="mt-4 flex items-center gap-2 text-sm text-slate-600">
                         <span className="font-semibold text-slate-900">{activeFrom}</span>
-                        <ArrowRight size={15} className="text-slate-400" aria-hidden="true" />
+                        <ArrowRight size={15} className="text-slate-500" aria-hidden="true" />
                         <span className="font-semibold text-slate-900">{activeTo}</span>
                     </p>
                 ) : null}
@@ -403,7 +406,7 @@ function JourneyManagement() {
                                                 {option.departure || "--"}
                                             </span>
 
-                                            <ArrowRight size={14} className="text-slate-400" aria-hidden="true" />
+                                            <ArrowRight size={14} className="text-slate-500" aria-hidden="true" />
 
                                             <span className="font-medium text-slate-700">
                                                 {option.arrival || "--"}

@@ -2,6 +2,8 @@ import { useState } from "react";
 
 import { useAlerts, useTrains } from "../hooks";
 import Loading from "../components/state/Loading";
+import PageHeader from "../components/ui/PageHeader";
+import Badge from "../components/ui/Badge";
 import EmptyState from "../components/state/EmptyState";
 import ErrorState from "../components/state/ErrorState";
 import { useAuth } from "../context/AuthContext";
@@ -136,22 +138,17 @@ function Alerts() {
   };
 
   return (
-    <div className="space-y-8 p-8">
+    // `p-8` removed: <main> already applies p-4 sm:p-8, so this page was
+    // double-padded and lost width on a phone.
+    <div className="space-y-8">
 
-      {/* =========================================
-          PAGE HEADER
-      ========================================== */}
-
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900">
-          Alerts
-        </h1>
-
-        <p className="mt-2 text-slate-500">
-          Monitor operational alerts and incidents across
-          the railway network.
-        </p>
-      </div>
+      <PageHeader
+        title="Alerts"
+        subtitle="Monitor operational alerts and incidents across the railway network."
+        updatedAt={alertsResource.updatedAt}
+        onRefresh={alertsResource.refetch}
+        refreshing={alertsResource.loading}
+      />
 
 
       {/* =========================================
@@ -396,7 +393,7 @@ function AlertStat({
         {value}
       </p>
 
-      <p className="mt-2 text-sm text-slate-400">
+      <p className="mt-2 text-sm text-slate-500">
         {description}
       </p>
 
@@ -466,13 +463,9 @@ function AlertRow({
                 {alert.title}
               </h3>
 
-              <SeverityBadge
-                severity={alert.severity}
-              />
+              <Badge status={alert.severity} />
 
-              <StatusBadge
-                status={alert.status}
-              />
+              <Badge status={alert.status} />
 
             </div>
 
@@ -482,7 +475,7 @@ function AlertRow({
             <p
               className={`mt-2 text-sm ${
                 isResolved
-                  ? "text-slate-400"
+                  ? "text-slate-500"
                   : "text-slate-600"
               }`}
             >
@@ -492,7 +485,7 @@ function AlertRow({
 
             {/* META */}
 
-            <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-xs text-slate-400">
+            <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-xs text-slate-500">
 
               <span>
                 Type:{" "}
@@ -548,53 +541,12 @@ function AlertRow({
    SEVERITY BADGE
 ========================================================= */
 
-function SeverityBadge({ severity }) {
-
-  const styles = {
-    CRITICAL:
-      "bg-red-100 text-red-700",
-
-    HIGH:
-      "bg-orange-100 text-orange-700",
-
-    MEDIUM:
-      "bg-yellow-100 text-yellow-700",
-
-    LOW:
-      "bg-slate-100 text-slate-600",
-  };
-
-  return (
-    <span
-      className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-        styles[severity] ||
-        "bg-slate-100 text-slate-600"
-      }`}
-    >
-      {severity}
-    </span>
-  );
-}
 
 
 /* =========================================================
    STATUS BADGE
 ========================================================= */
 
-function StatusBadge({ status }) {
-
-  return (
-    <span
-      className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-        status === "ACTIVE"
-          ? "bg-red-50 text-red-600"
-          : "bg-green-50 text-green-600"
-      }`}
-    >
-      {status}
-    </span>
-  );
-}
 
 
 export default Alerts;

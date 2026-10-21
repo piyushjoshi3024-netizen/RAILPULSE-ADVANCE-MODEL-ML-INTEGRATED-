@@ -10,21 +10,11 @@ import { HEALTH_STYLES, useServiceHealth } from "../hooks/useServiceHealth";
 import { getTrainEvents } from "../services/trainEventService";
 import api from "../services/api";
 
+import PageHeader from "../components/ui/PageHeader";
+import Badge from "../components/ui/Badge";
 
-const severityStyles = {
-  CRITICAL: "bg-red-100 text-red-700 border-red-200",
-  HIGH: "bg-orange-100 text-orange-700 border-orange-200",
-  MEDIUM: "bg-yellow-100 text-yellow-700 border-yellow-200",
-  LOW: "bg-slate-100 text-slate-600 border-slate-200",
-};
 
-const statusStyles = {
-  RUNNING: "bg-green-100 text-green-700",
-  DELAYED: "bg-red-100 text-red-700",
-  ACTIVE: "bg-red-100 text-red-700",
-  ACKNOWLEDGED: "bg-yellow-100 text-yellow-700",
-  RESOLVED: "bg-green-100 text-green-700",
-};
+
 
 function CommandCenter() {
   const health = useServiceHealth();
@@ -40,6 +30,10 @@ function CommandCenter() {
   const [propagationData, setPropagationData] = useState(null);
   const [recoveryData, setRecoveryData] = useState(null);
   const [networkLoad, setNetworkLoad] = useState(0);
+  // UI-4: when this page last heard from the API, and whether the user's
+  // refresh is still running. Display only -- the same calls, unchanged.
+  const [updatedAt, setUpdatedAt] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Which train the risk, bottleneck, propagation and recovery panels describe.
   // It used to be one id written into the source, so the panels described the
@@ -68,6 +62,7 @@ function CommandCenter() {
         };
 
         setNetworkLoad(loadMap[networkData.networkStatus] ?? 0);
+        setUpdatedAt(new Date());
 
         const backendTrains = trainsResponse.data;
         const backendEvents = eventsResponse.data;
@@ -324,6 +319,7 @@ function CommandCenter() {
   }
 
   async function simulateRefresh() {
+    setRefreshing(true);
 
     try {
       const [trainsResponse, eventsResponse, networkResponse] =
@@ -382,41 +378,35 @@ function CommandCenter() {
       };
 
       setNetworkLoad(loadMap[networkData.networkStatus] ?? 0);
+      setUpdatedAt(new Date());
     } catch (error) {
       console.error("Failed to refresh operations:", error);
+    } finally {
+      setRefreshing(false);
     }
   }
 
   return (
-    <div className="min-h-full bg-slate-50 p-6 md:p-8">
-      {/* HEADER */}
-      <div className="mb-7 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900">
-            Command Centre
-          </h1>
+    // Was `min-h-full bg-slate-50 p-6 md:p-8` -- a second background and a
+    // second padding inside a <main> that already has both, which cost this
+    // page 24px of width on a phone against every other page.
+    <div className="space-y-7">
 
-          <p className="mt-1 text-slate-500">
-            Operational control and real-time railway intelligence.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
+      <PageHeader
+        title="Command Centre"
+        subtitle="Operational control and real-time railway intelligence."
+        updatedAt={updatedAt}
+        onRefresh={simulateRefresh}
+        refreshing={refreshing}
+        actions={
           <div
             className={`flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium ${healthStyle.chip} ${healthStyle.text}`}
           >
-            <span className={`h-2 w-2 rounded-full ${healthStyle.dot}`} />
+            <span className={`h-2 w-2 rounded-full ${healthStyle.dot}`} aria-hidden="true" />
             {health.label}
           </div>
-
-          <button
-            onClick={simulateRefresh}
-            className="rounded-lg bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-600"
-          >
-            Refresh Operations
-          </button>
-        </div>
-      </div>
+        }
+      />
 
       {/* KPI CARDS */}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -510,11 +500,7 @@ function CommandCenter() {
                     </td>
 
                     <td className="px-5 py-4">
-                      <span
-                        className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusStyles[train.status]}`}
-                      >
-                        {train.status}
-                      </span>
+                      <Badge status={train.status} />
                     </td>
 
                     <td className="px-5 py-4 text-sm text-slate-600">
@@ -531,7 +517,7 @@ function CommandCenter() {
                           +{train.delay} min
                         </span>
                       ) : (
-                        <span className="text-slate-400">On time</span>
+                        <span className="text-slate-500">On time</span>
                       )}
                     </td>
 
@@ -613,11 +599,7 @@ function CommandCenter() {
                         {incident.title}
                       </h3>
 
-                      <span
-                        className={`rounded-full border px-2 py-1 text-[10px] font-bold ${severityStyles[incident.severity]}`}
-                      >
-                        {incident.severity}
-                      </span>
+                      <Badge status={incident.severity} size="sm" />
                     </div>
 
                     <p className="mt-1 text-sm text-slate-500">
@@ -625,14 +607,9 @@ function CommandCenter() {
                     </p>
 
                     <div className="mt-3 flex items-center justify-between">
-                      <span
-                        className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${statusStyles[incident.status]
-                          }`}
-                      >
-                        {incident.status}
-                      </span>
+                      <Badge status={incident.status} size="sm" />
 
-                      <span className="text-xs text-slate-400">
+                      <span className="text-xs text-slate-500">
                         {incident.time}
                       </span>
                     </div>
@@ -727,11 +704,7 @@ function CommandCenter() {
               </h2>
             </div>
 
-            <span
-              className={`rounded-full px-3 py-1 text-xs font-bold ${statusStyles[selectedTrain.status]}`}
-            >
-              {selectedTrain.status}
-            </span>
+            <Badge status={selectedTrain.status} size="lg" />
           </div>
 
           <div className="mt-5 grid grid-cols-2 gap-4">
@@ -773,12 +746,7 @@ function CommandCenter() {
               </p>
             </div>
 
-            <span
-              className={`rounded-full border px-3 py-1 text-xs font-bold ${severityStyles[selectedIncident.severity]
-                }`}
-            >
-              {selectedIncident.severity}
-            </span>
+            <Badge status={selectedIncident.severity} size="lg" />
           </div>
 
           <p className="mt-5 text-sm leading-6 text-slate-600">
@@ -789,12 +757,7 @@ function CommandCenter() {
             <div className="flex items-center justify-between">
               <span className="text-sm text-slate-500">Current status</span>
 
-              <span
-                className={`rounded-full px-3 py-1 text-xs font-bold ${statusStyles[selectedIncident.status]
-                  }`}
-              >
-                {selectedIncident.status}
-              </span>
+              <Badge status={selectedIncident.status} size="lg" />
             </div>
           </div>
 
@@ -846,7 +809,7 @@ function KpiCard({
         {value}
       </p>
 
-      <p className="mt-2 text-sm text-slate-400">{subtitle}</p>
+      <p className="mt-2 text-sm text-slate-500">{subtitle}</p>
     </div>
   );
 }
@@ -866,7 +829,7 @@ function InsightCard({ title, text }) {
 function Detail({ label, value }) {
   return (
     <div className="rounded-xl bg-slate-50 p-4">
-      <p className="text-xs font-medium text-slate-400">{label}</p>
+      <p className="text-xs font-medium text-slate-500">{label}</p>
       <p className="mt-1 text-sm font-semibold text-slate-800">
         {value}
       </p>

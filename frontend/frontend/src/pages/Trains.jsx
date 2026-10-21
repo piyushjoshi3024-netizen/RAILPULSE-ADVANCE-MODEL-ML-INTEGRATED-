@@ -1,5 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { getTrains } from "../services/trainService";
+import PageHeader from "../components/ui/PageHeader";
+import Badge from "../components/ui/Badge";
+import ErrorState from "../components/state/ErrorState";
+import EmptyState from "../components/state/EmptyState";
+import { SkeletonStats, SkeletonTable } from "../components/ui/Skeleton";
 
 
 function Trains() {
@@ -8,20 +13,63 @@ function Trains() {
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [selectedTrain, setSelectedTrain] = useState(null);
   const [loading, setLoading] = useState(true);
+  // UI-4 needs to show when this page last heard from the API and to let the
+  // user ask again. The request itself is unchanged -- the same
+  // `getTrains()` call, in the same effect. The loader is lifted out of the
+  // effect only so the refresh button can call it, and `updatedAt` records
+  // when it finished.
+  const [updatedAt, setUpdatedAt] = useState(null);
+  const [loadError, setLoadError] = useState("");
 
+  const clearFilters = useCallback(() => {
+    setSearch("");
+    setStatusFilter("ALL");
+  }, []);
+
+  const loadTrains = useCallback(async () => {
+    setLoading(true);
+
+    try {
+      const response = await getTrains();
+      setTrains(response.data);
+      setLoadError("");
+      setUpdatedAt(new Date());
+    } catch (error) {
+      console.error("Failed to load trains:", error);
+      setLoadError("Could not load trains.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // The first load stays an inline async function inside the effect, which
+  // is the shape this file already used and the one
+  // react-hooks/set-state-in-effect accepts: calling a setState-bearing
+  // function from the effect body is flagged regardless of any await
+  // inside it. `loadTrains` above serves the refresh button.
   useEffect(() => {
-    const loadTrains = async () => {
+    let alive = true;
+
+    const run = async () => {
       try {
         const response = await getTrains();
+        if (!alive) return;
+
         setTrains(response.data);
+        setLoadError("");
+        setUpdatedAt(new Date());
       } catch (error) {
         console.error("Failed to load trains:", error);
+        if (alive) setLoadError("Could not load trains.");
       } finally {
-        setLoading(false);
+        if (alive) setLoading(false);
       }
     };
 
-    loadTrains();
+    run();
+    return () => {
+      alive = false;
+    };
   }, []);
 
 
@@ -55,26 +103,50 @@ function Trains() {
     (train) => train.status === "AT STATION"
   ).length;
 
-  if (loading) {
-    return <div>Loading trains...</div>;
+  if (loading && trains.length === 0) {
+    return (
+      <div className="space-y-8">
+        <PageHeader
+          title="Trains"
+          subtitle="Monitor and manage trains across the railway network."
+        />
+        <SkeletonStats count={4} />
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <SkeletonTable rows={6} columns={5} />
+        </div>
+      </div>
+    );
+  }
+
+  if (loadError && trains.length === 0) {
+    return (
+      <div className="space-y-8">
+        <PageHeader
+          title="Trains"
+          subtitle="Monitor and manage trains across the railway network."
+        />
+        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <ErrorState
+            message={loadError}
+            hint="Check that the API is running, then try again."
+            onRetry={loadTrains}
+            retrying={loading}
+          />
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-8 p-8">
+    <div className="space-y-8">
 
-      {/* =====================================================
-          HEADER
-      ===================================================== */}
-
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900">
-          Trains
-        </h1>
-
-        <p className="mt-2 text-slate-500">
-          Monitor and manage trains across the railway network.
-        </p>
-      </div>
+      <PageHeader
+        title="Trains"
+        subtitle="Monitor and manage trains across the railway network."
+        updatedAt={updatedAt}
+        onRefresh={loadTrains}
+        refreshing={loading}
+      />
 
 
       {/* =====================================================
@@ -130,7 +202,7 @@ function Trains() {
             <div className="relative w-full lg:max-w-md">
 
               <svg
-                className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400"
+                className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="2"
@@ -219,7 +291,72 @@ function Trains() {
             TABLE
         =================================================== */}
 
-        <div className="overflow-x-auto">
+        {/* CARDS -- below md only. Same data, same `filteredTrains`, same
+            click target; a 1000px table on a 360px screen is not a table,
+            it is a drag. */}
+        <div className="divide-y divide-slate-100 md:hidden">
+          {filteredTrains.length > 0 ? (
+            filteredTrains.map((train) => (
+              <button
+                key={train.trainNumber}
+                type="button"
+                onClick={() => setSelectedTrain(train)}
+                className={`rp-press block w-full p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-orange-500 ${selectedTrain?.trainNumber === train.trainNumber ? "bg-orange-50/50" : ""}`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-slate-900">{train.trainName}</p>
+                    <p className="mt-0.5 text-xs font-medium text-slate-600">
+                      #{train.trainNumber}
+                      {train.trainType ? ` \u00b7 ${train.trainType}` : ""}
+                    </p>
+                  </div>
+
+                  <Badge status={train.status} />
+                </div>
+
+                <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
+                  <div>
+                    <dt className="text-xs text-slate-600">Route</dt>
+                    <dd className="m-0 truncate font-medium text-slate-800">
+                      {train.source} &rarr; {train.destination}
+                    </dd>
+                  </div>
+
+                  <div>
+                    <dt className="text-xs text-slate-600">At</dt>
+                    <dd className="m-0 truncate font-medium text-slate-800">
+                      {train.currentStation || "Not recorded"}
+                    </dd>
+                  </div>
+
+                  <div>
+                    <dt className="text-xs text-slate-600">Type</dt>
+                    <dd className="m-0 font-medium text-slate-800">
+                      {train.trainType || "--"}
+                    </dd>
+                  </div>
+
+                  <div>
+                    <dt className="text-xs text-slate-600">Speed and delay</dt>
+                    <dd className="m-0 font-medium text-slate-600">Not on this endpoint</dd>
+                  </div>
+                </dl>
+              </button>
+            ))
+          ) : (
+            <EmptyState
+              title="No train matches these filters"
+              hint="Clear the search box and set the status filter back to All."
+              icon="\u2205"
+              className="p-8"
+              actionLabel="Clear filters"
+              onAction={clearFilters}
+            />
+          )}
+        </div>
+
+        <div className="hidden overflow-x-auto md:block">
 
           <table className="w-full min-w-[1000px]">
 
@@ -244,7 +381,7 @@ function Trains() {
                 </th>
 
                 <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Speed
+                  Speed and delay
                 </th>
 
                 <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -288,7 +425,7 @@ function Trains() {
                           {train.trainName}
                         </p>
 
-                        <p className="mt-1 text-xs text-slate-400">
+                        <p className="mt-1 text-xs text-slate-500">
                           #{train.trainNumber}
                         </p>
 
@@ -318,7 +455,7 @@ function Trains() {
                           {train.source}
                         </p>
 
-                        <p className="my-1 text-xs text-slate-400">
+                        <p className="my-1 text-xs text-slate-500">
                           ↓
                         </p>
 
@@ -348,17 +485,15 @@ function Trains() {
 
                       <div>
 
-                        <p className="text-sm font-semibold text-slate-700">
-                          {train.speed} km/h
+                        {/* GET /api/trains carries neither `speed` nor
+                            `delay` -- both live on TrainEvent, which this
+                            page does not read. This cell used to render
+                            "undefined km/h", and the delay line below it
+                            could never appear, so every train read as on
+                            time next to whatever its status badge said. */}
+                        <p className="text-sm text-slate-600">
+                          Not on this endpoint
                         </p>
-
-                        {train.delay > 0 && (
-
-                          <p className="mt-1 text-xs text-red-500">
-                            +{train.delay} min delay
-                          </p>
-
-                        )}
 
                       </div>
 
@@ -369,7 +504,7 @@ function Trains() {
 
                     <td className="px-5 py-4">
 
-                      <StatusBadge status={train.status} />
+                      <Badge status={train.status} />
 
                     </td>
 
@@ -408,18 +543,16 @@ function Trains() {
 
                 <tr>
 
-                  <td
-                    colSpan="7"
-                    className="px-5 py-12 text-center"
-                  >
+                  <td colSpan="7" className="px-5 py-4">
 
-                    <p className="font-medium text-slate-600">
-                      No trains found
-                    </p>
-
-                    <p className="mt-1 text-sm text-slate-400">
-                      Try changing your search or filter.
-                    </p>
+                    <EmptyState
+                      title="No train matches these filters"
+                      hint={`${trains.length} ${trains.length === 1 ? "train is" : "trains are"} loaded; none of them match the current search and status.`}
+                      icon="\u2205"
+                      className="py-8"
+                      actionLabel="Clear filters"
+                      onAction={clearFilters}
+                    />
 
                   </td>
 
@@ -440,7 +573,7 @@ function Trains() {
 
         <div className="border-t border-slate-100 px-5 py-3">
 
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-500">
             Showing {filteredTrains.length} of {totalTrains} trains
           </p>
 
@@ -463,7 +596,7 @@ function Trains() {
 
             <div>
 
-              <p className="text-sm font-medium text-slate-400">
+              <p className="text-sm font-medium text-slate-500">
                 Selected Train
               </p>
 
@@ -480,7 +613,7 @@ function Trains() {
 
             <div className="flex items-center gap-3">
 
-              <StatusBadge status={selectedTrain.status} />
+              <Badge status={selectedTrain.status} />
 
               <button
                 onClick={() => setSelectedTrain(null)}
@@ -519,19 +652,17 @@ function Trains() {
               value={selectedTrain.currentStation}
             />
 
+            {/* Same gap as the table: neither figure is on /api/trains.
+                "On time" here was not a measurement, it was the `else`
+                branch of a comparison against undefined. */}
             <DetailItem
               label="Speed"
-              value={`${selectedTrain.speed} km/h`}
+              value="Not on this endpoint"
             />
 
             <DetailItem
               label="Delay"
-              value={
-                selectedTrain.delay > 0
-                  ? `+${selectedTrain.delay} min`
-                  : "On time"
-              }
-              danger={selectedTrain.delay > 0}
+              value="Not on this endpoint"
             />
 
             <DetailItem
@@ -631,7 +762,7 @@ function DetailItem({
 
     <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
 
-      <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
         {label}
       </p>
 
@@ -697,7 +828,7 @@ function SummaryCard({
         {value}
       </p>
 
-      <p className="mt-2 text-sm text-slate-400">
+      <p className="mt-2 text-sm text-slate-500">
         {description}
       </p>
 
@@ -711,54 +842,6 @@ function SummaryCard({
    STATUS BADGE
 ========================================================= */
 
-function StatusBadge({ status }) {
-
-  const styles = {
-    RUNNING: "bg-green-100 text-green-700",
-    DELAYED: "bg-red-100 text-red-700",
-    "AT STATION": "bg-orange-100 text-orange-700",
-    CANCELLED: "bg-slate-100 text-slate-600",
-  };
-
-  const dotStyles = {
-    RUNNING: "bg-green-500",
-    DELAYED: "bg-red-500",
-    "AT STATION": "bg-orange-500",
-    CANCELLED: "bg-slate-500",
-  };
-
-  return (
-
-    <span
-      className={`
-        inline-flex
-        items-center
-        gap-1.5
-        rounded-full
-        px-2.5
-        py-1
-        text-xs
-        font-semibold
-        ${styles[status] || "bg-slate-100 text-slate-600"}
-      `}
-    >
-
-      <span
-        className={`
-          h-1.5
-          w-1.5
-          rounded-full
-          ${dotStyles[status] || "bg-slate-500"}
-        `}
-      />
-
-      {status}
-
-    </span>
-
-  );
-
-}
 
 
 export default Trains;

@@ -1,4 +1,6 @@
 import { useState } from "react";
+
+import Button from "../components/ui/Button";
 import { useNavigate, Link } from "react-router-dom";
 import { TrainFront } from "lucide-react";
 import authApi, { authErrorMessage } from "../services/authApi";
@@ -176,7 +178,7 @@ const Register = () => {
                                 className="block text-sm font-semibold text-gray-700 mb-2"
                             >
                                 Full Name{" "}
-                                <span className="font-normal text-gray-400">
+                                <span className="font-normal text-gray-500">
                                     (optional)
                                 </span>
                             </label>
@@ -196,7 +198,10 @@ const Register = () => {
 
                         {/* PASSWORD */}
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            <label
+                                htmlFor="register-password"
+                                className="block text-sm font-semibold text-gray-700 mb-2"
+                            >
                                 Password
                             </label>
 
@@ -215,13 +220,15 @@ const Register = () => {
                             />
                         </div>
                         {/* REGISTER BUTTON */}
-                        <button
+                        <Button
                             type="submit"
-                            disabled={loading}
-                            className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-lg"
+                            loading={loading}
+                            fullWidth
+                            size="lg"
+                            className="rounded-xl py-3.5"
                         >
                             {loading ? "Creating Account..." : "Register"}
-                        </button>
+                        </Button>
 
                     </form>
 

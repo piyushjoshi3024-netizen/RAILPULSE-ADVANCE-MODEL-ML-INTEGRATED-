@@ -1,4 +1,6 @@
 import { useState } from "react";
+
+import Button from "../components/ui/Button";
 import { TrainFront } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -142,7 +144,7 @@ function Login() {
                                 </div>
                             </div>
 
-                            <div className="mt-12 flex items-center gap-2 text-xs text-gray-400">
+                            <div className="mt-12 flex items-center gap-2 text-xs text-gray-500">
                                 <span className="w-2 h-2 rounded-full bg-orange-500" />
                                 Railway Intelligence Platform
                             </div>
@@ -178,7 +180,7 @@ function Login() {
 
                                         <div className="relative">
 
-                                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">
                                                 <svg
                                                     width="18"
                                                     height="18"
@@ -211,13 +213,16 @@ function Login() {
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-semibold text-black mb-2">
+                                        <label
+                                            htmlFor="login-password"
+                                            className="block text-sm font-semibold text-black mb-2"
+                                        >
                                             Password
                                         </label>
 
                                         <div className="relative">
 
-                                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">
                                                 <svg
                                                     width="18"
                                                     height="18"
@@ -273,20 +278,15 @@ function Login() {
                                         </div>
                                     )}
 
-                                    <button
+                                    <Button
                                         type="submit"
-                                        disabled={loading}
-                                        className="w-full py-3.5 rounded-xl bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white font-semibold transition-all shadow-sm"
+                                        loading={loading}
+                                        fullWidth
+                                        size="lg"
+                                        className="rounded-xl py-3.5"
                                     >
-                                        {loading ? (
-                                            <span className="flex items-center justify-center gap-2">
-                                                <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                                                Signing in...
-                                            </span>
-                                        ) : (
-                                            "Sign In"
-                                        )}
-                                    </button>
+                                        {loading ? "Signing in..." : "Sign In"}
+                                    </Button>
 
                                 </form>
 
@@ -318,7 +318,7 @@ function Login() {
 
                             <div className="mt-8 pt-6 border-t border-gray-100">
 
-                                    <div className="flex items-center justify-center gap-2 text-xs text-gray-400">
+                                    <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
 
                                         <svg
                                             width="14"
@@ -345,7 +345,7 @@ function Login() {
                     </div>
                 </div>
 
-                <p className="text-center text-xs text-gray-400 mt-6">
+                <p className="text-center text-xs text-gray-500 mt-6">
                     RailPulse · Railway Intelligence
                 </p>
 

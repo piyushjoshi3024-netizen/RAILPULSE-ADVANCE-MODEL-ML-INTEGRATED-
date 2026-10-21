@@ -10,6 +10,7 @@ import { useCorridors, useStations, useTrainEvents, useTrains } from "../hooks";
 import ErrorState from "../components/state/ErrorState";
 import EmptyState from "../components/state/EmptyState";
 import { SkeletonMap } from "../components/ui/Skeleton";
+import PageHeader from "../components/ui/PageHeader";
 
 import TrainMarker from "../components/map/TrainMarker";
 import StationMarker from "../components/map/StationMarker";
@@ -258,7 +259,13 @@ function NetworkMap() {
   return (
     <div className={fullscreen ? "fixed inset-0 z-[1400] bg-slate-50 p-3" : "space-y-6"}>
 
-      {!fullscreen ? <PageTitle /> : null}
+      {!fullscreen ? (
+        <PageTitle
+          updatedAt={trainsResource.updatedAt}
+          onRefresh={retry}
+          refreshing={trainsResource.loading}
+        />
+      ) : null}
 
       <div
         className={`relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm ${fullscreen
@@ -412,15 +419,15 @@ function NetworkMap() {
   );
 }
 
-function PageTitle() {
+function PageTitle({ updatedAt = null, onRefresh = null, refreshing = false }) {
   return (
-    <div>
-      <h1 className="text-3xl font-bold text-slate-900">Network Map</h1>
-
-      <p className="mt-2 text-slate-600">
-        Live train positions, stations and corridors across the network.
-      </p>
-    </div>
+    <PageHeader
+      title="Network Map"
+      subtitle="Live train positions, stations and corridors across the network."
+      updatedAt={updatedAt}
+      onRefresh={onRefresh}
+      refreshing={refreshing}
+    />
   );
 }
 
