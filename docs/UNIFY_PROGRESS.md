@@ -1872,3 +1872,152 @@ image.
 4. **A test account exists.** `ui_polish_qa` was registered through the app's
    own form on localhost to verify the signed-in pages; there is no seeded
    demo account. Say the word and it goes.
+
+---
+
+## Phase UI-3 — The map
+
+Commit: `08aa170`.
+
+### What was there
+
+Leaflet 1.9.4 via react-leaflet 5. `NetworkMap.jsx` and `Dashboard.jsx` each
+held their own `createTrainIcon` — and they disagreed, the Dashboard's taking
+a `selected` flag the other did not — plus two different legends for the same
+colours. Both reduced every train to green or red from `delayMinutes > 0`.
+Stations were `CircleMarker`s whose name appeared only in a hover tooltip,
+which is nothing on a touch screen. Corridors were all one orange.
+
+### What the data actually supports
+
+Checked against the live API before building anything:
+
+| Endpoint | Returns |
+|---|---|
+| `/api/stations` | 13 stations, all with `lat`/`lng` |
+| `/api/corridors` | 4, as `{ corridorId, name, stations: [codes], dataSource }` |
+| `/api/trains` | 12 |
+| `/api/train-events` | **12 — exactly one per train** |
+
+Two findings that shaped the work:
+
+1. **There is no corridor status field.** The `Corridor` model has four
+   fields and none of them is a status. So the colour is *derived* from the
+   delays of the trains whose current station is on the corridor, and the
+   popup says so in those words, names the trains it counted and prints
+   their delays. A corridor with no train on it reports "No train on this
+   corridor", not "clear" — absence of evidence is not evidence of a clear
+   line.
+2. **There is one event per train.** So there is no second consecutive
+   position to interpolate between. `useSmoothPosition` is written to the
+   rule anyway — both endpoints are positions the API reported, it never
+   extrapolates and never advances a marker on a timer — and on this seed it
+   correctly animates nothing, because the target never changes. It will
+   animate the moment a train's reported station does. This is deliberately
+   *not* the old `MovingTrain`, which slid markers 0.008 of a segment per
+   second along a path nothing had measured.
+
+### Built
+
+`src/components/map/` — `mapStyle.js`, `TrainMarker`, `StationMarker`,
+`CorridorLine`, `MapControls`, `UnmappedTrains`, `useSmoothPosition`. Both
+maps compose them, so the Dashboard panel and the Network Map page can no
+longer tell different stories about the same data.
+
+- Stations: name on the marker, popup with name, code and the trains whose
+  latest event places them there, each clickable.
+- Trains: three bands over the one real number, `delayMinutes`, at a
+  threshold named in the legend (`CRITICAL_DELAY_MINUTES = 30`) and
+  accompanied by the exact figure in every popup. Popup carries number,
+  name, delay, current station, destination, type, speed — and "Not
+  recorded" where the event carried no reading, rather than a `0` that would
+  read as "stopped".
+- "View ETA" links to `/eta?train=<number>`. `ETAPrediction` now seeds its
+  initial selection from that parameter.
+- Legend, status filter with live counts, search by number or name,
+  fit-to-network, fullscreen. Below `sm` the panel collapses to its one-line
+  summary, because at 360 it otherwise covered most of the map.
+- The "N trains not shown" note stays and now opens into the list.
+
+### Two bugs found while testing
+
+- **`animation-fill-mode: both` was making `<main>` a containing block.**
+  The final keyframe sets `transform: none`, which computes to an identity
+  matrix, not to nothing — and any transform, identity included, captures
+  `position: fixed` descendants. The fullscreen panel measured 768×688
+  inside `<main>` instead of covering the 1024×768 viewport. Every fill is
+  now `backwards`, which leaves no transform behind. This would have hit any
+  future modal or overlay too.
+- **Carto Positron now requires an API key** and stamps the tiles
+  "API KEY REQUIRED". Reverted to OSM and desaturated the tile pane in CSS
+  (`.rp-map`), which needs no key and no extra request and leaves the
+  orange, amber, green and red readable on top.
+
+### Verified
+
+- `npx vite build` passes. `npx eslint src` — **4 errors, 0 warnings**,
+  still under the 6-error baseline.
+- In a browser, signed in: Dashboard reads **12 trains and 3 alerts**; map
+  draws 13 station markers, 4 corridors and 5 train markers on both pages.
+- Filter: "Critical" → "3 of 5 trains shown", 3 train markers, stations
+  untouched. Train popup on 22832 → "Critical · 54 min late · At Kolkata ·
+  To Howrah · 45 km/h" with `/eta?train=22832`, which opens the ETA page on
+  Yesvantpur-Howrah Express. Station popup on Kolkata (HWH) → 3 trains with
+  their delays. Corridor popup → "Delays reported · Derived from 1 train
+  currently on it · 12002 Shatabdi Express +6m". Unmapped note opens to all
+  7 trains and names the 7 stations. Fullscreen covers the viewport.
+- 360 and 1280: no horizontal page scroll; console clean in a fresh tab.
+- **Not verified:** marker interpolation never runs on this seed (one event
+  per train), so the animation path is reasoned and typed but not seen
+  moving. Touch gestures are set (`touchZoom`, `tap`) and checked at a 360
+  viewport, but not on real hardware.
+
+### AWAITING APPROVAL — the 7 missing station coordinates
+
+The 7 unmapped trains are a station-coordinate gap, exactly as suspected.
+Each is at a station that is not in `seed-reference.json`:
+
+| Train | At station |
+|---|---|
+| 15029 Gorakhpur-Pune Weekly Express | Gorakhpur |
+| 15906 Vivek Express | Dibrugarh |
+| 12633 Kanyakumari Express | Chennai Egmore |
+| 12238 Begampura Express | Varanasi |
+| 12229 Lucknow Mail | Lucknow |
+| 12625 Kerala Express | Thiruvananthapuram |
+| 12621 Tamil Nadu Express | Chennai Central |
+
+**Nothing has been seeded and no coordinate has been guessed.** These are
+proposed for your review. They were looked up in this session against
+OpenStreetMap via Nominatim, one query per station, and each row carries the
+OSM object it came from so you can check it:
+
+| Station | Proposed code | lat | lng | Source (OSM object) |
+|---|---|---|---|---|
+| Gorakhpur | GKP | 26.7604641 | 83.3798194 | `way/99203980` — Gorakhpur Junction Railway Station |
+| Dibrugarh | DBRG | 27.4647373 | 94.9371639 | `node/2671296500` — Dibrugarh, Maldukha Path |
+| Chennai Egmore | MS | 13.0777493 | 80.2612572 | `node/5275790188` — Chennai Egmore, Gandhi Irwin Road |
+| Varanasi | BSB | 25.3275678 | 82.9862450 | `way/26753079` — Varanasi Junction Railway Station |
+| Lucknow | LKO | 26.8311583 | 80.9243609 | `node/564718427` — Lucknow Charbagh |
+| Thiruvananthapuram | TVC | 8.4870167 | 76.9526408 | `node/10255800219` — Thiruvananthapuram Central |
+| Chennai Central | MAS | 13.0825901 | 80.2763077 | `node/2486226649` — Chennai Central Railway Station |
+
+Two things to decide before any of this is seeded:
+
+1. **The station codes are mine, not OSM's.** They are the conventional
+   Indian Railways codes, and they are not verified against whatever source
+   produced the existing 13. If the seed has an authoritative station list,
+   take the codes from that rather than from this table.
+2. **The names must match exactly.** The join from a train to a coordinate
+   is by station *name* (`byName`), so "Thiruvananthapuram" must be seeded
+   under that spelling and not "Thiruvananthapuram Central", or the train
+   stays unmapped. The names in the left column are the strings the trains
+   actually carry.
+
+Say the word and these go into `seed-reference.json`, which puts all 12
+trains on the map. Until then the note tells the truth about the 7.
+
+### Still open from UI-2
+
+Each seeded route has two stops, so Journey's timeline is always two dots
+and its Duration reads `--`. Unchanged; it needs route data, not UI.
