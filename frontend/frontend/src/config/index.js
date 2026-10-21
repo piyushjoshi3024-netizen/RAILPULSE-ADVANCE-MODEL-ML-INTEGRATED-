@@ -1,5 +1,10 @@
 /**
- * Where the other services live.
+ * Where the other services live, and the two values the UI polls by.
+ *
+ * This was `src/config.js` beside a `src/config/` directory, which resolved
+ * correctly and read like a trap (caveat C-B1). It is the directory's index
+ * now, so `import ... from "../config"` keeps working unchanged, and the
+ * polling and scenario modules sit beside it.
  *
  * Every origin used to be written into the file that needed it, which meant
  * the API base, the identity service and the ML app could drift apart from
@@ -25,3 +30,8 @@ export const ML_APP_URL = fromEnv("VITE_ML_APP_URL", "http://localhost:3000");
 /** Health endpoints, derived so they cannot drift from the bases above. */
 export const API_HEALTH_URL = `${API_BASE_URL}/health`;
 export const ML_HEALTH_URL = `${AUTH_BASE_URL}/health/`;
+
+// Re-exported so "../config" is the one place to look, whichever of the three
+// modules a value lives in.
+export { LIVE_POLL_MS, ALERTS_POLL_MS, STATIC_POLL_MS } from "./polling";
+export { SIMULATION_SCENARIOS } from "./scenarios";
