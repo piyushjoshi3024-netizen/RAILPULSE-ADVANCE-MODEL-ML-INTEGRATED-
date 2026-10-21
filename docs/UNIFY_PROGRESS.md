@@ -2142,3 +2142,122 @@ Commit: `05efc74`.
 3. **UI-5 not started** — it is marked optional and "ask before starting".
 4. **The test account `ui_polish_qa`** still exists on the local auth
    service. Say the word and it goes.
+
+---
+
+## Phase UI-5 — Showcase touches
+
+Commits: `7d94181` (hero + dark theme), `0784e20` (keyboard shortcuts).
+You said "perform it", which is the go-ahead this optional phase asked for.
+
+### Dashboard hero
+
+A landing band on the one page a user opens on: a time-of-day greeting with
+the name from the auth context, and a one-line summary — network status,
+active, delayed, open alerts — built from the same `networkResource` and
+`alertsResource` the stat cards read. It fetches nothing of its own, carries
+the page's h1 and the updated/refresh control (so the page is not two stacked
+headers), and the whole band is `rp-fade`, still under the one reduced-motion
+switch. The orange wash is `.rp-hero` in index.css, defined for both themes
+in one place.
+
+### Dark theme
+
+One layer keyed on `html[data-theme="dark"]`. An inline script in index.html
+sets the attribute before first paint — from a stored choice or the OS
+preference — so there is no flash, and `useTheme` only reads what is there.
+The layer remaps the neutral surface, text and border utilities the app
+actually uses (enumerated from source, not guessed), plus hover states,
+status chips, the hero, the skeletons and the Leaflet map, whose light OSM
+tiles are inverted into a dark basemap while the markers keep their true
+colours. The brand orange is untouched. The rules sit outside Tailwind's
+cascade layers, so they win without `!important`, and none of them change
+layout. The header carries the toggle; MainLayout owns the state and shares
+it, so the button and the `\` shortcut stay in step.
+
+Verified in a browser, signed in, both themes: dashboard, Trains, the map
+empty state and the login page all render cleanly in dark; the toggle flips
+and persists; light is unchanged.
+
+### Keyboard shortcuts
+
+A Gmail-style chord — `g` then a letter — for the eight pages, plus `\`
+(theme) and `?` (a help overlay that reads the same table the handler does).
+The overlay closes on Escape, backdrop or button, and is a bottom sheet on a
+phone. The handler ignores events while typing in a field, while
+ctrl/cmd/alt is held, and — for the chord and theme keys — while the overlay
+is open. It drives react-router's navigate and the shared theme toggle; it
+changes no routes and fetches nothing.
+
+Verified: `?` opens / Escape closes; `g t` navigates; `\` flips the theme and
+the header icon follows; an invalid chord and typing `g`/`d`/`?` inside the
+search box all correctly do nothing. No horizontal scroll at 360.
+
+### Build and lint
+
+`npx vite build` passes. `npx eslint src` — **3 errors, 0 warnings**, the
+same baseline UI-4 ended on (all three pre-existing in `AuthContext.jsx`).
+
+### Not verified / honest limits
+
+- The `computer` tool's synthetic key events did not map `?`/chords reliably,
+  so the shortcut behaviour was driven by dispatched `KeyboardEvent`s and the
+  overlay confirmed visually. Real physical-keyboard entry was not exercised.
+- No screen-reader or colour-blind pass; the dialog and dark contrast are
+  reasoned from markup and measured backgrounds, not assistive-tech tested.
+- Dark mode's map-tile inversion was seen on the map's *empty* state (see the
+  blocker below), not with markers and corridors drawn, because the backend
+  had no stations to serve at the time.
+
+### BLOCKER — the demo data reset itself, and 12 trains / 3 alerts cannot be confirmed
+
+Partway through this phase both backend services restarted (the FastAPI auth
+on :8000 and the Express data API on :5000 were briefly down, then came
+back). When they returned, the demo data was **not** what UI-4 left:
+
+- `/api/trains` now returns **5 trains**, not 12 — and they are the wrong
+  five: `12951, 12952, 12002, 12301, 12259`. Only `12002` and `12301` are
+  seed trains; `12951`/`12952`/`12259` are **old demo rows** (the Rajdhani
+  numbers from the hardcoded arrays this branch deleted), and **none carry a
+  `dataSource` marker**, so `scripts/seed-demo.js` did not write them.
+- `/api/alerts` returns **0**, and `/api/stations` returns **0** — the map
+  now shows its (correct, dark-styled) "No stations are recorded" state.
+
+**This is not from the UI work.** No file under `src/hooks`, `src/services`,
+`src/config` or any backend file was touched in any UI phase; the API returns
+these numbers directly, independently of the frontend. The signature — the
+seeded rows gone, replaced by un-marked old-demo rows — points to an
+**Express boot-time reseed** that overwrites the demo collections on restart.
+
+I did **not** restore it, for two reasons:
+
+1. Re-running `scripts/seed-demo.js --apply` would leave the 3 stale,
+   un-marked trains in place and *add* the 12 seed trains on top → ~15, not
+   12. `--reset` deletes only `dataSource:"SEED"` rows, which these are not,
+   so it would not remove them either.
+2. The only clean restore — deleting the 3 stale trains then re-seeding, or
+   restoring the backup at `backups/20261021-122240/pre-station-seed.json`
+   (12 trains, 3 alerts, 13 stations) — needs a bulk delete, which **this
+   environment's safety guard blocked** ("Cloud Storage Mass Delete"). I did
+   not work around it.
+
+**Your call.** To get back to 12 trains / 3 alerts / 20 stations, in your own
+terminal:
+
+```bash
+# in backend/, remove the 3 stale old-demo trains, then re-seed:
+node -e 'const m=require("mongoose");(async()=>{await m.connect("mongodb://127.0.0.1:27017/railpulse");await m.connection.db.collection("trains").deleteMany({trainNumber:{$in:["12951","12952","12259"]}});await m.disconnect();})()'
+node scripts/seed-demo.js --apply
+```
+
+But note this will revert again on the next backend restart unless the
+Express boot reseed is changed — that boot behaviour is the root cause and is
+backend, outside this branch's UI-only scope. Flagging it for you rather than
+editing backend startup code.
+
+### Still open
+
+- `/api/trains` carries no `speed`/`delay` (UI-4 finding); backend/hook.
+- Routes have two stops, so Journey's timeline is two dots, Duration `--`.
+- Test account `ui_polish_qa` re-created on the local auth service (the first
+  one was dropped when auth restarted). Say the word and it goes.
