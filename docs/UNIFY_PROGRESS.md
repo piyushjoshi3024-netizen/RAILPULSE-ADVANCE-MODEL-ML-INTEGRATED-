@@ -2021,3 +2021,124 @@ trains on the map. Until then the note tells the truth about the 7.
 
 Each seeded route has two stops, so Journey's timeline is always two dots
 and its Duration reads `--`. Unchanged; it needs route data, not UI.
+
+---
+
+## Seeding the seven station coordinates
+
+Commit: `ac8d0d7`. Approved before any write.
+
+Added to `seed-reference.json`: Gorakhpur (GKP), Dibrugarh (DBRG), Chennai
+Egmore (MS), Varanasi (BSB), Lucknow (LKO), Thiruvananthapuram (TVC),
+Chennai Central (MAS). The lat/lng are the OpenStreetMap values from the
+UI-3 table; the file's own `_comment` now records the provenance, that the
+`zone` values are asserted rather than looked up, and that the `name`
+strings must not be "corrected" to fuller forms because the
+train-to-coordinate join is by name.
+
+Only `seed-reference.json` needed changing: the seven trains carry no
+`station` code, so their event station falls back to `train.source`, which
+is exactly these seven names.
+
+**Also fixed a reporting bug in the seed script.** Its coverage line read
+`demo.trains.filter(t => t.station)` — trains carrying a station *code* —
+but the map joins by station *name*. It would have gone on printing
+"5 of 12" after the coordinates had already fixed it. It now counts the way
+the map does, and prints "12 of 12".
+
+Applied with `--apply`, no `--reset`: 7 inserts, everything else upserted in
+place, nothing deleted. A JSON dump of all five touched collections was
+taken first at `backups/20261021-122240/pre-station-seed.json`.
+
+Verified: Network Map draws 20 stations and 12 train markers, the "N trains
+not shown" note is correctly gone, Dashboard still reads 12 and 3.
+
+---
+
+## Phase UI-4 — Page polish
+
+Commit: `05efc74`.
+
+### Built
+
+- **`PageHeader`** — replaces seven copied header blocks. Carries the title,
+  subtitle, an actions slot, and the two things UI-1 found nowhere in the
+  product despite a 15-second poll on every page: a "last updated" stamp and
+  a refresh button. Applied to all eight pages including the map.
+- **`Badge`** — replaces four `StatusBadge` components (Alerts, Trains,
+  ETAPrediction, JourneyManagement) and two severity maps (Alerts,
+  CommandCenter). Two rules the old copies did not keep: the label is always
+  rendered, so colour is never the only carrier of meaning; and an
+  unrecognised status renders in the neutral tone showing its own text
+  rather than as an unstyled word, which is what `styles[status]` with no
+  fallback produced.
+- **`LastUpdated`** — relative time that re-renders on its own 15s timer, so
+  "just now" becomes "1 min ago" without the page polling for it.
+
+### Pre-existing bugs this phase surfaced
+
+1. **The Trains page displayed two fields the API does not return.**
+   `GET /api/trains` carries no `speed` and no `delay` — both live on
+   `TrainEvent`, which that page does not read. So the speed cell rendered
+   `undefined km/h`, and `train.delay > 0` was false for all twelve trains,
+   printing **"On time" next to a DELAYED badge**. The mobile card layout
+   put the two side by side and made it obvious. The page now says
+   "Not on this endpoint" in all three places (table cell, card, detail
+   panel). *The real fix is either the API joining live state into
+   `/api/trains` or that page reading train events — neither is a
+   presentation change, so neither was done here.*
+2. **Two `<h1>` per page.** The sidebar brand was a level-one heading, so a
+   screen reader's heading list opened on "RailPulse" instead of the page
+   name. Now a `<p>`; one h1 per page, verified.
+3. **Two unlabelled password fields.** Login's and Register's password
+   `<label>` had no `htmlFor` — not clickable, and read as unlabelled. The
+   username and full-name fields above them were already wired.
+4. **Six pages double-padded.** CommandCenter wrapped itself in
+   `min-h-full bg-slate-50 p-6 md:p-8`, and Alerts, Trains, ETA, Simulation
+   and Journey each added `p-8`, inside a `<main>` that already applies
+   `p-4 sm:p-8`. All six were losing width on a phone.
+
+### Also done
+
+- **Contrast:** 48 occurrences of `text-slate-400` / `text-gray-400` on
+  white (about 2.8:1, under the 4.5:1 minimum) moved to `-500` (about
+  4.8:1). The `disabled:` and `placeholder:` variants are deliberately left,
+  both being exempt.
+- **Mobile tables:** Trains renders as cards below `md`. The table keeps its
+  `overflow-x-auto` and appears from `md` up — a 1000px-wide table on a
+  360px screen is a drag in two directions, not a table. CommandCenter's
+  720px table keeps horizontal scroll inside its own container.
+- **Empty states with one action:** both Trains empty states now offer
+  "Clear filters" and name how many trains are loaded, instead of advising
+  the user to try something.
+- **Login and Register** use the shared `Button`, gaining the focus ring and
+  the loading state the hand-written ones lacked.
+- **Dead code:** the 98-line hardcoded `trains` array in `ETAPrediction.jsx`
+  is gone — dead, lint-flagged since before this branch, and the same kind
+  of stale demo data that was behind Journey's "No journey found".
+
+### Verified
+
+- `npx vite build` passes. `npx eslint src` — **3 errors, 0 warnings**, down
+  from the 6-error baseline. All three remaining are pre-existing in
+  `src/context/AuthContext.jsx`, which this work did not touch.
+- In a browser, signed in, at **360, 768 and 1280**: all eight pages free of
+  horizontal scroll (a DOM sweep for elements past the viewport returned
+  zero at 360, excluding Leaflet's own clipped tiles). Every page shows
+  "Updated …" and a working Refresh. Dashboard reads **12 trains and 3
+  alerts** with all **12 now on the map**. Exactly one `<h1>` per page.
+  Console clean in a fresh tab.
+- **Not verified:** the ML hand-off pages (`StaffRegister`, `StaffOTP`) were
+  not part of the UI-4 list and got only the contrast sweep. No colour-blind
+  simulation or screen-reader pass was run; the badge and heading fixes are
+  reasoned from markup, not from assistive-technology testing.
+
+### Open
+
+1. **`/api/trains` has no speed or delay.** See bug 1 above. Backend or
+   hook change, so left for you.
+2. **Routes have two stops**, so Journey's timeline is two dots and its
+   Duration reads `--`.
+3. **UI-5 not started** — it is marked optional and "ask before starting".
+4. **The test account `ui_polish_qa`** still exists on the local auth
+   service. Say the word and it goes.
