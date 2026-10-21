@@ -1,12 +1,17 @@
-import { useEffect, useState } from "react";
-import { getTrains } from "../services/trainService";
-import api from "../services/api";
+import { useState } from "react";
+
+import { useAlerts, useTrains } from "../hooks";
+import Loading from "../components/state/Loading";
+import EmptyState from "../components/state/EmptyState";
+import ErrorState from "../components/state/ErrorState";
 import { useAuth } from "../context/AuthContext";
 
 function Alerts() {
-  const [alerts, setAlerts] = useState([]);
-  const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+
+  // Polls every fifteen seconds and pauses while the tab is hidden.
+  const alertsResource = useAlerts();
+  const trainsResource = useTrains();
 
   const [severityFilter, setSeverityFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
@@ -15,67 +20,48 @@ function Alerts() {
   const canManageAlerts =
     user?.role === "STAFF" || user?.role === "ADMIN";
 
-  const [loadError, setLoadError] = useState("");
+  // Resolving an alert is session-local: the stored alert has no status field
+  // (see models/Alert.js), so there is nothing to PATCH. It is kept as a set
+  // of ids rather than inside the alert objects because those are rebuilt from
+  // the API every poll, which would otherwise wipe a resolution every fifteen
+  // seconds. It still does not survive a reload, and nothing here pretends it
+  // does.
+  const [resolvedIds, setResolvedIds] = useState(() => new Set());
 
-  useEffect(() => {
-    // Read the alerts the backend has stored. The previous version asked for
-    // one hardcoded train id, and that endpoint does not read an alert -- it
-    // creates one -- so opening this page wrote a row every time.
-    const loadAlerts = async () => {
-      try {
-        setLoading(true);
-        setLoadError("");
+  const loading = alertsResource.loading || trainsResource.loading;
+  const loadError = alertsResource.error || trainsResource.error;
 
-        const [alertsResponse, trainsResponse] = await Promise.all([
-          api.get("/alerts"),
-          getTrains(),
-        ]);
+  const retry = () => {
+    alertsResource.refetch();
+    trainsResource.refetch();
+  };
 
-        const trainsById = new Map(
-          (trainsResponse.data || []).map((train) => [
-            String(train._id),
-            train,
-          ])
-        );
+  const trainsById = new Map(
+    trainsResource.trains.map((train) => [String(train._id), train])
+  );
 
-        const formatted = (alertsResponse.data || []).map((alert) => {
-          const train = trainsById.get(String(alert.trainId));
+  const alerts = alertsResource.alerts.map((alert) => {
+    const train = trainsById.get(String(alert.trainId));
 
-          return {
-            id: alert._id,
-            title: train
-              ? `Train ${train.trainNumber} delayed`
-              : "Train delay detected",
-            type: alert.alertType || "ALERT",
-            severity: alert.severity || "LOW",
-            location:
-              alert.affectedSection ||
-              train?.currentStation ||
-              train?.source ||
-              "Unknown",
-            time: alert.createdAt
-              ? new Date(alert.createdAt).toLocaleTimeString()
-              : "Unknown",
-            description: alert.message || "",
-            status: "ACTIVE",
-          };
-        });
-
-        setAlerts(formatted);
-      } catch (error) {
-        console.error("Failed to load alerts:", error);
-        setLoadError(
-          error.response?.data?.message ||
-          "Alerts could not be loaded from the backend."
-        );
-        setAlerts([]);
-      } finally {
-        setLoading(false);
-      }
+    return {
+      id: alert._id,
+      title: train
+        ? `Train ${train.trainNumber} delayed`
+        : "Train delay detected",
+      type: alert.alertType || "ALERT",
+      severity: alert.severity || "LOW",
+      location:
+        alert.affectedSection ||
+        train?.currentStation ||
+        train?.source ||
+        "Unknown",
+      time: alert.createdAt
+        ? new Date(alert.createdAt).toLocaleTimeString()
+        : "Unknown",
+      description: alert.message || "",
+      status: resolvedIds.has(alert._id) ? "RESOLVED" : "ACTIVE",
     };
-
-    loadAlerts();
-  }, []);
+  });
 
   /* ---------------------------------------------
      FILTER ALERTS
@@ -139,21 +125,14 @@ function Alerts() {
       return;
     }
 
-    setAlerts((currentAlerts) =>
-      currentAlerts.map((alert) => {
-        if (alert.id !== id) {
-          return alert;
-        }
+    setResolvedIds((current) => {
+      const next = new Set(current);
 
-        return {
-          ...alert,
-          status:
-            alert.status === "ACTIVE"
-              ? "RESOLVED"
-              : "ACTIVE",
-        };
-      })
-    );
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+
+      return next;
+    });
   };
 
   return (
@@ -345,51 +324,26 @@ function Alerts() {
 
         {loading ? (
 
-          <div className="p-12 text-center">
-
-            <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-orange-200 border-t-orange-500" />
-
-            <p className="mt-4 text-sm text-slate-500">
-              Loading alerts...
-            </p>
-
-          </div>
+          <Loading label="Loading alerts..." />
 
         ) : loadError ? (
 
-          <div className="p-12 text-center">
-
-            <p className="font-semibold text-red-600">
-              {loadError}
-            </p>
-
-            <p className="mt-1 text-sm text-slate-400">
-              Check that the API is running, then reload the page.
-            </p>
-
-          </div>
+          <ErrorState
+            message={loadError}
+            hint="Check that the API is running, then try again."
+            onRetry={retry}
+          />
 
         ) : filteredAlerts.length === 0 ? (
 
-          <div className="p-12 text-center">
-
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
-
-              <span className="text-lg text-slate-400">
-                ✓
-              </span>
-
-            </div>
-
-            <p className="mt-4 font-semibold text-slate-700">
-              No alerts found
-            </p>
-
-            <p className="mt-1 text-sm text-slate-400">
-              Try changing your search or filters.
-            </p>
-
-          </div>
+          <EmptyState
+            title={alerts.length === 0 ? "No alerts recorded" : "No alerts found"}
+            hint={
+              alerts.length === 0
+                ? "The API has no alerts stored for this environment."
+                : "Try changing your search or filters."
+            }
+          />
 
         ) : (
 
