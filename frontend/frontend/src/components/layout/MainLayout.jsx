@@ -1,15 +1,29 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import Sidebar from "./Sidebar";
 import Header from "./Header";
 import { useTheme } from "../ui/useTheme";
+import { useKeyboardShortcuts } from "../ui/useKeyboardShortcuts";
+import ShortcutsHelp from "../ui/ShortcutsHelp";
 
 function MainLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const menuButtonRef = useRef(null);
   const location = useLocation();
+  const navigate = useNavigate();
   const { theme, toggle: toggleTheme } = useTheme();
+  const [helpOpen, setHelpOpen] = useState(false);
+
+  // App-wide shortcuts: `g`+letter to navigate, `\\` theme, `?` help. The
+  // hook touches no routes or data -- it drives react-router's navigate and
+  // the theme toggle this layout already owns.
+  useKeyboardShortcuts({
+    onNavigate: navigate,
+    onToggleTheme: toggleTheme,
+    onToggleHelp: () => setHelpOpen((open) => !open),
+    paused: helpOpen,
+  });
 
   const closeSidebar = useCallback(() => {
     setSidebarOpen(false);
@@ -90,6 +104,8 @@ function MainLayout({ children }) {
         </main>
 
       </div>
+
+      <ShortcutsHelp open={helpOpen} onClose={() => setHelpOpen(false)} />
 
     </div>
   );
