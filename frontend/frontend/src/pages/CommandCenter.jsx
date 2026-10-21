@@ -6,6 +6,7 @@ import {
   getRecovery,
 } from "../services/operationsService";
 import { getTrains } from "../services/trainService";
+import { HEALTH_STYLES, useServiceHealth } from "../hooks/useServiceHealth";
 import { getTrainEvents } from "../services/trainEventService";
 import api from "../services/api";
 
@@ -26,6 +27,9 @@ const statusStyles = {
 };
 
 function CommandCenter() {
+  const health = useServiceHealth();
+  const healthStyle = HEALTH_STYLES[health.state];
+
   const [trains, setTrains] = useState([]);
   const [incidents, setIncidents] = useState([]);
 
@@ -106,10 +110,12 @@ function CommandCenter() {
                 "Unknown",
               severity: alert.severity,
               status: "ACTIVE",
-              time: new Date(alert.createdAt).toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              }),
+              time: alert.createdAt
+                ? new Date(alert.createdAt).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+                : "Unknown",
               description: alert.message,
             };
           }
@@ -396,9 +402,11 @@ function CommandCenter() {
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 rounded-full border border-green-200 bg-green-50 px-4 py-2 text-sm font-medium text-green-700">
-            <span className="h-2 w-2 rounded-full bg-green-500" />
-            System Online
+          <div
+            className={`flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium ${healthStyle.chip} ${healthStyle.text}`}
+          >
+            <span className={`h-2 w-2 rounded-full ${healthStyle.dot}`} />
+            {health.label}
           </div>
 
           <button

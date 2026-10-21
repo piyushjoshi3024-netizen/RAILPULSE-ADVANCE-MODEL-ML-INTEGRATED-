@@ -680,7 +680,11 @@ function Dashboard() {
                 <AlertItem
                   key={alert._id}
                   title={alert.message}
-                  time={new Date(alert.createdAt).toLocaleTimeString()}
+                  time={
+                    alert.createdAt
+                      ? new Date(alert.createdAt).toLocaleTimeString()
+                      : "Unknown"
+                  }
                 />
               ))
             )}
