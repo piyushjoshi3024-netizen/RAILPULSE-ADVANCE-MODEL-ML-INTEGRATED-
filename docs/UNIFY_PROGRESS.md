@@ -1056,3 +1056,128 @@ markers.
 - **Next:** name the next page. NetworkMap is the obvious pair — it carries the
   same two arrays plus the six-train list that currently *decides* which trains
   the map shows, which is the last place hardcoded data still filters live data.
+
+---
+
+## Phases C (rest), E (low-risk) and F — 2026-10-21
+
+### 1. Seed dry run — BLOCKED, nothing written
+
+    $ node scripts/seed-demo.js
+    Seed failed: connect ECONNREFUSED 127.0.0.1:27017
+
+The script's own validation passed; it failed at the connection. The cause is
+not the script:
+
+| Fact | Evidence |
+|---|---|
+| A Mongo container is running | `docker ps` → `railpulse-mongo-dev  Up 6 hours` (image `mongo:7`) |
+| It publishes no port to the host | `docker inspect` → `"Ports": {}` |
+| It has no network attached | `docker inspect` → `"Networks": {}` |
+| `.env` points at the host | `MONGO_URI=mongodb://127.0.0.1:27017/...` |
+
+So nothing on the host can reach that container. Both fixes are on the
+ask-first list and were **not** done: recreating the container with
+`-p 27017:27017` (a Docker container action), or repointing `MONGO_URI`
+(an `.env` change). **The dry run has still never produced output, and
+`--apply` has never been run.** This is the one item in your list that did not
+complete.
+
+### 2. Phase C — the remaining pages
+
+**C.2 NetworkMap** (`62b4c39`). Removed 3080 characters: `stations`,
+`corridors` **and** the six-train array. Two real defects behind that array:
+
+- the map rendered *the array*, merging in whatever the API knew about those
+  six numbers — **a train in the database but not in the array never appeared
+  on the map at all**;
+- `MovingTrain` ran a `setInterval` that slid each marker 0.008 of a corridor
+  segment every second. Nothing measured that motion. It was an animation of an
+  invented position, indistinguishable from tracking. It is now `TrainMarker`,
+  a marker at the station the latest event reports.
+
+Same off-map handling as the Dashboard: no coordinate → no marker, counted in
+the legend. Loading and error states replace the map; the markup inside the
+marker (tooltip, popup, legend) is untouched.
+
+**C.3 Alerts** (`bf805a9`). `useAlerts` + `useTrains`, shared
+Loading/Error/Empty. Note the hook's poll exposed a latent bug: resolving an
+alert was stored *inside* the alert objects, which a poll rebuilds, so a
+resolution would have been wiped every 15 s. It is a set of ids now. It is
+still session-local, because `models/Alert.js` has no status field to write to —
+unchanged behaviour, now stated in the code.
+
+**C.4 Simulation** (`cf5f8f5`). Presets from `config/scenarios.js` (D-A1), the
+train list from `useTrains({ poll: false })` — deliberately not polling, since a
+list changing under an operator mid-setup would move the selection they just
+made. The default selection is derived rather than written by an effect.
+
+**C.5 The sweep** (`a6f3f2c`). Across all 12 files in `src/pages`:
+
+| Looked for | Found | Action |
+|---|---|---|
+| Module-level hardcoded arrays | 2: `ETAPrediction.trains`, `JourneyManagement.journeys` | **left as instructed** → Phase G |
+| Hardcoded "LIVE" / "Operational" | `CommandCenter` printed a green **"System Online"** chip regardless of service state | now reads `useServiceHealth`, like the header and sidebar |
+| `undefined` / `Invalid Date` on screen | 2 sites rendered `new Date(undefined)` → "Invalid Date" | guarded, both show "Unknown" |
+| Mock / dummy / fake / placeholder data | none (only `placeholder=` form attributes) | — |
+| Template strings interpolating optional chains | none | — |
+
+No styling or layout changed in any of the four commits.
+
+### 3. Phase E — three of five items were already done
+
+| Item | State |
+|---|---|
+| Dashboard "View Map" dead button | **Not dead.** `navigate("/map")`, and `/map` is a real route (App.jsx:144). |
+| InsightCard actions | **They do not exist.** `InsightCard({ title, text })` renders two `<p>` elements and no button. A scripted scan of every `<button>` in `src/pages` and `src/components` found **zero** without an `onClick` or `type="submit"`. |
+| StaffOTP reload crash | **Already handled.** With no `location.state.email` it renders an explanation and a link to `/register/staff`. You asked for a redirect; the explanatory screen was kept instead, because a silent redirect tells the user nothing about why they were moved. Say the word and it becomes a `<Navigate>`. |
+| Register.jsx `alert()` + shared client | **Already done.** No `alert(` anywhere in `src/`; it uses `authApi` (the shared client with the session interceptor) and an inline `{error}` block. |
+| **Merge `config.js` + `config/`** (C-B1) | **Done** (`4e1d2a7`). `src/config.js` → `src/config/index.js`, re-exporting `polling.js` and `scenarios.js`. `"../config"` still resolves for all five importers, and the default origins are verified present in the build output. |
+| Mobile sidebar and nav targets (read-only) | **Verified by reading.** `Sidebar` is `fixed … -translate-x-full` below `md` and `md:static md:translate-x-0` above, with a close button, a backdrop and Escape handling in `MainLayout`. All **8** sidebar paths have a matching `<Route>`; `/` → `Entry`; catch-all present. |
+
+### 4. Phase F — already implemented, verified by reading
+
+`renderPassengerDashboard` is already the welcome page you described: greeting,
+*"RailPulse estimates when a train is likely to arrive, and how uncertain that
+estimate is … not a guarantee, and no train on this service is tracked live"*,
+a primary `#/passenger/train` button, and exactly three cards (Track a train,
+Prediction history, Alerts). It calls no endpoint, shows no number, and uses
+`escapeHtml` on every dynamic value. **No "LIVE SIGNAL" badge exists** — the
+only match in the whole frontend is the comment recording its removal. Nothing
+was changed here.
+
+**A PASSENGER can still run a prediction.** Every endpoint the Track page calls
+—`POST /predict/eta`, `GET /trains/{t}/state`, `/reference/trains/{t}/route`,
+`/trains/{t}/upcoming-stations`, `/trains/{t}/predictions` — depends on
+`get_current_user`, with no role restriction. The only role-gated train route is
+`PUT /trains/{t}/state` (`require_roles("STAFF","ADMIN")`), which the passenger
+pages never call.
+
+### 5. Checks
+
+| Command | Result |
+|---|---|
+| `npx vite build` | **passed** |
+| `npx eslint src` | **7 problems (7 errors, 0 warnings)** — was 9. Down 2; nothing added |
+| `npx eslint` on every file touched | **0 problems** |
+| `npm test` (backend) | **27 passed, 0 failed** |
+| `npm test` (ML frontend) | **202 passed, 0 failed** (45 suites) |
+
+The 7 remaining errors are all pre-existing and all outside this work: 4 are the
+`ETAPrediction`/`JourneyManagement` dead code you asked to leave, 3 are in
+`AuthContext.jsx`.
+
+### Not verified
+
+**Nothing was rendered in a browser and no HTTP request was made.** Every claim
+above is from reading code, building, linting and unit tests. Specifically
+unproven: that the two maps draw correctly against a live API, that the 15 s
+poll and the hidden-tab pause behave as intended in a real browser, and that
+`GET /api/stations` and `/api/corridors` return data — the database has never
+been reachable in this session and the seed has never run.
+
+### Status
+
+- **Done:** Phase C complete, Phase E low-risk items, Phase F verified.
+- **Blocked:** the seed dry run, on Mongo being unreachable.
+- **Not started, as instructed:** Phase D, Phase G.
