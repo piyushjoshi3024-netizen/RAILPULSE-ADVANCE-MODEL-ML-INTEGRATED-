@@ -231,11 +231,12 @@ ends both.
 | Passenger | your choice | your choice | **Register** on the main site; staff/admin cannot be self-registered |
 
 > **If admin or staff sign-in returns 401** with *"Invalid username or
-> password… please register again"*: the account is seeded **only once, when it
-> is first absent**, so changing `ADMIN_PASSWORD`/`STAFF_PASSWORD` in `.env`
-> after the first startup does **not** update an existing account. Reset the
-> stored password to the `.env` value with the service's own hasher (no restart
-> needed):
+> password… please register again"*: the account was seeded earlier under a
+> different password. The seed now **self-heals** — on every FastAPI startup it
+> realigns the admin/staff password with the current `ADMIN_PASSWORD` /
+> `STAFF_PASSWORD` in `.env` — so the usual fix is simply to **restart the
+> FastAPI service** (or let `--reload` pick up any change). If you cannot
+> restart, reset the stored password directly with the service's own hasher:
 >
 > ```bash
 > cd "prediction model/railpulse-backend"
