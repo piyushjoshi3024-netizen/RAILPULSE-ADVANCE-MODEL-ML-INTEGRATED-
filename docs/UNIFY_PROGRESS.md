@@ -982,3 +982,77 @@ coverage line on every run.
 - **Next:** Phase C, one page at a time, when you name the page. Dashboard is
   the natural first: it already fetches four of its five resources, so wiring it
   is mostly deleting its own `useEffect`.
+
+---
+
+## Phase C.1 — Dashboard wired to the data layer
+
+You said "Phase C" without naming a page, so this is **Dashboard**, the one
+recommended at the end of Phase B. The other pages are untouched.
+
+### What changed in [Dashboard.jsx](frontend/frontend/src/pages/Dashboard.jsx)
+
+- **Both hardcoded arrays deleted** (1780 characters): `stations` (12 entries
+  with coordinates) and `corridors` (3 unnamed polylines). They now come from
+  `useStations()` and `useCorridors()`.
+- **The page does no fetching of its own.** `grep "useEffect\|api.get"` on the
+  file returns nothing: the one 60-line `useEffect` with its four-way
+  `Promise.all` is gone, replaced by six hooks. Trains, events, the network
+  summary and alerts poll every 15 s and pause while the tab is hidden;
+  stations and corridors are fetched once.
+- **The selection no longer lives in an effect.** It held the selected train
+  *object* and ran a second effect to re-point it at the new object after every
+  load. That is now a stored train *number* with the object derived from it,
+  which removes a render per poll and cannot go stale.
+- **Real states, three of them, where there was one.** The map area and the
+  "Live Network" panel each distinguish loading, failed and genuinely empty.
+  Failures show the reason and a **Try again** button bound to `refetch`; the
+  previous version logged to the console and left the page looking merely
+  empty. The stat cards read `--` while the first answer is outstanding and say
+  "Summary unavailable" if it fails, instead of showing `--` for both.
+
+### The bug this turned up
+
+The old mapping ended with:
+
+    position: station?.position || [28.6139, 77.209]
+
+Any train whose station was not in the hardcoded list was **drawn at New
+Delhi**. Not a placeholder in an empty environment — a real train at a
+coordinate nobody had claimed it was at, indistinguishable from a true one.
+
+It now resolves to `null`, those trains are filtered out of the markers, and
+the legend says so: *"N trains not shown: no coordinate is recorded for the
+station it is at."* They still appear in the train list and the counts. Given
+the seed covers 5 of 12 trains (Phase B), this message is expected to be
+visible, which is the point.
+
+### Also
+
+`useCorridors` now takes the station list as an argument instead of calling
+`useStations` itself. Every page with a map needs both, and the old shape
+fetched `/api/stations` twice per mount.
+
+### Verification
+
+| Check | Result |
+|---|---|
+| React `vite build` | **passed** |
+| React `eslint src` | **9 problems (8 errors, 1 warning)** — down from the 11-problem baseline; Dashboard contributes **0** (it previously held 1 error and 2 warnings) |
+| `eslint src/pages/Dashboard.jsx` | **0 problems** |
+| `grep useEffect\|api.get` in Dashboard.jsx | no matches |
+| Fallback coordinate `[28.6139, 77.209]` | **0 occurrences** |
+| Diff | 379 lines changed in one page, −234/+172 net |
+
+**Not verified:** nothing was run in a browser and no request was made. The
+page has not been rendered against a live API, because that needs the two
+servers and a database connection. The seed has still never been run, so a
+Dashboard opened now would correctly show zeroes, "No trains to show", and no
+markers.
+
+### Status
+
+- **Done:** Phase C.1, Dashboard. One file wired, one hook refined.
+- **Next:** name the next page. NetworkMap is the obvious pair — it carries the
+  same two arrays plus the six-train list that currently *decides* which trains
+  the map shows, which is the last place hardcoded data still filters live data.

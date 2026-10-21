@@ -1,8 +1,18 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getTrains } from "../services/trainService";
-import { getTrainEvents } from "../services/trainEventService";
-import api from "../services/api";
+
+import {
+  useAlerts,
+  useCorridors,
+  useNetworkSummary,
+  useStations,
+  useTrainEvents,
+  useTrains,
+} from "../hooks";
+
+import Loading from "../components/state/Loading";
+import EmptyState from "../components/state/EmptyState";
+import ErrorState from "../components/state/ErrorState";
 
 import {
   MapContainer,
@@ -32,106 +42,14 @@ L.Icon.Default.mergeOptions({
 });
 
 // --------------------------------------------------
-// STATIONS
+// STATIONS AND CORRIDORS
 // --------------------------------------------------
-
-const stations = [
-  {
-    name: "New Delhi",
-    code: "NDLS",
-    position: [28.6139, 77.209],
-  },
-  {
-    name: "Gurugram",
-    code: "GGN",
-    position: [28.4595, 77.0266],
-  },
-  {
-    name: "Rewari",
-    code: "RE",
-    position: [28.199, 76.619],
-  },
-  {
-    name: "Jaipur",
-    code: "JP",
-    position: [26.9124, 75.7873],
-  },
-  {
-    name: "Agra",
-    code: "AGC",
-    position: [27.1767, 78.0081],
-  },
-  {
-    name: "Kota",
-    code: "KOTA",
-    position: [25.2138, 75.8648],
-  },
-  {
-    name: "Bhopal",
-    code: "BPL",
-    position: [23.2599, 77.4126],
-  },
-  {
-    name: "Mumbai Central",
-    code: "MMCT",
-    position: [19.076, 72.8777],
-  },
-  {
-    name: "Surat",
-    code: "ST",
-    position: [21.1702, 72.8311],
-  },
-  {
-    name: "Kanpur",
-    code: "CNB",
-    position: [26.4499, 80.3319],
-  },
-  {
-    name: "Prayagraj",
-    code: "PRYJ",
-    position: [25.4358, 81.8463],
-  },
-  {
-    name: "Kolkata",
-    code: "HWH",
-    position: [22.5726, 88.3639],
-  },
-];
-
-
-// --------------------------------------------------
-// RAILWAY CORRIDORS
-// --------------------------------------------------
-
-const corridors = [
-  // Delhi -> Jaipur -> Mumbai
-  [
-    [28.6139, 77.209],
-    [28.4595, 77.0266],
-    [28.199, 76.619],
-    [26.9124, 75.7873],
-    [25.2138, 75.8648],
-    [23.2599, 77.4126],
-    [21.1702, 72.8311],
-    [19.076, 72.8777],
-  ],
-
-  // Delhi -> Agra -> Bhopal
-  [
-    [28.6139, 77.209],
-    [27.1767, 78.0081],
-    [25.2138, 75.8648],
-    [23.2599, 77.4126],
-  ],
-
-  // Delhi -> Kanpur -> Prayagraj -> Kolkata
-  [
-    [28.6139, 77.209],
-    [26.4499, 80.3319],
-    [25.4358, 81.8463],
-    [22.5726, 88.3639],
-  ],
-];
+//
+// Both lists used to be written out here, and NetworkMap.jsx carried its own
+// slightly different copy of the same thing. They come from
+// GET /api/stations and GET /api/corridors now, which is static reference
+// data -- a station does not move while trains run -- so the hooks fetch it
+// once per mount and never poll it.
 
 // --------------------------------------------------
 // TRAIN ICON
@@ -175,103 +93,78 @@ function createTrainIcon(status, selected = false) {
 function Dashboard() {
   const navigate = useNavigate();
 
-  const [trains, setTrains] = useState([]);
-  const [selectedTrain, setSelectedTrain] = useState(null);
-  const [networkData, setNetworkData] = useState(null);
-  const [alertsData, setAlertsData] = useState([]);
+  // One hook per resource. Trains, events, the network summary and alerts
+  // poll every fifteen seconds and pause while the tab is hidden; stations
+  // and corridors are static and are fetched once.
+  const trainsResource = useTrains();
+  const eventsResource = useTrainEvents();
+  const networkResource = useNetworkSummary();
+  const alertsResource = useAlerts();
+  const stationsResource = useStations();
+  // The station list is handed to useCorridors so /api/stations is fetched
+  // once for this page rather than once per hook that needs it.
+  const corridorsResource = useCorridors(stationsResource);
 
-  useEffect(() => {
-    const loadTrainData = async () => {
-      try {
+  // The selection is held as a train number rather than a train object. The
+  // old version stored the object and then ran an effect to re-point it at the
+  // new object after every poll, which meant one extra render per poll and a
+  // stale panel if that effect ever missed. Deriving it cannot go stale.
+  const [selectedNumber, setSelectedNumber] = useState(null);
 
-        const [
-          trainsResponse,
-          eventsResponse,
-          networkResponse,
-          alertsResponse,
-        ] = await Promise.all([
-          getTrains(),
-          getTrainEvents(),
-          api.get("/operations/network"),
-          api.get("/alerts"),
-        ]);
+  const { latestByTrain } = eventsResource;
+  const { byName, positionOf } = stationsResource;
 
-        const backendTrains = trainsResponse.data;
-        const backendEvents = eventsResponse.data;
-        setAlertsData(alertsResponse.data);
+  // The map shape the page renders. Cheap enough for a network's worth of
+  // trains that memoising it would only hide where the work happens.
+  const trains = trainsResource.trains.map((train) => {
+    const event = latestByTrain.get(String(train._id));
 
-        setNetworkData(networkResponse.data);
+    const currentStation =
+      event?.station ||
+      train.currentStation ||
+      train.source;
 
-        const latestEvents = new Map();
-
-        backendEvents.forEach((event) => {
-          const trainId = String(event.trainId);
-
-          if (!latestEvents.has(trainId)) {
-            latestEvents.set(trainId, event);
-          }
-        });
-
-        const mapTrains = backendTrains.map((train) => {
-          const event = latestEvents.get(String(train._id));
-
-          const currentStation =
-            event?.station ||
-            train.currentStation ||
-            train.source;
-
-          const station = stations.find(
-            (item) => item.name === currentStation
-          );
-
-          return {
-            number: train.trainNumber,
-            name: train.trainName,
-            type: train.trainType || "UNKNOWN",
-            status:
-              event?.delayMinutes > 0
-                ? "DELAYED"
-                : "RUNNING",
-            speed: event?.speed || 0,
-            delay: event?.delayMinutes || 0,
-            currentStation,
-            destination: train.destination,
-            position: station?.position || [28.6139, 77.209],
-          };
-        });
-
-        setTrains(mapTrains);
-
-        if (mapTrains.length > 0) {
-          setSelectedTrain(mapTrains[0]);
-        }
-      } catch (error) {
-        console.error("Failed to load dashboard train data:", error);
-      } 
+    return {
+      number: train.trainNumber,
+      name: train.trainName,
+      type: train.trainType || "UNKNOWN",
+      status: event?.delayMinutes > 0 ? "DELAYED" : "RUNNING",
+      speed: event?.speed || 0,
+      delay: event?.delayMinutes || 0,
+      currentStation,
+      destination: train.destination,
+      // null, not a default point. This used to fall back to New Delhi for
+      // any station it could not find, which put real trains at a coordinate
+      // nobody had claimed they were at.
+      position: positionOf(byName.get(currentStation)),
     };
+  });
 
-    loadTrainData();
-  }, []);
+  const mappableTrains = trains.filter((train) => train.position);
+  const unmappedCount = trains.length - mappableTrains.length;
 
-  // ------------------------------------------------
-  // SMALL LIVE MOVEMENT
-  // ------------------------------------------------
+  const selectedTrain =
+    trains.find((train) => train.number === selectedNumber) ||
+    trains[0] ||
+    null;
 
+  // The map cannot be drawn without trains, their events and the station
+  // coordinates. The alerts panel and the stat cards report their own states.
+  const mapLoading =
+    trainsResource.loading || eventsResource.loading || stationsResource.loading;
 
+  const mapError =
+    trainsResource.error ||
+    eventsResource.error ||
+    stationsResource.error ||
+    corridorsResource.error;
 
-  // ------------------------------------------------
-  // KEEP SELECTED TRAIN UPDATED
-  // ------------------------------------------------
-
-  useEffect(() => {
-    const updated = trains.find(
-      (train) => train.number === selectedTrain?.number
-    );
-
-    if (updated) {
-      setSelectedTrain(updated);
-    }
-  }, [trains]);
+  const retryMap = () => {
+    trainsResource.refetch();
+    eventsResource.refetch();
+    stationsResource.refetch();
+    corridorsResource.refetch();
+  };
 
   return (
     <div className="space-y-8">
@@ -298,26 +191,26 @@ function Dashboard() {
 
         <StatCard
           title="Active Trains"
-          value={networkData?.summary?.activeTrains ?? "--"}
-          description="Currently operating"
+          value={networkResource.loading ? "--" : networkResource.summary.activeTrains}
+          description={networkResource.error ? "Summary unavailable" : "Currently operating"}
         />
 
         <StatCard
           title="Delayed Trains"
-          value={networkData?.summary?.delayedTrains ?? "--"}
-          description="Need attention"
+          value={networkResource.loading ? "--" : networkResource.summary.delayedTrains}
+          description={networkResource.error ? "Summary unavailable" : "Need attention"}
         />
 
         <StatCard
           title="Network Status"
-          value={networkData?.networkStatus ?? "--"}
-          description="Current network condition"
+          value={networkResource.loading ? "--" : networkResource.networkStatus}
+          description={networkResource.error ? "Summary unavailable" : "Current network condition"}
         />
 
         <StatCard
           title="Active Alerts"
-          value={alertsData.length}
-          description="Requires monitoring"
+          value={alertsResource.loading ? "--" : alertsResource.alerts.length}
+          description={alertsResource.error ? "Alerts unavailable" : "Requires monitoring"}
         />
 
       </div>
@@ -366,6 +259,21 @@ function Dashboard() {
 
             <div className="h-[360px] overflow-hidden rounded-xl">
 
+              {mapLoading ? (
+
+                <Loading label="Loading the network map..." className="py-28" />
+
+              ) : mapError ? (
+
+                <ErrorState
+                  message={mapError}
+                  hint="The map needs trains, their latest events and the station list. Check that the API is running."
+                  onRetry={retryMap}
+                  className="py-24"
+                />
+
+              ) : (
+
               <MapContainer
                 center={[23.5, 78.9]}
                 zoom={5}
@@ -382,10 +290,10 @@ function Dashboard() {
                     RAILWAY CORRIDORS
                 ---------------------------------- */}
 
-                {corridors.map((corridor, index) => (
+                {corridorsResource.corridors.map((corridor) => (
                   <Polyline
-                    key={index}
-                    positions={corridor}
+                    key={corridor.corridorId}
+                    positions={corridor.positions}
                     pathOptions={{
                       color: "#f97316",
                       weight: 4,
@@ -398,10 +306,10 @@ function Dashboard() {
                     STATIONS
                 ---------------------------------- */}
 
-                {stations.map((station) => (
+                {stationsResource.stations.map((station) => (
                   <CircleMarker
                     key={station.code}
-                    center={station.position}
+                    center={[station.lat, station.lng]}
                     radius={4}
                     pathOptions={{
                       color: "#1e293b",
@@ -437,7 +345,7 @@ function Dashboard() {
                     TRAINS
                 ---------------------------------- */}
 
-                {trains.map((train) => (
+                {mappableTrains.map((train) => (
 
                   <Marker
                     key={train.number}
@@ -447,7 +355,7 @@ function Dashboard() {
                       selectedTrain?.number === train.number
                     )}
                     eventHandlers={{
-                      click: () => setSelectedTrain(train),
+                      click: () => setSelectedNumber(train.number),
                     }}
                   >
 
@@ -504,6 +412,8 @@ function Dashboard() {
 
               </MapContainer>
 
+              )}
+
             </div>
 
             {/* =====================================
@@ -540,20 +450,26 @@ function Dashboard() {
 
               {/* SELECTED TRAIN */}
 
-              {!selectedTrain ? (
+              {trainsResource.loading ? (
 
-                <div className="rounded-xl border border-dashed border-slate-300 bg-white p-4 text-center">
+                <Loading label="Loading trains..." className="py-8" />
 
-                  <p className="text-sm font-medium text-slate-600">
-                    No trains to show
-                  </p>
+              ) : trainsResource.error ? (
 
-                  <p className="mt-1 text-xs text-slate-400">
-                    Nothing has been recorded in this environment yet, so there
-                    is no live detail to display.
-                  </p>
+                <ErrorState
+                  message={trainsResource.error}
+                  onRetry={trainsResource.refetch}
+                  className="py-8"
+                />
 
-                </div>
+              ) : !selectedTrain ? (
+
+                <EmptyState
+                  title="No trains to show"
+                  hint="No train has been recorded in this environment yet."
+                  icon="\u2014"
+                  className="rounded-xl border border-dashed border-slate-300 bg-white p-4"
+                />
 
               ) : (
 
@@ -656,7 +572,7 @@ function Dashboard() {
 
                     <button
                       key={train.number}
-                      onClick={() => setSelectedTrain(train)}
+                      onClick={() => setSelectedNumber(train.number)}
                       className={`flex w-full items-center justify-between rounded-lg px-2 py-2 text-left transition ${selectedTrain?.number === train.number
                         ? "bg-orange-100"
                         : "hover:bg-white"
@@ -718,6 +634,13 @@ function Dashboard() {
               text="Station"
             />
 
+            {unmappedCount > 0 && (
+              <span className="text-slate-400">
+                {unmappedCount} train{unmappedCount === 1 ? "" : "s"} not shown:
+                no coordinate is recorded for the station it is at.
+              </span>
+            )}
+
           </div>
 
         </div>
@@ -734,14 +657,26 @@ function Dashboard() {
 
           <div className="mt-5 space-y-4">
 
-            {alertsData.length === 0 ? (
+            {alertsResource.loading ? (
+
+              <Loading label="Loading alerts..." className="py-6" />
+
+            ) : alertsResource.error ? (
+
+              <ErrorState
+                message={alertsResource.error}
+                onRetry={alertsResource.refetch}
+                className="py-6"
+              />
+
+            ) : alertsResource.alerts.length === 0 ? (
 
               <p className="text-sm text-slate-400">
                 No alerts have been recorded.
               </p>
 
             ) : (
-              alertsData.slice(0, 3).map((alert) => (
+              alertsResource.alerts.slice(0, 3).map((alert) => (
                 <AlertItem
                   key={alert._id}
                   title={alert.message}
