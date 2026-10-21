@@ -252,6 +252,18 @@ html[data-theme="dark"] .text-gray-600 { color: #cbd5e1; }
 html[data-theme="dark"] .text-slate-500,
 html[data-theme="dark"] .text-gray-500 { color: #94a3b8; }
 
+/* Inputs: light text on a dark field, whatever utilities they carry, so a
+   typed value is never dark-on-dark. Covers the login form's forced-black
+   text too. */
+html[data-theme="dark"] input,
+html[data-theme="dark"] textarea,
+html[data-theme="dark"] select { color: #e2e8f0; }
+html[data-theme="dark"] input::placeholder,
+html[data-theme="dark"] textarea::placeholder { color: #64748b; }
+html[data-theme="dark"] .\!text-black { color: #f1f5f9 !important; }
+html[data-theme="dark"] .text-slate-400,
+html[data-theme="dark"] .text-gray-400 { color: #94a3b8; }
+
 /* --- Borders --- */
 html[data-theme="dark"] .border-slate-100,
 html[data-theme="dark"] .border-slate-200,

@@ -206,7 +206,7 @@ function Login() {
                                                 }
                                                 placeholder="Enter username"
                                                 required
-                                                className="w-full pl-11 pr-4 py-3.5 border border-gray-300 rounded-xl outline-none bg-white !text-black !placeholder:text-gray-400 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all"
+                                                className="w-full pl-11 pr-4 py-3.5 border border-gray-300 rounded-xl outline-none bg-white text-slate-900 placeholder:text-slate-400 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all"
                                             />
 
                                         </div>
@@ -254,7 +254,7 @@ function Login() {
                                                 }
                                                 placeholder="Enter password"
                                                 required
-                                                className="w-full pl-11 pr-4 py-3.5 border border-gray-300 rounded-xl outline-none bg-white !text-black !placeholder:text-gray-400 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all"
+                                                className="w-full pl-11 pr-4 py-3.5 border border-gray-300 rounded-xl outline-none bg-white text-slate-900 placeholder:text-slate-400 focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all"
                                             />
 
                                         </div>
