@@ -1,24 +1,13 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { runStaffSimulation } from "../services/simulationService";
-import { getTrains } from "../services/trainService";
 
-const scenarios = [
-  {
-    id: 1,
-    name: "Train Delay",
-    description: "Simulate the effect of a delayed train on the network.",
-  },
-  {
-    id: 2,
-    name: "Platform Congestion",
-    description: "Simulate platform availability constraints.",
-  },
-  {
-    id: 3,
-    name: "High Traffic",
-    description: "Simulate increased traffic on a railway corridor.",
-  },
-];
+import { useTrains } from "../hooks";
+import { SIMULATION_SCENARIOS } from "../config/scenarios";
+
+// The three presets live in config/scenarios.js (decision D-A1). They
+// describe the branches the simulation endpoints implement, so they belong to
+// the code, not to the database, and they are not fetched.
+const scenarios = SIMULATION_SCENARIOS;
 
 function Simulation() {
   const [scenario, setScenario] = useState("Train Delay");
@@ -32,43 +21,36 @@ function Simulation() {
   // three did not exist in the database, so those scenarios always failed and
   // said nothing about it. The trains come from the API now, and the operator
   // chooses one.
-  const [trains, setTrains] = useState([]);
+  // The trains come from the API. No polling here: a list that changed under
+  // an operator halfway through setting up a run would move the selection they
+  // had just made.
+  const trainsResource = useTrains({ poll: false });
+  const trains = trainsResource.trains;
+
   const [trainId, setTrainId] = useState("");
   const [error, setError] = useState("");
   const [running, setRunning] = useState(false);
 
-  useEffect(() => {
-    const loadTrains = async () => {
-      try {
-        const response = await getTrains();
-        const available = response.data || [];
+  // Default to the first train once the list arrives, without an effect: the
+  // selection is only stored once the operator changes it.
+  const effectiveTrainId =
+    trainId || (trains.length > 0 ? String(trains[0]._id) : "");
 
-        setTrains(available);
-
-        if (available.length > 0) {
-          setTrainId(String(available[0]._id));
-        } else {
-          setError("No trains are available to simulate.");
-        }
-      } catch (loadError) {
-        console.error("Failed to load trains:", loadError);
-        setError("The list of trains could not be loaded.");
-      }
-    };
-
-    loadTrains();
-  }, []);
+  const loadMessage = trainsResource.loading
+    ? ""
+    : trainsResource.error ||
+      (trains.length === 0 ? "No trains are available to simulate." : "");
 
   const selectedScenario = scenarios.find(
     (item) => item.name === scenario
   );
 
   const selectedTrain = trains.find(
-    (item) => String(item._id) === trainId
+    (item) => String(item._id) === effectiveTrainId
   );
 
   const runSimulation = async () => {
-    if (!trainId) {
+    if (!effectiveTrainId) {
       setError("Choose a train before running the simulation.");
       setSimulated(false);
       return;
@@ -79,7 +61,7 @@ function Simulation() {
 
     try {
       const response = await runStaffSimulation({
-        trainId,
+        trainId: effectiveTrainId,
         additionalDelayMinutes: Number(delay || 0),
       });
 
@@ -165,15 +147,17 @@ function Simulation() {
 
           <select
             id="simulation-train"
-            value={trainId}
+            value={effectiveTrainId}
             onChange={(e) => {
               setTrainId(e.target.value);
               setSimulated(false);
             }}
-            disabled={trains.length === 0}
+            disabled={trains.length === 0 || trainsResource.loading}
             className="w-full max-w-md rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 disabled:bg-slate-50 disabled:text-slate-400"
           >
-            {trains.length === 0 ? (
+            {trainsResource.loading ? (
+              <option value="">Loading trains...</option>
+            ) : trains.length === 0 ? (
               <option value="">No trains available</option>
             ) : (
               trains.map((train) => (
@@ -309,9 +293,9 @@ function Simulation() {
 
         {/* RUN BUTTON */}
 
-        {error && (
+        {(error || loadMessage) && (
           <div className="mt-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-            {error}
+            {error || loadMessage}
           </div>
         )}
 
@@ -320,7 +304,7 @@ function Simulation() {
           <button
             type="button"
             onClick={runSimulation}
-            disabled={running || !trainId}
+            disabled={running || !effectiveTrainId}
             className="rounded-lg bg-orange-500 px-6 py-3 text-sm font-semibold text-white transition hover:bg-orange-600 disabled:bg-orange-300"
           >
             {running ? "Running..." : "Run Simulation"}
