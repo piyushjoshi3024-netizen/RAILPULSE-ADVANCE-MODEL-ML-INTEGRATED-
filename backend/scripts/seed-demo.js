@@ -32,6 +32,8 @@ const Corridor = require("../src/models/Corridor");
 const Train = require("../src/models/Train");
 const TrainEvent = require("../src/models/TrainEvent");
 const Alert = require("../src/models/Alert");
+const redisClient = require("../src/config/redis");
+const { updateTrainState } = require("../src/services/liveState.service");
 
 const reference = require("../data/seed-reference.json");
 const demo = require("../data/seed-demo-trains.json");
@@ -42,6 +44,15 @@ const SEED = { dataSource: "SEED" };
 
 /** The complete list of collections this script is allowed to write. */
 const TOUCHED = ["main_stations", "main_corridors", "trains", "trainevents", "main_alerts"];
+
+/**
+ * Redis keys the live-state step writes, one per seeded train.
+ *
+ * `GET /api/trains/:id/eta` reads the train's live state from Redis, not from
+ * Mongo. Without it every seeded train answered 404 "Live state not found",
+ * which made the ETA page unusable on a freshly seeded database.
+ */
+const LIVE_STATE_KEYS = "train:live:<train _id>  (Redis, one per seeded train)";
 
 const log = (...parts) => console.log(...parts);
 
@@ -122,6 +133,7 @@ const run = async () => {
     log(APPLY ? "APPLYING the demo seed" : "DRY RUN -- nothing will be written");
     log(`  database        ${dbName}`);
     log(`  collections     ${TOUCHED.join(", ")}`);
+    log(`  redis keys      ${LIVE_STATE_KEYS}`);
     log(`  never touched   users, main_users, live_train_state, reference_trains, predictions, alerts`);
     log("");
 
@@ -168,6 +180,26 @@ const run = async () => {
             destination: train.destination,
             status: train.delayMinutes > 0 ? "DELAYED" : "RUNNING",
             isActive: true,
+            currentStation: train.source,
+            // Two stops, not an invented stop sequence. The ETA endpoint sums
+            // `distanceFromPrevious` from the current station to the
+            // destination and needs a `scheduledArrival` there; both values
+            // are the dataset's own. The dataset has no intermediate stops, so
+            // none are written.
+            route: [
+                {
+                    station: train.source,
+                    sequence: 1,
+                    distanceFromPrevious: 0,
+                    scheduledArrival: "",
+                },
+                {
+                    station: train.destination,
+                    sequence: 2,
+                    distanceFromPrevious: train.distanceKm,
+                    scheduledArrival: train.scheduledArrival,
+                },
+            ],
         })),
         (row) => ({ trainNumber: row.trainNumber })
     );
@@ -219,6 +251,36 @@ const run = async () => {
         alertType: row.alertType,
     }));
 
+    // ---------------------------------------------------------------- Redis
+    //
+    // The ETA endpoint reads a train's live state from Redis. Seeding Mongo
+    // alone left every seeded train answering 404 there, so the ETA page could
+    // not be used at all on a fresh database.
+    log("");
+    log("Live state (Redis, read by GET /api/trains/:id/eta):");
+
+    const liveTrains = await Train.find(SEED).select("_id trainNumber").lean();
+    const bySeedNumber = new Map(demo.trains.map((t) => [t.trainNumber, t]));
+    let liveWritten = 0;
+
+    for (const train of liveTrains) {
+        const spec = bySeedNumber.get(train.trainNumber);
+        if (!spec) continue;
+
+        const state = {
+            currentStation: spec.source,
+            // Above zero, because the rule-based estimate divides by it.
+            speed: spec.delayMinutes > 30 ? 45 : 82,
+            delayMinutes: spec.delayMinutes,
+            timestamp: new Date().toISOString(),
+        };
+
+        if (APPLY) await updateTrainState(String(train._id), state);
+        liveWritten += 1;
+    }
+
+    log(`  ${"train:live:*".padEnd(16)} ${APPLY ? "wrote" : "would write"} ${liveWritten} key(s)`);
+
     const positionable = demo.trains.filter((t) => t.station).length;
     log("");
     log(
@@ -235,4 +297,5 @@ run()
     })
     .finally(async () => {
         await mongoose.connection.close().catch(() => {});
+        await redisClient.quit().catch(() => {});
     });

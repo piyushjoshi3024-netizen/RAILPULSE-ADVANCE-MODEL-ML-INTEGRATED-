@@ -430,12 +430,16 @@ function Dashboard() {
                     Live Network
                   </h3>
 
-                  {selectedTrain && (
-                    <span className="flex items-center gap-1 text-xs font-medium text-green-600">
+                  {/* This said "LIVE" with a green dot whenever a train was
+                      selected. Nothing here is a live feed: it is a
+                      fifteen-second poll, so it reports when the data was last
+                      read instead of claiming a stream. */}
+                  {trainsResource.updatedAt && (
+                    <span className="flex items-center gap-1 text-xs font-medium text-slate-500">
 
                       <span className="h-2 w-2 rounded-full bg-green-500"></span>
 
-                      LIVE
+                      {trainsResource.updatedAt.toLocaleTimeString()}
 
                     </span>
                   )}

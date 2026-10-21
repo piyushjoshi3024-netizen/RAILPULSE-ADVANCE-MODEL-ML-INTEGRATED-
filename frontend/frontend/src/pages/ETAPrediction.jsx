@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { getTrainETA } from "../services/etaService";
-import { getTrains } from "../services/trainService";
-import { getTrainEvents } from "../services/trainEventService";
-import api from "../services/api";
+
+import { useNetworkSummary, useTrainEvents, useTrains } from "../hooks";
+import Loading from "../components/state/Loading";
+import EmptyState from "../components/state/EmptyState";
+import ErrorState from "../components/state/ErrorState";
 const trains = [
   {
     trainNumber: "12951",
@@ -103,39 +105,32 @@ const trains = [
 ];
 
 function ETAPrediction() {
-  const [selectedNumber, setSelectedNumber] = useState("12951");
+  // This defaulted to the hardcoded "12951", a train number that belongs to
+  // the demo array this page no longer renders and that the database does not
+  // have. The display fell back to the first real train, but Predict ETA
+  // looked up "12951" strictly, found nothing, logged to the console and did
+  // nothing at all -- a button that looked enabled and never worked. The
+  // selection is empty until chosen, and the effective train is derived.
+  const [selectedNumber, setSelectedNumber] = useState("");
   const [predictionGenerated, setPredictionGenerated] = useState(false);
   const [etaData, setEtaData] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [backendTrains, setBackendTrains] = useState([]);
-  const [trainEvents, setTrainEvents] = useState([]);
-  const [networkData, setNetworkData] = useState(null);
+  const [predictionError, setPredictionError] = useState("");
 
-  useEffect(() => {
-    const loadTrains = async () => {
-      try {
-        const [trainsResponse, eventsResponse, networkResponse] =
-          await Promise.all([
-            getTrains(),
-            getTrainEvents(),
-            api.get("/operations/network"),
-          ]);
+  const trainsResource = useTrains();
+  const eventsResource = useTrainEvents();
+  const networkResource = useNetworkSummary();
 
-        setBackendTrains(trainsResponse.data);
-        setTrainEvents(eventsResponse.data);
-        setNetworkData(networkResponse.data);
-      } catch (error) {
-        console.error("Failed to load train data:", error);
-      }
-    };
-
-    loadTrains();
-  }, []);
+  const backendTrains = trainsResource.trains;
+  const trainEvents = eventsResource.events;
 
   const selectedTrain =
     backendTrains.find(
       (train) => train.trainNumber === selectedNumber
     ) || backendTrains[0];
+
+  // What the button acts on: whatever the page is actually showing.
+  const effectiveNumber = selectedTrain?.trainNumber || "";
   const selectedTrainEvent = trainEvents.find(
     (event) => String(event.trainId) === String(selectedTrain?._id)
   );
@@ -170,12 +165,14 @@ function ETAPrediction() {
       setLoading(true);
       setPredictionGenerated(false);
 
+      setPredictionError("");
+
       const train = backendTrains.find(
-        (item) => item.trainNumber === selectedNumber
+        (item) => item.trainNumber === effectiveNumber
       );
 
       if (!train) {
-        console.error("Selected train not found");
+        setPredictionError("Choose a train before predicting an arrival.");
         return;
       }
 
@@ -184,16 +181,37 @@ function ETAPrediction() {
       setEtaData(response.data);
       setPredictionGenerated(true);
     } catch (error) {
-      console.error("Failed to fetch ETA:", error);
+      // The failure now reaches the screen. It used to go to the console only,
+      // so a failed prediction looked identical to never having pressed it.
+      setPredictionError(
+        error.response?.data?.message ||
+        error.message ||
+        "The arrival estimate could not be produced."
+      );
     } finally {
       setLoading(false);
     }
   };
+  if (trainsResource.loading) {
+    return <Loading label="Loading trains..." />;
+  }
+
+  if (trainsResource.error) {
+    return (
+      <ErrorState
+        message={trainsResource.error}
+        onRetry={trainsResource.refetch}
+      />
+    );
+  }
+
   if (backendTrains.length === 0) {
     return (
-      <div className="p-8 text-slate-500">
-        Loading trains...
-      </div>
+      <EmptyState
+        title="No trains to predict for"
+        hint="The API has no trains stored in this environment."
+        icon="\u2014"
+      />
     );
   }
   return (
@@ -231,7 +249,7 @@ function ETAPrediction() {
             </label>
 
             <select
-              value={selectedNumber}
+              value={effectiveNumber}
               onChange={(e) => {
                 setSelectedNumber(e.target.value);
                 setPredictionGenerated(false);
@@ -269,6 +287,7 @@ function ETAPrediction() {
 
           <button
             onClick={handlePrediction}
+            disabled={loading || !effectiveNumber}
             className="
               rounded-lg
               bg-orange-500
@@ -281,12 +300,19 @@ function ETAPrediction() {
               transition
               hover:bg-orange-600
               active:scale-[0.98]
+              disabled:bg-orange-300
             "
           >
-            Predict ETA
+            {loading ? "Predicting..." : "Predict ETA"}
           </button>
 
         </div>
+
+        {predictionError && (
+          <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+            {predictionError}
+          </div>
+        )}
 
       </div>
 
@@ -554,7 +580,7 @@ function ETAPrediction() {
 
                 <AnalysisCard
                   title="Network Status"
-                  value={networkData?.networkStatus ?? "--"}
+                  value={networkResource.loading ? "--" : networkResource.networkStatus}
                   description="Current network condition"
                   icon="≋"
                 />

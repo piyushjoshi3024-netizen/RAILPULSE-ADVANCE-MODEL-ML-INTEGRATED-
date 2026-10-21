@@ -1307,3 +1307,135 @@ table; nothing was done to it.
 - **Done:** container started, dry run captured, full backup taken and verified.
 - **Not done:** `--apply`. Still never run.
 - **Next:** your approval to apply, after you have read the dry run above.
+
+---
+
+## Seed applied, the ML bridge fixed, and the README rewritten — 2026-10-21
+
+The backup from the previous section (`backups/20261021-101505/`, 30
+collections verified) was the precondition for everything here.
+
+### 1. The seed, applied
+
+    main_stations    insert 13   main_corridors  insert  4
+    trains           insert 12   trainevents     insert 12
+    main_alerts      insert  3   train:live:*    wrote  12 keys
+
+Re-running the dry run afterwards reports **0 inserts, 44 updates** — it is
+idempotent. Identity and ML data are unchanged: `users` 23, `predictions` 150,
+`live_train_state` 16, `reference_trains` 12, `main_users` 0, FastAPI `alerts` 0,
+exactly as before the apply.
+
+### 2. Two things the seed could not fix on its own
+
+Smoke-testing `GET /api/trains/:id/eta` against the seeded data exposed a chain
+that had never worked end to end.
+
+**(a) The ETA endpoint needs a route and a Redis live state, and had neither.**
+It reads live state from **Redis** (`train:live:<id>`), not Mongo, and measures
+remaining distance along `train.route`. Seeded trains had no route and no Redis
+key, so every one answered `404 Live state not found`. The seed now writes both:
+a Redis state per train, and a **two-stop** route — the train's real source and
+destination, with the dataset's own `distance_km` and scheduled arrival. The
+dataset has no intermediate stop sequence, so none was invented; route progress
+therefore reads 0% until a train actually moves, which is the honest display.
+
+**(b) Audit A-16 confirmed, and fixed.** The Node→FastAPI bridge signs in as
+`ml-bridge`. `railpulse.users` contained **no such account**, so every
+prediction fell back to the rule-based path and said
+`"fallbackReason":"ml_unreachable"` — a working-looking ETA that never touched
+the model. The account was created through FastAPI's own register endpoint using
+the password already in `backend/.env` (no `.env` change, nothing printed). The
+same request now returns `"predictionSource":"ml"` with
+`modelVersion: delay-v3-20261020T111514Z` and P10/P50/P90 quantiles.
+
+**(c) Every API error was an HTML stack trace.** There was no error-handling
+middleware, so Express's default handler returned an HTML page exposing file
+paths for every failure, including ordinary 404s — the exact problem
+`services/authService.js` had been written to work around. `src/app.js` now ends
+with a JSON 404 for unknown `/api` routes and a JSON error handler that honours
+`error.statusCode` and keeps stacks in the server log.
+
+### 3. A dead button, caused by leftover demo data
+
+`ETAPrediction.jsx` initialised its selection to the hardcoded train number
+**`"12951"`** — a leftover from the demo array the page no longer renders, and a
+number the database does not have. The *display* fell back to the first real
+train, but `handlePrediction` looked up `"12951"` strictly, found nothing,
+logged to the console and returned. **The Predict ETA button looked enabled and
+did nothing, silently.** The selection is now derived from the train actually
+shown, failures reach the screen instead of the console, and the button has
+loading and disabled states. The page also moved onto the hooks.
+
+### 4. The "LIVE" badge the browser found
+
+The Dashboard's Live Network panel showed a green dot and the word **LIVE**
+whenever a train was selected. Nothing here is a live feed — it is a
+fifteen-second poll. It now shows the time the data was last read. (The earlier
+grep sweep missed it because the word sat alone on its own line.)
+
+### 5. Measured in a real browser, at last
+
+Both backends, Redis, Mongo and the Vite dev server were started, and the site
+was driven as a signed-in PASSENGER (a throwaway local account; its password
+never left the session scratchpad).
+
+| Check | Result |
+|---|---|
+| `/login` renders | yes, **0 console errors** |
+| Dashboard | **12 active trains, 12 delayed, network HIGH, 3 alerts**, 12 rows in the train list, 5 map markers |
+| The off-map message | *"7 trains not shown: no coordinate is recorded for the station it is at."* — rendering as designed |
+| `/map`, `/alerts`, `/eta`, `/trains`, `/journey`, `/simulation`, `/operations` | all load, **0 console errors across all seven** |
+| Predict ETA, pressed | returns a real model prediction: P10 11 min, P50 44 min, P90 73 min, 76% chance of >15 min, "Trained on synthetic data" badge shown |
+| One login across both apps | a **FastAPI** token is accepted by **Node** `/api/auth/me` → **200** |
+| Unknown route | `{"message":"No such endpoint: GET /api/nope"}` instead of an HTML page |
+
+### 6. Phase G evidence (gathered, **nothing dropped**)
+
+| Database | Documents | Last write | Read by anything? |
+|---|---|---|---|
+| `railpulse` | 248 across 19 collections | today | **yes — both applications** |
+| `railpulse_node` | **7** across 5 collections (1 train, 1 journey, 1 train event, 3 ETA predictions, 1 user) | **2026-10-20**, before the cutover | **no** — no connection string points at it |
+
+Also idle: the containers `railpulse-mongo-dev` (running, no port, no network —
+unreachable) and `railpulse-mongodb` (exited 3 weeks). **Nothing was dropped,
+stopped or removed.** Per the standing rule, a drop needs you to type the exact
+database name, and no volume was touched.
+
+### 7. README
+
+`Readme.md` was rewritten as a single, self-contained, verified setup guide: the
+component/port table, the Docker commands **with the port-publishing warning
+that cost this session two hours**, the fact that `JWT_SECRET` and
+`JWT_SECRET_KEY` must be the *same* value (the old guide told you to generate a
+random one, which silently breaks one-login), both full `.env` templates, the
+model training step, the `ml-bridge` account step, the seed's dry-run-first
+workflow, a verification block, a troubleshooting table of the seven failures
+actually hit, the test commands, the data layout, and an explicit
+"known honest limits" section.
+
+The previous guide's filename contained unprintable private-use characters,
+which made it unopenable from a file listing and unlinkable from GitHub. It was
+`git mv`'d to `docs/SETUP_GUIDE_ARCHIVE.md` and is linked from the README as
+superseded. Nothing was deleted.
+
+### Phase D and Phase G: what is actually left
+
+Re-reading the gates: **G1** (target `railpulse`, start fresh), **G2** (FastAPI
+the only identity provider, Node verifies HS256 with pinned algorithms), **G3**
+(= S1, staff seeded or admin-created, OTP retired to 410) and **G4** (URL
+fragment handoff) were all decided and implemented in earlier phases, and G2 is
+now **proven at runtime** by the cross-app token test above.
+
+The only Phase D item remaining is **D4: route protection.** Most Express data
+routes are unauthenticated. Adding auth to them is on the standing ask-first
+list, so it was not done. It needs your decision on which routes, for which
+roles, and what the React app should do when a role is refused.
+
+Phase G needs the exact database name typed before anything is dropped.
+
+### Status
+
+- **Done:** seed applied and verified; ETA chain working end to end; three real
+  defects fixed; browser verification; Phase G evidence; README rewritten.
+- **Not done, needs you:** D4 route protection; the `railpulse_node` drop.

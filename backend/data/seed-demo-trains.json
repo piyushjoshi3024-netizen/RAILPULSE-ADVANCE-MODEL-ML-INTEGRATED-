@@ -13,25 +13,168 @@
     "NOTE: only trains whose station appears in main_stations can be drawn on a",
     "map. Nine of these twelve run between stations this repository has no",
     "coordinate for, so they will appear in lists and not on the map until a",
-    "coordinate source is agreed. No coordinate has been guessed to hide that."
+    "coordinate source is agreed. No coordinate has been guessed to hide that.",
+    "distanceKm and scheduledArrival are also the dataset's own values. They are",
+    "what the Express ETA endpoint needs: it measures remaining distance along",
+    "train.route and needs a scheduled arrival at the destination. The route is",
+    "seeded as source -> destination only, because the dataset has no",
+    "intermediate stop sequence and inventing one would be fabricating a journey."
   ],
   "trains": [
-    { "trainNumber": "12301", "trainName": "Rajdhani Express",             "trainType": "SUPERFAST", "source": "Howrah",             "destination": "New Delhi",      "station": "HWH",  "delayMinutes": 4 },
-    { "trainNumber": "12377", "trainName": "Garib Rath Express",           "trainType": "EXPRESS", "source": "Kolkata",          "destination": "New Delhi",      "station": "HWH",  "delayMinutes": 52 },
-    { "trainNumber": "12002", "trainName": "Shatabdi Express",             "trainType": "SUPERFAST", "source": "New Delhi",          "destination": "Rani Kamlapati", "station": "NDLS", "delayMinutes": 6 },
-    { "trainNumber": "12604", "trainName": "Chennai Express",              "trainType": "EXPRESS",  "source": "Mumbai",             "destination": "Chennai",        "station": "MMCT", "delayMinutes": 59 },
-    { "trainNumber": "12621", "trainName": "Tamil Nadu Express",           "trainType": "EXPRESS",  "source": "Chennai Central",    "destination": "New Delhi",      "station": "",     "delayMinutes": 44 },
-    { "trainNumber": "12625", "trainName": "Kerala Express",               "trainType": "EXPRESS",  "source": "Thiruvananthapuram", "destination": "New Delhi",      "station": "",     "delayMinutes": 13 },
-    { "trainNumber": "12229", "trainName": "Lucknow Mail",                 "trainType": "EXPRESS",     "source": "Lucknow",            "destination": "New Delhi",      "station": "",     "delayMinutes": 5 },
-    { "trainNumber": "12238", "trainName": "Begampura Express",            "trainType": "EXPRESS",  "source": "Varanasi",           "destination": "Jammu",          "station": "",     "delayMinutes": 86 },
-    { "trainNumber": "12633", "trainName": "Kanyakumari Express",          "trainType": "EXPRESS",  "source": "Chennai Egmore",     "destination": "Kanyakumari",    "station": "",     "delayMinutes": 15 },
-    { "trainNumber": "15906", "trainName": "Vivek Express",                "trainType": "EXPRESS",  "source": "Dibrugarh",          "destination": "Kanyakumari",    "station": "",     "delayMinutes": 23 },
-    { "trainNumber": "22832", "trainName": "Yesvantpur-Howrah Express",    "trainType": "EXPRESS",  "source": "Yesvantpur Jn",      "destination": "Howrah",         "station": "HWH",  "delayMinutes": 54 },
-    { "trainNumber": "15029", "trainName": "Gorakhpur-Pune Weekly Express","trainType": "EXPRESS",  "source": "Gorakhpur",          "destination": "Pune",           "station": "",     "delayMinutes": 30 }
+    {
+      "trainNumber": "12301",
+      "trainName": "Rajdhani Express",
+      "trainType": "SUPERFAST",
+      "source": "Howrah",
+      "destination": "New Delhi",
+      "station": "HWH",
+      "delayMinutes": 4,
+      "distanceKm": 1450.0,
+      "scheduledArrival": "10:00"
+    },
+    {
+      "trainNumber": "12377",
+      "trainName": "Garib Rath Express",
+      "trainType": "EXPRESS",
+      "source": "Kolkata",
+      "destination": "New Delhi",
+      "station": "HWH",
+      "delayMinutes": 52,
+      "distanceKm": 1318.0,
+      "scheduledArrival": "08:00"
+    },
+    {
+      "trainNumber": "12002",
+      "trainName": "Shatabdi Express",
+      "trainType": "SUPERFAST",
+      "source": "New Delhi",
+      "destination": "Rani Kamlapati",
+      "station": "NDLS",
+      "delayMinutes": 6,
+      "distanceKm": 707.0,
+      "scheduledArrival": "06:00"
+    },
+    {
+      "trainNumber": "12604",
+      "trainName": "Chennai Express",
+      "trainType": "EXPRESS",
+      "source": "Mumbai",
+      "destination": "Chennai",
+      "station": "MMCT",
+      "delayMinutes": 59,
+      "distanceKm": 1284.0,
+      "scheduledArrival": "09:00"
+    },
+    {
+      "trainNumber": "12621",
+      "trainName": "Tamil Nadu Express",
+      "trainType": "EXPRESS",
+      "source": "Chennai Central",
+      "destination": "New Delhi",
+      "station": "",
+      "delayMinutes": 44,
+      "distanceKm": 2182.0,
+      "scheduledArrival": "07:05"
+    },
+    {
+      "trainNumber": "12625",
+      "trainName": "Kerala Express",
+      "trainType": "EXPRESS",
+      "source": "Thiruvananthapuram",
+      "destination": "New Delhi",
+      "station": "",
+      "delayMinutes": 13,
+      "distanceKm": 3149.0,
+      "scheduledArrival": "23:40"
+    },
+    {
+      "trainNumber": "12229",
+      "trainName": "Lucknow Mail",
+      "trainType": "EXPRESS",
+      "source": "Lucknow",
+      "destination": "New Delhi",
+      "station": "",
+      "delayMinutes": 5,
+      "distanceKm": 491.0,
+      "scheduledArrival": "10:00"
+    },
+    {
+      "trainNumber": "12238",
+      "trainName": "Begampura Express",
+      "trainType": "EXPRESS",
+      "source": "Varanasi",
+      "destination": "Jammu",
+      "station": "",
+      "delayMinutes": 86,
+      "distanceKm": 1260.0,
+      "scheduledArrival": "06:30"
+    },
+    {
+      "trainNumber": "12633",
+      "trainName": "Kanyakumari Express",
+      "trainType": "EXPRESS",
+      "source": "Chennai Egmore",
+      "destination": "Kanyakumari",
+      "station": "",
+      "delayMinutes": 15,
+      "distanceKm": 742.0,
+      "scheduledArrival": "17:20"
+    },
+    {
+      "trainNumber": "15906",
+      "trainName": "Vivek Express",
+      "trainType": "EXPRESS",
+      "source": "Dibrugarh",
+      "destination": "Kanyakumari",
+      "station": "",
+      "delayMinutes": 23,
+      "distanceKm": 4198.0,
+      "scheduledArrival": "19:25"
+    },
+    {
+      "trainNumber": "22832",
+      "trainName": "Yesvantpur-Howrah Express",
+      "trainType": "EXPRESS",
+      "source": "Yesvantpur Jn",
+      "destination": "Howrah",
+      "station": "HWH",
+      "delayMinutes": 54,
+      "distanceKm": 1915.0,
+      "scheduledArrival": "04:30"
+    },
+    {
+      "trainNumber": "15029",
+      "trainName": "Gorakhpur-Pune Weekly Express",
+      "trainType": "EXPRESS",
+      "source": "Gorakhpur",
+      "destination": "Pune",
+      "station": "",
+      "delayMinutes": 30,
+      "distanceKm": 1754.0,
+      "scheduledArrival": "10:00"
+    }
   ],
   "alerts": [
-    { "trainNumber": "12238", "alertType": "DELAY",      "severity": "HIGH",   "message": "Running 86 minutes behind schedule.",            "affectedSection": "Varanasi - Jammu" },
-    { "trainNumber": "12604", "alertType": "DELAY",      "severity": "MEDIUM", "message": "Running 59 minutes behind schedule.",            "affectedSection": "Mumbai - Chennai" },
-    { "trainNumber": "22832", "alertType": "BOTTLENECK", "severity": "MEDIUM", "message": "Platform congestion reported on approach.",      "affectedSection": "Howrah" }
+    {
+      "trainNumber": "12238",
+      "alertType": "DELAY",
+      "severity": "HIGH",
+      "message": "Running 86 minutes behind schedule.",
+      "affectedSection": "Varanasi - Jammu"
+    },
+    {
+      "trainNumber": "12604",
+      "alertType": "DELAY",
+      "severity": "MEDIUM",
+      "message": "Running 59 minutes behind schedule.",
+      "affectedSection": "Mumbai - Chennai"
+    },
+    {
+      "trainNumber": "22832",
+      "alertType": "BOTTLENECK",
+      "severity": "MEDIUM",
+      "message": "Platform congestion reported on approach.",
+      "affectedSection": "Howrah"
+    }
   ]
 }

@@ -82,4 +82,37 @@ app.use("/api/alerts", alertRoutes);
 
 app.use("/api", referenceRoutes);
 
+/**
+ * Unknown API routes answer JSON, not Express's HTML 404 page.
+ *
+ * The client parses every response as JSON, so an HTML body turned "that route
+ * does not exist" into a syntax error on the user's screen -- the exact
+ * failure services/authService.js had to work around.
+ */
+app.use("/api", (req, res) => {
+  res.status(404).json({
+    message: `No such endpoint: ${req.method} ${req.originalUrl}`,
+  });
+});
+
+/**
+ * The error handler.
+ *
+ * Without one, Express's default handler returned an HTML page with a full
+ * stack trace -- file paths and all -- for every failure, including ordinary
+ * 404s like "Live state not found". It now answers the status the thrower
+ * chose, as JSON, and the stack stays in the server log.
+ */
+app.use((error, req, res, next) => {
+  const status = Number(error.statusCode) || 500;
+
+  if (status >= 500) {
+    console.error(`${req.method} ${req.originalUrl} failed:`, error.stack);
+  }
+
+  res.status(status).json({
+    message: status >= 500 ? "Internal server error" : error.message,
+  });
+});
+
 module.exports = app;
